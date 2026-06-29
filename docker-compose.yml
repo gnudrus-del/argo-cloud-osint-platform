@@ -1,0 +1,27 @@
+services:
+  gufo-osint:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      OSINT_WEB_TOKEN: ${OSINT_WEB_TOKEN:?set OSINT_WEB_TOKEN before starting}
+      OSINT_SIGNUPS_ENABLED: ${OSINT_SIGNUPS_ENABLED:-0}
+      OSINT_SECURE_COOKIE: ${OSINT_SECURE_COOKIE:-0}
+      OSINT_HSTS: ${OSINT_HSTS:-0}
+      OSINT_SESSION_TTL_SECONDS: ${OSINT_SESSION_TTL_SECONDS:-28800}
+      BING_SEARCH_API_KEY: ${BING_SEARCH_API_KEY:-}
+      BRAVE_SEARCH_API_KEY: ${BRAVE_SEARCH_API_KEY:-}
+      SERPER_API_KEY: ${SERPER_API_KEY:-}
+      SHODAN_API_KEY: ${SHODAN_API_KEY:-}
+      CENSYS_API_ID: ${CENSYS_API_ID:-}
+      CENSYS_API_SECRET: ${CENSYS_API_SECRET:-}
+      HIBP_API_KEY: ${HIBP_API_KEY:-}
+      HUNTER_API_KEY: ${HUNTER_API_KEY:-}
+    volumes:
+      - gufo_jobs:/app/web_jobs
+      - gufo_reports:/app/reports
+    restart: unless-stopped
+
+volumes:
+  gufo_jobs:
+  gufo_reports:

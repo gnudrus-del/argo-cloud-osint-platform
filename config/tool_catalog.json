@@ -1,0 +1,314 @@
+{
+  "catalogo": [
+    {
+      "nome": "spiderfoot",
+      "repo": "https://github.com/smicallef/spiderfoot",
+      "categoria": ["osint_automation", "threat_intelligence", "domini", "ip", "email"],
+      "comando": "spiderfoot",
+      "variabile": "SPIDERFOOT_CMD",
+      "installazione": "repo locale o deploy SpiderFoot secondo documentazione ufficiale",
+      "automatico": "se configurato",
+      "uso": "Piattaforma OSINT esterna; il planner la seleziona su domini/IP/email autorizzati e la segnala come setup manuale se manca il comando."
+    },
+    {
+      "nome": "recon-ng",
+      "repo": "https://github.com/lanmaster53/recon-ng",
+      "categoria": ["framework", "domini", "aziende", "threat_intelligence"],
+      "comando": "recon-ng",
+      "variabile": "RECON_NG_CMD",
+      "installazione": "repo locale e setup Recon-ng secondo documentazione ufficiale",
+      "automatico": "se configurato",
+      "uso": "Framework OSINT modulare; il planner lo seleziona su domini/aziende autorizzati e lo segnala come setup manuale se manca il comando."
+    },
+    {
+      "nome": "intelowl",
+      "repo": "https://github.com/intelowlproject/IntelOwl",
+      "categoria": ["threat_intelligence", "ioc", "piattaforma"],
+      "comando": "",
+      "variabile": "INTELOWL_API_URL",
+      "installazione": "deploy docker secondo documentazione ufficiale",
+      "automatico": "api",
+      "uso": "Piattaforma esterna per analisi IOC; richiede istanza e API key."
+    },
+    {
+      "nome": "aleph",
+      "repo": "https://github.com/alephdata/aleph",
+      "categoria": ["documenti", "entita", "database"],
+      "comando": "",
+      "variabile": "ALEPH_API_KEY",
+      "installazione": "deploy secondo documentazione Aleph/OCCRP",
+      "automatico": "api",
+      "uso": "Ricerca documentale su istanza Aleph autorizzata; richiede API endpoint e key."
+    },
+    {
+      "nome": "sherlock",
+      "repo": "https://github.com/sherlock-project/sherlock",
+      "categoria": ["username", "socmint"],
+      "comando": "sherlock",
+      "variabile": "SHERLOCK_CMD",
+      "installazione": "pip install -e tools/repos/sherlock",
+      "automatico": "handle autorizzati",
+      "uso": "Ricerca username su siti pubblici, solo per target autorizzati."
+    },
+    {
+      "nome": "maigret",
+      "repo": "https://github.com/soxoj/maigret",
+      "categoria": ["username", "socmint"],
+      "comando": "maigret",
+      "variabile": "MAIGRET_CMD",
+      "installazione": "pip install maigret",
+      "automatico": "handle autorizzati",
+      "uso": "Ricerca username e profili pubblici su molti siti, solo con autorizzazione."
+    },
+    {
+      "nome": "social-analyzer",
+      "repo": "https://github.com/qeeqbox/social-analyzer",
+      "categoria": ["username", "socmint"],
+      "comando": "social-analyzer",
+      "variabile": "SOCIAL_ANALYZER_CMD",
+      "installazione": "pip install social-analyzer",
+      "automatico": "handle autorizzati",
+      "uso": "Analisi username su piattaforme pubbliche; risultati da verificare manualmente."
+    },
+    {
+      "nome": "whatsmyname",
+      "repo": "https://github.com/WebBreacher/WhatsMyName",
+      "categoria": ["username", "socmint", "dataset"],
+      "comando": "",
+      "variabile": "WHATSMYNAME_DATA",
+      "installazione": "git clone",
+      "automatico": "dataset",
+      "uso": "Dataset di siti per username; usato come fonte per generare verifiche pubbliche."
+    },
+    {
+      "nome": "holehe",
+      "repo": "https://github.com/megadose/holehe",
+      "categoria": ["email"],
+      "comando": "holehe",
+      "variabile": "HOLEHE_CMD",
+      "installazione": "pip install holehe",
+      "automatico": "email autorizzate",
+      "uso": "Verifica presenza email su servizi pubblici, solo con autorizzazione."
+    },
+    {
+      "nome": "h8mail",
+      "repo": "https://github.com/khast3x/h8mail",
+      "categoria": ["email", "breach_check"],
+      "comando": "h8mail",
+      "variabile": "H8MAIL_CMD",
+      "installazione": "pip install h8mail",
+      "automatico": "email autorizzate",
+      "uso": "Controllo breach intelligence su email autorizzate; niente dump di credenziali."
+    },
+    {
+      "nome": "theharvester",
+      "repo": "https://github.com/laramies/theHarvester",
+      "categoria": ["domini", "aziende", "email_pubbliche"],
+      "comando": "theHarvester",
+      "variabile": "THEHARVESTER_CMD",
+      "installazione": "pip install theHarvester",
+      "automatico": "domini autorizzati",
+      "uso": "Raccolta passiva di email, host e URL su domini autorizzati."
+    },
+    {
+      "nome": "phoneinfoga",
+      "repo": "https://github.com/sundowndev/phoneinfoga",
+      "categoria": ["telefono"],
+      "comando": "phoneinfoga",
+      "variabile": "PHONEINFOGA_CMD",
+      "installazione": "scarica release ufficiale o go install",
+      "automatico": "telefoni autorizzati",
+      "uso": "Analisi OSINT di numeri telefonici autorizzati; niente intestatari privati o indirizzi."
+    },
+    {
+      "nome": "amass",
+      "repo": "https://github.com/owasp-amass/amass",
+      "categoria": ["domini", "attack_surface"],
+      "comando": "amass",
+      "variabile": "AMASS_CMD",
+      "installazione": "winget install OWASP.Amass",
+      "automatico": "domini autorizzati",
+      "uso": "Mappatura passiva attack surface e sottodomini autorizzati."
+    },
+    {
+      "nome": "subfinder",
+      "repo": "https://github.com/projectdiscovery/subfinder",
+      "categoria": ["domini", "sottodomini"],
+      "comando": "subfinder",
+      "variabile": "SUBFINDER_CMD",
+      "installazione": "go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest",
+      "automatico": "domini autorizzati",
+      "uso": "Enumerazione passiva sottodomini su domini autorizzati."
+    },
+    {
+      "nome": "ghunt",
+      "repo": "https://github.com/mxrch/GHunt",
+      "categoria": ["email", "google"],
+      "comando": "ghunt",
+      "variabile": "GHUNT_CMD",
+      "installazione": "pip install ghunt",
+      "automatico": "email autorizzate se autenticato",
+      "uso": "OSINT Google su email autorizzate; richiede configurazione GHunt lecita."
+    },
+    {
+      "nome": "osintgram",
+      "repo": "https://github.com/Datalux/Osintgram",
+      "categoria": ["instagram", "socmint"],
+      "comando": "osintgram",
+      "variabile": "OSINTGRAM_CMD",
+      "installazione": "git clone e setup manuale",
+      "automatico": "disabilitato finche non autorizzato",
+      "uso": "Solo analisi di profili pubblici autorizzati; non usa scraping dietro login non consentito."
+    },
+    {
+      "nome": "toutatis",
+      "repo": "https://github.com/megadose/toutatis",
+      "categoria": ["instagram", "socmint"],
+      "comando": "toutatis",
+      "variabile": "TOUTATIS_CMD",
+      "installazione": "pip install toutatis",
+      "automatico": "handle autorizzati se token configurato",
+      "uso": "Analisi Instagram autorizzata; richiede token/sessione lecita."
+    },
+    {
+      "nome": "exiftool",
+      "repo": "https://github.com/exiftool/exiftool",
+      "categoria": ["media", "metadati"],
+      "comando": "exiftool",
+      "variabile": "EXIFTOOL_CMD",
+      "installazione": "winget install OliverBetz.ExifTool",
+      "automatico": "file media",
+      "uso": "Estrazione metadati da file media locali autorizzati."
+    },
+    {
+      "nome": "singlefile",
+      "repo": "https://github.com/gildas-lormeau/SingleFile",
+      "categoria": ["archiviazione", "fonti"],
+      "comando": "single-file",
+      "variabile": "SINGLEFILE_CMD",
+      "installazione": "npm install -g single-file-cli",
+      "automatico": "url seed",
+      "uso": "Archiviazione locale di pagine pubbliche citate nel report."
+    },
+    {
+      "nome": "socialscan",
+      "repo": "https://github.com/iojw/socialscan",
+      "categoria": ["email", "username"],
+      "comando": "socialscan",
+      "variabile": "SOCIALSCAN_CMD",
+      "installazione": "pip install socialscan",
+      "automatico": "email/handle autorizzati",
+      "uso": "Controllo presenza pubblica di username/email, solo con autorizzazione."
+    },
+    {
+      "nome": "waybackurls",
+      "repo": "https://github.com/tomnomnom/waybackurls",
+      "categoria": ["domini", "archivi_web", "wayback"],
+      "comando": "waybackurls",
+      "variabile": "WAYBACKURLS_CMD",
+      "installazione": "go install github.com/tomnomnom/waybackurls@latest",
+      "automatico": "domini autorizzati",
+      "uso": "URL storici pubblici da archivi web per dominio autorizzato."
+    },
+    {
+      "nome": "gau",
+      "repo": "https://github.com/lc/gau",
+      "categoria": ["domini", "archivi_web"],
+      "comando": "gau",
+      "variabile": "GAU_CMD",
+      "installazione": "go install github.com/lc/gau/v2/cmd/gau@latest",
+      "automatico": "domini autorizzati",
+      "uso": "Raccolta URL pubblici archiviati per dominio autorizzato."
+    },
+    {
+      "nome": "gitleaks",
+      "repo": "https://github.com/gitleaks/gitleaks",
+      "categoria": ["opsec", "segreti", "repository_locali"],
+      "comando": "gitleaks",
+      "variabile": "GITLEAKS_CMD",
+      "installazione": "winget install Gitleaks.Gitleaks",
+      "automatico": "repository locali autorizzati",
+      "uso": "Ricerca segreti in repository o file locali autorizzati."
+    },
+    {
+      "nome": "shodan",
+      "repo": "https://github.com/achillean/shodan-python",
+      "categoria": ["ip", "domini", "servizio_api"],
+      "comando": "shodan",
+      "variabile": "SHODAN_API_KEY",
+      "installazione": "pip install shodan",
+      "automatico": "api key",
+      "uso": "Lookup passivo Shodan su IP/domini autorizzati."
+    },
+    {
+      "nome": "censys",
+      "repo": "https://github.com/censys/censys-python",
+      "categoria": ["ip", "domini", "certificati", "servizio_api"],
+      "comando": "censys",
+      "variabile": "CENSYS_API_ID/CENSYS_API_SECRET",
+      "installazione": "pip install censys",
+      "automatico": "api key",
+      "uso": "Lookup Censys passivo su IP/domini/certificati autorizzati."
+    },
+    {
+      "nome": "haveibeenpwned",
+      "repo": "",
+      "categoria": ["email", "breach_check", "servizio_api"],
+      "comando": "",
+      "variabile": "HIBP_API_KEY",
+      "installazione": "configura API key",
+      "automatico": "api key",
+      "uso": "Controllo breach su email autorizzate; niente password, dump o credenziali."
+    },
+    {
+      "nome": "hunter",
+      "repo": "",
+      "categoria": ["domini", "email_pubbliche", "servizio_api"],
+      "comando": "",
+      "variabile": "HUNTER_API_KEY",
+      "installazione": "configura API key",
+      "automatico": "api key",
+      "uso": "Ricerca email aziendali pubbliche tramite Hunter.io su domini autorizzati."
+    },
+    {
+      "nome": "intelx",
+      "repo": "https://github.com/IntelligenceX/SDK",
+      "categoria": ["servizio_api", "breach_check", "documenti"],
+      "comando": "",
+      "variabile": "INTELX_API_KEY",
+      "installazione": "configura API key",
+      "automatico": "api key",
+      "uso": "Ricerca IntelligenceX su fonti autorizzate; niente acquisizione di dati rubati."
+    },
+    {
+      "nome": "epieos",
+      "repo": "",
+      "categoria": ["email", "servizio_web"],
+      "comando": "",
+      "variabile": "EPIEOS_API_KEY",
+      "installazione": "configura API key se disponibile",
+      "automatico": "api key",
+      "uso": "Lookup email/telefono autorizzato tramite servizio Epieos, se hai accesso lecito."
+    },
+    {
+      "nome": "wayback-machine",
+      "repo": "",
+      "categoria": ["archivi_web", "fonti"],
+      "comando": "",
+      "variabile": "",
+      "installazione": "integrato via URL seed e waybackurls/gau",
+      "automatico": "sempre per domini",
+      "uso": "Fonti web archiviate via Wayback Machine, waybackurls e dork generati."
+    },
+    {
+      "nome": "awesome-osint",
+      "repo": "https://github.com/jivoi/awesome-osint",
+      "categoria": ["fonti", "risorse"],
+      "comando": "",
+      "variabile": "",
+      "installazione": "git clone https://github.com/jivoi/awesome-osint",
+      "automatico": "riferimento",
+      "uso": "Lista curata di fonti e strumenti OSINT, usata come riferimento."
+    }
+  ]
+}

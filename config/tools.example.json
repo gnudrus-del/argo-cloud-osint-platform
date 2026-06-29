@@ -1,0 +1,31 @@
+{
+  "search_providers": {
+    "bing": "BING_SEARCH_API_KEY",
+    "brave": "BRAVE_SEARCH_API_KEY",
+    "serper": "SERPER_API_KEY"
+  },
+  "external_tools": {
+    "sherlock": "SHERLOCK_CMD",
+    "maigret": "MAIGRET_CMD",
+    "holehe": "HOLEHE_CMD",
+    "socialscan": "SOCIALSCAN_CMD",
+    "nmap": "NMAP_CMD",
+    "theharvester": "THEHARVESTER_CMD",
+    "amass": "AMASS_CMD",
+    "subfinder": "SUBFINDER_CMD",
+    "waybackurls": "WAYBACKURLS_CMD",
+    "gau": "GAU_CMD",
+    "gitleaks": "GITLEAKS_CMD",
+    "exiftool": "EXIFTOOL_CMD",
+    "ffprobe": "FFPROBE_CMD",
+    "firefox": "FIREFOX_BIN",
+    "tor_browser": "TOR_BROWSER_BIN",
+    "tor_socks_proxy": "TOR_SOCKS_PROXY"
+  },
+  "web": {
+    "token": "OSINT_WEB_TOKEN",
+    "job_dir": "OSINT_JOB_DIR",
+    "host": "OSINT_WEB_HOST",
+    "port": "OSINT_WEB_PORT"
+  }
+}
