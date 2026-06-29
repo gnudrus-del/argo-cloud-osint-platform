@@ -1,0 +1,20 @@
+[project]
+name = "osint-bot"
+version = "0.1.0"
+description = "Defensive OSINT research bot with sourced Markdown and JSON reports."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Codex" }]
+dependencies = [
+  "reportlab>=4.0",
+]
+
+[project.scripts]
+osint-bot = "osint_bot.cli:main"
+
+[tool.setuptools]
+packages = ["osint_bot"]
+
+[tool.setuptools.package-data]
+osint_bot = ["web_static/*"]

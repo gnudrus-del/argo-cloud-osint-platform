@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Argo Cloud — Open Source Intelligence</title>
+    <link rel="icon" type="image/svg+xml" href="/argo-logo.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/app.css">
+  </head>
+  <body>
+    <section id="authScreen" class="authScreen">
+      <div class="authBox">
+        <div class="authBrand">
+          <img src="/argo-logo.svg" alt="Argo logo" class="brandLogo">
+          <div>
+            <h1 class="brandWordmark"><span class="brand-ink">Argo</span> <span class="brand-gold">Cloud</span></h1>
+            <p class="brandTag">Open Source Intelligence</p>
+          </div>
+        </div>
+        <div class="authTabs">
+          <button id="loginTab" class="active" type="button">Accedi</button>
+          <button id="signupTab" type="button">Iscriviti gratis</button>
+        </div>
+        <label>Username
+          <input id="authUser" autocomplete="username" placeholder="analyst">
+        </label>
+        <label id="authEmailRow" class="hidden">Email
+          <input id="authEmail" autocomplete="email" type="email" placeholder="nome@example.com">
+        </label>
+        <label>Password
+          <input id="authPass" autocomplete="current-password" type="password" placeholder="minimo 12 caratteri">
+        </label>
+        <button id="authSubmit" type="button">Accedi</button>
+        <p id="authMessage" class="authMessage"></p>
+      </div>
+    </section>
+
+    <div id="appShell" class="shell hidden">
+      <aside class="side">
+        <div class="brand">
+          <img src="/argo-logo.svg" alt="Argo logo" class="brandLogo">
+          <div>
+            <strong class="brandWordmark sidebarBrand"><span class="brand-ink">Argo</span> <span class="brand-gold">Cloud</span></strong>
+            <span id="accountPlan" class="brandTag">Open Source Intelligence</span>
+          </div>
+        </div>
+        <nav>
+          <button class="nav active" data-panel="dashboard">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 13h7V4H4zM13 21h7V8h-7zM4 21h7v-5H4zM13 4v2h7V4z"/></svg>
+            Dashboard
+          </button>
+          <button class="nav" data-panel="cases">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10a2 2 0 0 1-2 2H3z"/></svg>
+            Casi
+          </button>
+          <button class="nav" data-panel="investigate">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4z"/></svg>
+            Ricerca
+          </button>
+          <button class="nav" data-panel="jobs">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14v4H5zM5 12h14v7H5z"/></svg>
+            Report
+          </button>
+          <button class="nav" data-panel="media">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 13l2.5-2.5L16 16"/></svg>
+            Media
+          </button>
+          <button class="nav" data-panel="keys">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 8a4 4 0 1 1-3.6 5.7L4 20h3v-3h3v-3l.4-.4A4 4 0 0 1 14 8z"/></svg>
+            Chiavi API
+          </button>
+          <button class="nav" data-panel="entity">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Profilo
+          </button>
+          <button class="nav" data-panel="opsec">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V7l8-4z"/><path d="M9 12l2 2 4-5"/></svg>
+            OPSEC
+          </button>
+          <button class="nav" data-panel="privacy">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Privacy
+          </button>
+        </nav>
+        <div class="status">
+          <span id="healthDot"></span>
+          <span id="healthText">API</span>
+        </div>
+        <button id="logoutBtn" class="logout" type="button">Esci</button>
+      </aside>
+
+      <main>
+        <section class="topbar">
+          <div>
+            <h1>Nuova ricerca</h1>
+            <p>Compila i dati. Le aree sono tutte attive: spunta solo deep/dark web o red team se servono.</p>
+          </div>
+          <div class="topActions">
+            <label>Palette
+              <select id="themeSelect">
+                <option value="notte">Notte azzurra</option>
+                <option value="ghiaccio">Ghiaccio</option>
+                <option value="bosco">Bosco scuro</option>
+                <option value="ambra">Ambra</option>
+              </select>
+            </label>
+            <button id="refreshJobs" class="iconButton" title="Aggiorna report">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v6h-6"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <section id="panel-dashboard" class="panel active">
+          <section class="surface heroSearch">
+            <h2 class="heroTitle">Motore OSINT gratuito per ricerche autorizzate</h2>
+            <p class="heroSub">Cerca una entità — nome, username, email, telefono, dominio, azienda, IP o wallet — e Argo aggrega le fonti pubbliche in un profilo verificabile.</p>
+            <div class="globalSearchBar">
+              <div class="globalSearchInputWrap">
+                <svg class="globalSearchIcon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4z"/></svg>
+                <input id="globalSearch" type="search" autocomplete="off" placeholder="es. mario.rossi@example.com · @username · example.com · +39 333… · bc1q…">
+                <span id="detectedType" class="detectedType muted">tipo: —</span>
+              </div>
+              <select id="dashCase" title="Caso a cui collegare la ricerca">
+                <option value="">— Caso (auto) —</option>
+              </select>
+              <button id="globalSearchBtn" type="button">Cerca</button>
+            </div>
+            <p class="heroLegal">⚖️ Usare solo per attività lecite, autorizzate o con base giuridica documentata. Per email, telefoni e dati personali serve un caso con base giuridica.</p>
+            <ol class="onboarding" aria-label="Come funziona">
+              <li><span class="obNum">1</span> Crea caso</li>
+              <li><span class="obNum">2</span> Base giuridica</li>
+              <li><span class="obNum">3</span> Cerca entità</li>
+              <li><span class="obNum">4</span> Verifica fonti</li>
+              <li><span class="obNum">5</span> Genera report</li>
+            </ol>
+          </section>
+
+          <div class="dashGrid">
+            <section class="surface dashStats">
+              <div class="surfaceHead"><h2>Stato job</h2><span id="dashJobTotal" class="tag muted">0</span></div>
+              <div class="statTiles" id="dashStats">Carico…</div>
+            </section>
+            <section class="surface">
+              <div class="surfaceHead"><h2>Copertura fonti</h2><span id="dashCoverageTag" class="tag muted">—</span></div>
+              <div id="dashCoverage" class="coverageBox">Carico…</div>
+            </section>
+            <section class="surface dashWarn">
+              <div class="surfaceHead"><h2>Avvisi privacy / compliance</h2></div>
+              <div id="dashWarnings" class="warnBox">Carico…</div>
+            </section>
+            <section class="surface">
+              <div class="surfaceHead"><h2>Casi recenti</h2><span id="dashCasesTag" class="tag muted">0</span></div>
+              <div id="dashCases" class="jobs">Carico…</div>
+            </section>
+            <section class="surface">
+              <div class="surfaceHead"><h2>Report recenti</h2><span id="dashJobsTag" class="tag muted">0</span></div>
+              <div id="dashJobs" class="jobs">Carico…</div>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-cases" class="panel">
+          <div class="grid two casesLayout">
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>I tuoi casi</h2>
+                <span id="casesCount" class="tag muted">0</span>
+              </div>
+              <p class="modeHint">Ogni indagine e un <strong>caso</strong>. Specifica titolo, base giuridica e finalita. I job che lanci in Ricerca finiscono dentro il caso selezionato qui.</p>
+              <div id="casesList" class="jobs">Carico…</div>
+            </section>
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Nuovo caso</h2>
+                <span class="tag">trust-first</span>
+              </div>
+              <label>Titolo
+                <input id="caseTitle" placeholder="Esempio: Recon perimetro example.com — ingaggio 2026/03">
+              </label>
+              <label>Finalita
+                <textarea id="casePurpose" rows="3" placeholder="Perche stai facendo questa indagine? (per la finalita GDPR e per il RoPA esportabile)"></textarea>
+              </label>
+              <div class="formGrid">
+                <label>Base giuridica — tipo
+                  <select id="caseLegalType">
+                    <option value="consent">Consenso</option>
+                    <option value="contract">Contratto / ingaggio firmato</option>
+                    <option value="legitimate_interest">Interesse legittimo</option>
+                    <option value="legal_obligation">Obbligo di legge</option>
+                    <option value="public_task">Compito di interesse pubblico</option>
+                    <option value="vital_interest">Interesse vitale</option>
+                    <option value="unspecified">Non specificata (sconsigliato)</option>
+                  </select>
+                </label>
+                <label>Riferimento mandato / contratto
+                  <input id="caseLegalRef" placeholder="Esempio: SOW-2026-018">
+                </label>
+              </div>
+              <label>Collaboratori (username separati da virgola)
+                <input id="caseCollabs" placeholder="bob, carol">
+              </label>
+              <label>Retention fino al (opzionale, ISO date)
+                <input id="caseRetention" placeholder="2026-12-31">
+              </label>
+              <label class="wideLabel">Scope autorizzato (una voce per riga)
+                <textarea id="caseAllowedTargets" rows="4" placeholder="example.com&#10;*.acme.com&#10;10.0.0.0/24&#10;https://app.example.com/&#10;@username"></textarea>
+              </label>
+              <p class="modeHint">
+                Formati ammessi: <code>dominio</code>, <code>*.dominio</code>,
+                <code>IP</code>, <code>CIDR</code>, <code>URL</code>, <code>@handle</code>.
+                Solo i target in questa lista possono essere bersaglio di moduli Red Team /
+                active recon. Vuoto = nessun modulo invasivo abilitato.
+              </p>
+              <div class="actions">
+                <button id="caseCreateBtn" type="button">Crea caso</button>
+              </div>
+              <p id="caseCreateMsg" class="authMessage"></p>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-investigate" class="panel">
+          <div class="grid two investigateGrid">
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Dati iniziali</h2>
+                <span class="tag">guidato</span>
+              </div>
+              <label class="wideLabel currentCaseLabel">Caso corrente
+                <select id="currentCase"><option value="">— seleziona o crea un caso —</option></select>
+              </label>
+              <div class="quickModes" aria-label="Percorsi rapidi">
+                <button class="quickMode active" data-mode="handle" type="button">Username / social</button>
+                <button class="quickMode" data-mode="domain" type="button">Dominio / azienda</button>
+                <button class="quickMode" data-mode="contact" type="button">Email / PEC / telefono</button>
+                <button class="quickMode" data-mode="media" type="button">Immagine / video</button>
+                <button class="quickMode" data-mode="crypto" type="button">Crypto wallet</button>
+              </div>
+              <p id="modeHint" class="modeHint">Username pubblico: Sherlock e Maigret cercano profili aperti; contatti solo se visibili pubblicamente nelle fonti.</p>
+
+              <!-- DYNAMIC INPUT AREA based on mode -->
+
+              <!-- Mode: handle (social grid) -->
+              <div id="socialPanel" class="modePanel">
+                <div class="surfaceSubhead">
+                  <h3>Username / Social</h3>
+                  <span class="muted">Clic su un social per inserire l'handle</span>
+                </div>
+                <div id="socialGrid" class="socialGrid">
+                  <!-- buttons populated by JS -->
+                </div>
+                <div id="socialInputs" class="socialInputs">
+                  <!-- inputs revealed on click -->
+                </div>
+              </div>
+
+              <!-- Mode: contact (email/pec/phone) -->
+              <div id="contactPanel" class="modePanel hidden">
+                <div class="surfaceSubhead">
+                  <h3>Contatti</h3>
+                  <span class="muted">Email, PEC, telefono</span>
+                </div>
+                <div class="contactBlocks">
+                  <fieldset class="contactBlock">
+                    <legend>Email (max 5)</legend>
+                    <input class="email-input" type="email" placeholder="email 1">
+                    <input class="email-input" type="email" placeholder="email 2">
+                    <input class="email-input" type="email" placeholder="email 3">
+                    <input class="email-input" type="email" placeholder="email 4">
+                    <input class="email-input" type="email" placeholder="email 5">
+                  </fieldset>
+                  <fieldset class="contactBlock">
+                    <legend>PEC (max 5)</legend>
+                    <input class="pec-input" type="email" placeholder="pec 1">
+                    <input class="pec-input" type="email" placeholder="pec 2">
+                    <input class="pec-input" type="email" placeholder="pec 3">
+                    <input class="pec-input" type="email" placeholder="pec 4">
+                    <input class="pec-input" type="email" placeholder="pec 5">
+                  </fieldset>
+                  <fieldset class="contactBlock">
+                    <legend>Telefono (max 5)</legend>
+                    <input class="phone-input" type="tel" placeholder="telefono 1">
+                    <input class="phone-input" type="tel" placeholder="telefono 2">
+                    <input class="phone-input" type="tel" placeholder="telefono 3">
+                    <input class="phone-input" type="tel" placeholder="telefono 4">
+                    <input class="phone-input" type="tel" placeholder="telefono 5">
+                  </fieldset>
+                </div>
+              </div>
+
+              <!-- Mode: media (file upload inline) -->
+              <div id="mediaPanel" class="modePanel hidden">
+                <div class="surfaceSubhead">
+                  <h3>Immagine / Video</h3>
+                  <span class="muted">Carica per analisi automatica EXIF + geo + reverse</span>
+                </div>
+                <div class="uploadDrop" id="uploadDrop">
+                  <input id="mediaFileInline" type="file" accept="image/*,video/*">
+                  <p class="uploadHint">Trascina qui o clicca per caricare. L'analisi parte automaticamente.</p>
+                </div>
+                <div id="mediaInlineResult" class="mediaResult muted">Nessun file caricato.</div>
+              </div>
+
+              <!-- Mode: domain / crypto -->
+              <div id="genericPanel" class="modePanel hidden">
+                <div class="surfaceSubhead">
+                  <h3>Target principale</h3>
+                  <span class="muted">Inserisci dominio, IP, wallet o nome azienda</span>
+                </div>
+                <input id="genericTarget" placeholder="example.com / 192.0.2.1 / bc1q... / Acme Spa">
+              </div>
+
+              <!-- Common fields (sempre visibili) -->
+              <div class="formGrid">
+                <label>Tipo
+                  <select id="targetType">
+                    <option value="auto">Rileva automaticamente</option>
+                    <option value="domain">Dominio</option>
+                    <option value="company">Azienda</option>
+                    <option value="person">Persona autorizzata</option>
+                    <option value="handle">Username / handle</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Telefono</option>
+                    <option value="crypto">Crypto / wallet</option>
+                    <option value="ip">IP</option>
+                    <option value="media">Immagine / video</option>
+                  </select>
+                </label>
+                <label>Fonti ricerca
+                  <select id="provider">
+                    <option value="all">Tutti disponibili + dork</option>
+                    <option value="brave">Brave</option>
+                    <option value="bing">Bing</option>
+                    <option value="serper">Serper</option>
+                    <option value="auto">Auto API</option>
+                    <option value="none">Solo dati inseriti</option>
+                  </select>
+                </label>
+                <label>Intensita
+                  <select id="intensity">
+                    <option value="meticulous">Meticolosa</option>
+                    <option value="deep">Massima autorizzata</option>
+                    <option value="quick">Rapida</option>
+                  </select>
+                </label>
+                <label>Pagine massime
+                  <input id="maxPages" type="number" min="1" max="80" value="24">
+                </label>
+              </div>
+
+              <label class="wideLabel">URL seed affidabili
+                <textarea id="seedUrls" rows="3" placeholder="Link pubblici verificabili, uno per riga"></textarea>
+              </label>
+
+              <label class="wideLabel">Informazioni gia note
+                <textarea id="knownFacts" rows="3" placeholder="Alias, indirizzi noti, fonti aggiuntive…"></textarea>
+              </label>
+
+              <div class="surfaceSubhead">
+                <h3>Aree da cercare</h3>
+                <span class="muted">Tutte attive di default. Flagga solo le opzioni gated.</span>
+              </div>
+              <p class="modeHint">Aree attive automaticamente: aziende/domini, OPSEC, geo, immagini/video, contatti, crypto, SOCMINT, HUMINT etico. Contatti sempre mostrati in chiaro.</p>
+
+              <div class="toggles">
+                <label class="gated">
+                  <input id="darkweb" type="checkbox">
+                  <span>deep/dark web (autorizza e abilita)</span>
+                </label>
+                <label class="gated">
+                  <input id="redTeamFlag" type="checkbox">
+                  <span>red team (gate autorizzazione)</span>
+                </label>
+                <label>
+                  <input id="confirmAuth" type="checkbox" checked>
+                  <span>target autorizzato</span>
+                </label>
+                <label>
+                  <input id="networkScan" type="checkbox">
+                  <span>network scan autorizzato (solo con target autorizzato)</span>
+                </label>
+              </div>
+
+              <div class="actions">
+                <button id="planBtn" class="secondary" type="button">Anteprima piano</button>
+                <button id="runBtn" type="button">Avvia ricerca</button>
+              </div>
+            </section>
+
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Piano automatico</h2>
+                <span id="planStatus" class="tag muted">in attesa</span>
+              </div>
+              <div id="planOutput" class="empty">Compila i campi e genera l'anteprima.</div>
+              <div class="capabilities" id="capabilities"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-jobs" class="panel">
+          <div class="grid two jobsLayout">
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Report investigativi</h2>
+                <span id="jobCount" class="tag muted">0</span>
+              </div>
+              <div id="jobsList" class="jobs"></div>
+            </section>
+            <section class="surface reportSurface">
+              <div class="surfaceHead">
+                <h2>Viewer</h2>
+                <div class="viewerActions">
+                  <a id="pdfLink" class="smallLink" href="#" target="_blank">PDF</a>
+                  <a id="jsonLink" class="smallLink" href="#" target="_blank">JSON</a>
+                  <a id="mdLink" class="smallLink" href="#" target="_blank">Markdown</a>
+                  <a id="forensicMdLink" class="smallLink" href="#" target="_blank">Forensic MD</a>
+                  <a id="forensicJsonLink" class="smallLink" href="#" target="_blank">Forensic JSON</a>
+                  <a id="redteamMdLink" class="smallLink" href="#" target="_blank">Red Team MD</a>
+                  <a id="redteamJsonLink" class="smallLink" href="#" target="_blank">Red Team JSON</a>
+                </div>
+              </div>
+              <div class="reportTabs" role="tablist" aria-label="Tipo report">
+                <button class="reportTab active" data-rtab="classic" type="button">Classico</button>
+                <button class="reportTab" data-rtab="forensic" type="button">Forensico (19 sezioni)</button>
+                <button class="reportTab" data-rtab="redteam" type="button">Red Team</button>
+              </div>
+              <div id="progressTimeline" class="progressTimeline"></div>
+              <div id="entityGraph" class="entityGraph hidden"></div>
+              <pre id="reportViewer">Seleziona un report completato.</pre>
+              <div id="forensicViewer" class="forensicViewer hidden">
+                <aside class="forensicNav" id="forensicNav" aria-label="Indice sezioni"></aside>
+                <article class="forensicBody" id="forensicBody"></article>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-media" class="panel">
+          <div class="grid two">
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Immagini e video</h2>
+                <span class="tag">analisi automatica</span>
+              </div>
+              <input id="mediaFile" type="file" accept="image/*,video/*">
+              <p class="modeHint">L'analisi parte appena selezioni il file: EXIF, geolocalizzazione, hash SHA-256, dimensioni, MIME. Se disponibili tool reverse, vengono lanciati automaticamente.</p>
+            </section>
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Risultato</h2>
+                <span class="tag muted">EXIF + geo + reverse</span>
+              </div>
+              <pre id="mediaOutput">Nessun file analizzato.</pre>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-keys" class="panel">
+          <div class="grid two keysLayout">
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Chiavi API per i tuoi tool</h2>
+                <span id="keysCount" class="tag muted">0 configurate</span>
+              </div>
+              <p class="modeHint">Le chiavi inserite qui sono usate solo dai job che lanci tu, non sono mai mostrate in chiaro nelle risposte del server: vedrai solo il preview <code>••••••</code>+ ultimi 4 caratteri. Lascia vuoto e salva per rimuovere.</p>
+              <div id="keysCatalog" class="keysCatalog"></div>
+            </section>
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Stato copertura</h2>
+                <span class="tag">per servizio</span>
+              </div>
+              <div id="keysStatus" class="capabilities"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-entity" class="panel">
+          <div class="entityProfileWrap">
+            <div id="entityProfileEmpty" class="entityProfileEmpty">
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="48" height="48"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              <p>Seleziona un report completato nella sezione <strong>Report</strong>, poi clicca <em>Apri profilo entità</em> per visualizzare il profilo aggregato qui.</p>
+            </div>
+            <div id="entityProfileCard" class="entityProfileCard hidden">
+              <header class="entityHeader">
+                <div class="entityAvatar" id="entityAvatar">?</div>
+                <div class="entityMeta">
+                  <h2 id="entityName">—</h2>
+                  <div class="entityTypeBadges" id="entityTypeBadges"></div>
+                  <div class="entityConfidence" id="entityConfidence"></div>
+                </div>
+                <div class="entityActions">
+                  <button id="entityPivotBtn" type="button" class="secondary">Pivot ricerca</button>
+                  <button id="entityReportBtn" type="button">Genera report</button>
+                </div>
+              </header>
+              <nav class="entityTabs" id="entityTabs" role="tablist">
+                <button class="entityTab active" data-etab="overview" type="button">Overview</button>
+                <button class="entityTab" data-etab="identifiers" type="button">Identificatori</button>
+                <button class="entityTab" data-etab="social" type="button">Social</button>
+                <button class="entityTab" data-etab="domains" type="button">Domini / Aziende</button>
+                <button class="entityTab" data-etab="contacts" type="button">Contatti</button>
+                <button class="entityTab" data-etab="media" type="button">Media / Geo</button>
+                <button class="entityTab" data-etab="crypto" type="button">Crypto</button>
+                <button class="entityTab" data-etab="evidences" type="button">Evidenze</button>
+                <button class="entityTab" data-etab="timeline" type="button">Timeline</button>
+                <button class="entityTab" data-etab="audit" type="button">Audit</button>
+              </nav>
+              <div id="entityTabBody" class="entityTabBody"></div>
+              <!-- Suggested actions panel -->
+              <aside class="suggestedActions" id="suggestedActions">
+                <h4>Azioni suggerite</h4>
+                <div id="suggestedList"></div>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section id="panel-opsec" class="panel">
+          <div class="grid two">
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Routing OPSEC</h2>
+                <span class="tag">controllato dal piano</span>
+              </div>
+              <p class="modeHint">L'OPSEC routing e gestito automaticamente dal planner in base al caso, al tipo di target e ai flag di autorizzazione.</p>
+              <ul class="securityList">
+                <li><strong>Standard protetto:</strong> default per target autorizzati senza necessita di isolamento.</li>
+                <li><strong>Mozilla/Firefox dedicato:</strong> attivato se la sorgente richiede un profilo separato.</li>
+                <li><strong>Tor isolato:</strong> obbligatorio per dark/deep web flaggato.</li>
+                <li><strong>Multi-provider:</strong> usato quando esistono API configurate per piu motori.</li>
+              </ul>
+              <label class="wideLabel">Override percorso OPSEC (opzionale)
+                <select id="sourceRoute">
+                  <option value="auto">Automatico (consigliato)</option>
+                  <option value="multi">Multi-provider controllato</option>
+                  <option value="standard">Standard protetto</option>
+                  <option value="firefox">Mozilla/Firefox dedicato</option>
+                  <option value="tor">Tor isolato</option>
+                </select>
+              </label>
+            </section>
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Audit e logging</h2>
+                <span id="planBadge" class="tag">Gratuito</span>
+              </div>
+              <ul class="securityList">
+                <li>Audit log con hash chain SHA-256 — ogni evento e tracciabile.</li>
+                <li>Login con IP loggato per accountability.</li>
+                <li>Email di verifica obbligatoria al primo signup.</li>
+                <li>Sessioni HttpOnly, CSRF, Secure cookie.</li>
+                <li>GDPR by-design: DSAR export/erase, tombstone, RoPA.</li>
+              </ul>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-privacy" class="panel">
+          <div class="grid two privacyLayout">
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Privacy Center</h2>
+                <span class="tag">GDPR</span>
+              </div>
+              <p class="modeHint">Hai il diritto di accedere, esportare o cancellare i dati associati al tuo account. Le richieste vengono processate entro 72 ore e registrate nel log di audit.</p>
+              <div class="privacyActions">
+                <div class="privacyCard">
+                  <h3>Esporta i tuoi dati</h3>
+                  <p>Genera un archivio JSON con tutti i tuoi casi, job, evidenze e log di audit.</p>
+                  <button id="privacyExportBtn" type="button">Richiedi esportazione</button>
+                  <div id="privacyExportResult" class="authMessage"></div>
+                </div>
+                <div class="privacyCard">
+                  <h3>Cancella account</h3>
+                  <p>Marca il tuo account per la cancellazione. I dati vengono tombstonati e rimossi nei termini di retention.</p>
+                  <label>Motivo (opzionale)
+                    <input id="privacyEraseReason" placeholder="es. fine indagine, cambio ruolo…">
+                  </label>
+                  <button id="privacyEraseBtn" type="button" class="danger">Richiedi cancellazione</button>
+                  <div id="privacyEraseResult" class="authMessage"></div>
+                </div>
+                <div class="privacyCard">
+                  <h3>Ottieni informazioni (DSAR)</h3>
+                  <p>Richiesta formale ex Art. 15 GDPR: categorie di dati, finalità, destinatari, retention.</p>
+                  <button id="privacyDsarBtn" type="button" class="secondary">Invia DSAR</button>
+                  <div id="privacyDsarResult" class="authMessage"></div>
+                </div>
+              </div>
+            </section>
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2>Log richieste privacy</h2>
+                <span class="tag muted">audit</span>
+              </div>
+              <div id="privacyLog" class="jobs">Carico…</div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- HighRiskResearchMode modal -->
+    <div id="highRiskModal" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-labelledby="hrModalTitle">
+      <div class="modalBox highRiskBox">
+        <h2 id="hrModalTitle">⚠ Modalità ad alto rischio</h2>
+        <p>Stai per abilitare <strong id="hrModeName">deep/dark web</strong>. Questa modalità accede a fonti sensibili e richiede:</p>
+        <ul>
+          <li>Base giuridica documentata nel caso corrente</li>
+          <li>Autorizzazione esplicita del responsabile dell'indagine</li>
+          <li>Isolamento OPSEC automatico (routing Tor)</li>
+        </ul>
+        <label class="wideLabel">Giustificazione obbligatoria
+          <textarea id="hrJustification" rows="3" placeholder="Descrivi perché questa modalità è necessaria per questa specifica indagine…"></textarea>
+        </label>
+        <label class="checkRow">
+          <input id="hrConfirm" type="checkbox">
+          <span>Confermo di avere l'autorizzazione scritta e base giuridica valida per questa ricerca.</span>
+        </label>
+        <div class="modalActions">
+          <button id="hrCancel" type="button" class="secondary">Annulla</button>
+          <button id="hrProceed" type="button">Abilita e procedi</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

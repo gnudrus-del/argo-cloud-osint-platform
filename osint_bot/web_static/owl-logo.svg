@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Light gray owl with blue eyes">
+  <defs>
+    <linearGradient id="body" x1="26" y1="16" x2="102" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f0f4f8"/>
+      <stop offset="1" stop-color="#aeb8c2"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="31" y1="52" x2="95" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d9e0e7"/>
+      <stop offset="1" stop-color="#8f9aa6"/>
+    </linearGradient>
+  </defs>
+  <path d="M29 38 42 16l22 15 22-15 13 22c9 11 14 26 12 43-3 28-23 44-47 44S20 109 17 81c-2-17 3-32 12-43Z" fill="url(#body)" stroke="#76818c" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M33 66c0 26 13 45 31 45S95 92 95 66c-9 12-19 18-31 18S42 78 33 66Z" fill="url(#wing)" opacity=".95"/>
+  <circle cx="48" cy="54" r="18" fill="#eef4f8" stroke="#8b98a4" stroke-width="3"/>
+  <circle cx="80" cy="54" r="18" fill="#eef4f8" stroke="#8b98a4" stroke-width="3"/>
+  <circle cx="48" cy="54" r="8" fill="#4bb6ff"/>
+  <circle cx="80" cy="54" r="8" fill="#4bb6ff"/>
+  <circle cx="50" cy="51" r="3" fill="#eaf8ff"/>
+  <circle cx="82" cy="51" r="3" fill="#eaf8ff"/>
+  <path d="M64 64 55 78h18L64 64Z" fill="#d8a64a" stroke="#936b23" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M42 96c8 8 36 8 44 0" fill="none" stroke="#75808a" stroke-width="4" stroke-linecap="round"/>
+</svg>

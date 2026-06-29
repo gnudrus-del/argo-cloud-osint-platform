@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+reports/
+web_jobs/
+.pytest_cache/
+
+# Tool di terze parti vendorizzati + binari (521M, 27 repo git annidati) — ricreabili, fuori dal versionamento
+tools/
+
+# Screenshot/temporanei
+tmp-*.png
+
+# Deploy secrets — mai in git
+deploy_artifacts/
+.env
+*.env
+secrets.env
