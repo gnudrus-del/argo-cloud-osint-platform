@@ -1,0 +1,35 @@
+changelog:
+  exclude:
+    labels:
+      - dependencies
+      - ignore-for-release
+    authors:
+      - dependabot
+      - github-actions
+  categories:
+    - title: 🚀 Features
+      labels:
+        - enhancement
+        - feature
+    - title: 🐛 Bug fixes
+      labels:
+        - bug
+        - bugfix
+    - title: 🔌 Connectors
+      labels:
+        - connector
+    - title: 🔐 Security
+      labels:
+        - security
+    - title: 📚 Documentation
+      labels:
+        - documentation
+        - docs
+    - title: 🧰 Maintenance / CI
+      labels:
+        - ci
+        - refactor
+        - chore
+    - title: 🔁 Other changes
+      labels:
+        - "*"

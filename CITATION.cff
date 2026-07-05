@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use Argo Cloud OSINT Platform in academic work, professional reports, or investigations, please cite it as follows."
+title: "Argo Cloud OSINT Platform"
+abstract: "Self-hosted defensive OSINT platform with CLI + web UI, BYOK connectors, SHA-256 audit chain, and STIX 2.1 / MISP / PDF / JSON / Markdown exports. Privacy-by-design, GDPR-aware, Apache-2.0."
+type: software
+authors:
+  - name: "Argo Cloud OSINT Platform contributors"
+repository-code: "https://github.com/gnudrus-del/argo-cloud-osint-platform"
+url: "https://github.com/gnudrus-del/argo-cloud-osint-platform"
+license: Apache-2.0
+version: "0.1.0"
+keywords:
+  - osint
+  - defensive-osint
+  - threat-intelligence
+  - self-hosted
+  - stix
+  - misp
+  - privacy-by-design
+  - gdpr

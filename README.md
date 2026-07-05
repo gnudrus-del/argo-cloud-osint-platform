@@ -1,201 +1,217 @@
-# OSINT Bot
+# Argo Cloud OSINT Platform
 
-Un bot CLI e piattaforma web per ricerche OSINT difensive e verificabili. Raccoglie solo informazioni pubbliche, conserva le fonti, applica limiti di velocita, rispetta `robots.txt` e genera report Markdown, JSON e PDF dalla UI web.
+> A self-hosted defensive OSINT platform for analysts who need sourced, auditable and privacy-aware investigations.
 
-## Uso etico
+[![CI](https://github.com/gnudrus-del/argo-cloud-osint-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/gnudrus-del/argo-cloud-osint-platform/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
+[![Made with Python](https://img.shields.io/badge/made%20with-python-3776ab.svg)](https://www.python.org/)
 
-Usalo solo per ricerche legittime: asset propri o autorizzati, aziende, domini, threat intelligence difensiva, due diligence professionale o ricerca di pubblico interesse. Per target personali il bot richiede conferma esplicita e redige i contatti per impostazione predefinita.
+Argo runs entirely on your infrastructure. It aggregates public sources (58 native connectors, key-free and BYOK), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. No telemetry, no cloud dependency, no vendor lock-in.
 
-Non e progettato per doxxing, stalking, aggiramento di login, scraping aggressivo, acquisto di dati, deanonymization o raccolta di dati sensibili.
+---
 
-## Setup
+## Why Argo?
 
-```powershell
-cd <path\to\argo-osint>
+Existing OSINT SaaS tools work well until you cannot send your case data to a third-party cloud — regulated investigations, corporate due diligence, journalist source-protection, legal cases with confidentiality obligations. Argo runs on **your** machine or VM. Your leads and findings never leave your perimeter.
+
+## Features
+
+- **CLI + web UI** — Python CLI for scripting; a lightweight web UI (no framework runtime bloat) for case management.
+- **Case-based investigations** — every query lives in a case with scope, Rules of Engagement, and DSAR (GDPR) endpoints.
+- **Privacy-by-design target handling** — personal targets require an explicit legal basis; contacts are redacted by default.
+- **BYOK provider model** — 15 optional providers (Shodan, VirusTotal, HIBP, SecurityTrails, etc.) use *your* API keys, never intermediated.
+- **58 native connectors** — 43 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, and more) + 15 BYOK.
+- **Sourced findings** — every finding carries evidence URLs, timestamps and confidence scoring.
+- **Audit chain (SHA-256)** — every event (login, search, finding, deletion) is appended to a hash-chained log. Tampering with a past event invalidates every subsequent hash. Same pattern as Certificate Transparency and Git.
+- **Markdown / JSON / PDF exports** — for analyst reports.
+- **STIX 2.1 bundle + MISP event exports** — for TIP integration.
+- **Connector/plugin architecture** — add a new source by implementing a small `BaseConnector` subclass.
+- **Docker + self-hosted deployment** — includes `Dockerfile`, `docker-compose.yml`, systemd unit, and a Caddy reverse-proxy recipe.
+
+## Use cases
+
+- **Defensive domain reconnaissance** — understand your own attack surface before an attacker does.
+- **Corporate due diligence** — verify partners/vendors with sourced evidence.
+- **Threat intelligence enrichment** — correlate observables (IPs, hashes, domains, wallets) with public feeds and your own MISP.
+- **Authorized username / email / domain investigations** — with legal-basis gating and consent tracking.
+- **Analyst reporting** — reproducible reports with audit chain for court-ready evidence.
+
+## What Argo does *not* do
+
+Argo is a **defensive** tool. It refuses to be a weapon.
+
+- **No doxxing.** Personal-target investigations require explicit legal basis and produce redacted output by default.
+- **No stalking.** Continuous monitoring of individuals is not offered.
+- **No login bypass, credential stuffing, or account takeover assistance.**
+- **No aggressive scraping.** All connectors respect rate limits and `robots.txt`.
+- **No unauthorized scans.** Active recon (port scan, content discovery) requires an in-scope case and produces audit evidence.
+- **No private-data purchase or "leak" resale enrichment.** BYOK integrations to HIBP/similar are for verification of *user-owned* accounts, not mass lookup.
+
+---
+
+## Quickstart (5 minutes)
+
+### Local install
+
+```bash
+git clone https://github.com/gnudrus-del/argo-cloud-osint-platform.git
+cd argo-cloud-osint-platform
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+# Linux/macOS: source .venv/bin/activate
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
 pip install -e .
 ```
 
-Configura almeno un provider di ricerca, oppure passa URL seed manuali. La modalita predefinita e `all`: usa tutte le API configurate e genera dork verificabili per Google, Bing, DuckDuckGo e Yandex.
+### Run the CLI
 
-```powershell
-$env:BING_SEARCH_API_KEY="..."
-$env:BRAVE_SEARCH_API_KEY="..."
-# oppure
-$env:SERPER_API_KEY="..."
-$env:SHODAN_API_KEY="..."
-$env:CENSYS_API_ID="..."
-$env:CENSYS_API_SECRET="..."
-$env:HIBP_API_KEY="..."
-$env:HUNTER_API_KEY="..."
-$env:INTELX_API_KEY="..."
-$env:EPIEOS_API_KEY="..."
+```bash
+argo-osint example.com --type domain --provider none --max-pages 1 \
+    --output-dir reports/smoke --format both
 ```
 
-Per salvare le chiavi nell'utente Windows senza inserirle nei file del progetto:
+### Run the web UI
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\set-api-keys.ps1
-```
-
-Riavvia poi la piattaforma: i processi gia avviati non leggono le nuove variabili d'ambiente.
-
-## Esempi
-
-Ricerca su un dominio:
-
-```powershell
-osint-bot example.com --type domain --depth 2 --max-results 12
-```
-
-Ricerca su un'azienda:
-
-```powershell
-osint-bot "Example Inc" --type company --depth 2
-```
-
-Ricerca autorizzata su una persona, con contatti redatti:
-
-```powershell
-osint-bot "Nome Cognome" --type person --confirm-authorization
-```
-
-Senza API, usando URL pubblici di partenza:
-
-```powershell
-osint-bot example.com --type domain --provider none --seed-url https://example.com
-```
-
-Comando naturale con scelta automatica degli agenti:
-
-```powershell
-osint-bot --command "Analizza example.com come dominio, valuta OPSEC, geo pubblica e report investigativo"
-```
-
-Avvio piattaforma web:
-
-```powershell
-$env:OSINT_WEB_TOKEN="scegli-un-token-lungo"
-$env:OSINT_SIGNUPS_ENABLED="1"
+```bash
+export OSINT_WEB_TOKEN="pick-a-long-random-token"
 python -m osint_bot.web --host 127.0.0.1 --port 8000
+# open http://127.0.0.1:8000
 ```
 
-Guida deployment: `DEPLOYMENT.md`.
+### Run with Docker
 
-Avvio con Docker:
-
-```powershell
-$env:OSINT_WEB_TOKEN="scegli-un-token-lungo"
+```bash
+export OSINT_WEB_TOKEN="pick-a-long-random-token"
 docker compose up --build
 ```
 
-Apri `http://127.0.0.1:8000`.
+Full walkthrough: [`docs/QUICKSTART.md`](docs/QUICKSTART.md).
 
-### Dashboard e ricerca globale
+---
 
-La home è una dashboard in stile motore di ricerca OSINT. Una barra di ricerca
-unica rileva automaticamente il tipo di entità inserita (nome, username, email,
-telefono, dominio, azienda, IP, wallet) e pre-compila il flusso di ricerca
-guidato, portando con sé il caso selezionato. Il rilevamento client-side serve
-solo a pre-compilare i campi: la classificazione autorevole resta server-side
-(`classify_target`).
+## Examples
 
-> Gating dati personali: per email, telefoni e nomi di persona la ricerca
-> richiede un caso attivo con base giuridica documentata e conferma di
-> autorizzazione. La barra non avvia automaticamente job su dati personali senza
-> un caso.
+Domain investigation, no API keys required:
 
-La dashboard aggrega, per l'utente corrente, casi recenti, report recenti, stato
-dei job, copertura delle fonti (provider e tool configurati via BYOK) e avvisi di
-privacy/compliance (es. casi senza base giuridica chiara). Tutti i dati arrivano
-dall'endpoint `GET /api/dashboard`, che riusa gli helper esistenti e non espone
-mai dati di altri utenti.
-
-### Profilo entità
-
-Da un report completato (sezione **Report** → *Apri profilo entità*) si apre il
-profilo aggregato dell'entità, costruito client-side dai dati del report del caso
-(nessun archivio cross-caso: persistenza **per-caso**, privacy-by-design). Il
-profilo è organizzato in tab — Overview, Identificatori, Social, Domini/Aziende,
-Contatti, Media/Geo, Crypto, Evidenze, Timeline, Audit — e mostra:
-
-- **Overview**: confidenza media, conteggi, avvertenze su dati incerti e
-  **omonimi** (identità simili non vengono mai unite automaticamente) e l'elenco
-  delle **fonti consultate** (provider di ricerca + host delle evidenze).
-- **Evidenze**: ogni finding con severità, valore, confidenza e **link cliccabili
-  alla fonte** (aperti in scheda isolata con `rel="noopener noreferrer"`).
-- **Audit**: tracciabilità del report (generazione, query verificabili, moduli
-  eseguiti). La catena di audit firmata SHA-256 resta lato server.
-
-I contatti sono mostrati con il valore già redatto lato server (`safe_display`).
-
-## Architettura core
-
-Il core e organizzato per moduli isolati: ogni tool OSINT viene eseguito tramite un plugin con input tipizzato e output normalizzato. La pipeline web usa una coda job in background, produce avanzamento progressivo, mantiene un audit log append-only e arricchisce i report con entita e relazioni. Il viewer web include timeline del job, export PDF e grafo entita con pivot assistito.
-
-Documenti tecnici:
-
-- `docs/ARCHITECTURE.md`: mappa attuale, debito tecnico, rischi e roadmap.
-- `docs/CONTRIBUTING_MODULES.md`: contratto per aggiungere nuovi moduli OSINT.
-
-## Repository e strumenti
-
-I repository OSINT curati sono nel catalogo `config/tool_catalog.json` e possono essere clonati con:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-repos.ps1 -CloneOnly
+```bash
+argo-osint example.com --type domain --provider none \
+    --output-dir reports/example --format both
 ```
 
-Gli agenti scelgono automaticamente gli strumenti in base al tipo di ricerca. Per esempio, su un dominio selezionano `theHarvester`, `amass`, `subfinder`, `waybackurls`, `gau`, `Shodan`, `Censys`, `SpiderFoot` e `Recon-ng` quando configurati; su username autorizzati selezionano `Sherlock`, `Maigret`, `Socialscan`, `Social Analyzer`, `Toutatis` e `Osintgram`; su email autorizzate selezionano `Holehe`, `Socialscan`, `h8mail` e `GHunt`.
+Domain investigation with providers (BYOK):
 
-Per username/social la UI imposta il percorso rapido `Username / social`: i tool cercano profili pubblici candidati. La piattaforma non recupera email o telefoni privati di registrazione dei social; puo raccogliere solo contatti pubblicamente visibili nelle fonti.
-
-Il report include sempre query/dork usati, fonti principali, checklist di verifica manuale e fascicolo finale separato in fatti osservati, inferenze e ipotesi operative. I dork e i link servizio non vengono trasformati in fatti: sono fonti da aprire e verificare.
-
-Per controllare quali comandi sono disponibili nel sistema:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-tools.ps1 -CheckOnly
+```bash
+export SHODAN_API_KEY=...
+export VIRUSTOTAL_API_KEY=...
+argo-osint example.com --type domain --provider all \
+    --output-dir reports/example-full --format both
 ```
 
-Esecuzione multi-agent con moduli difensivi:
+Company investigation:
 
-```powershell
-osint-bot example.com --type domain --agent planner --agent web --agent geo
+```bash
+argo-osint "Acme Corp" --type company --provider all \
+    --output-dir reports/acme --format both
 ```
 
-Wrapper per tool OSINT installati localmente:
+Authorized username investigation (requires case with legal basis):
 
-```powershell
-osint-bot myhandle --type handle --confirm-authorization --agent external --external-tool sherlock
-osint-bot myhandle --type handle --confirm-authorization --agent external --external-tool maigret
-osint-bot user@example.com --type email --confirm-authorization --agent external --external-tool holehe
-osint-bot example.com --type domain --confirm-authorization --allow-network-scan --agent external --external-tool nmap
+```bash
+argo-osint alice.example --type username --case-id CASE-2026-001 \
+    --output-dir reports/case-001 --format both
 ```
 
-Configura i path se i comandi non sono nel `PATH`:
+More: [`docs/EXAMPLES.md`](docs/EXAMPLES.md).
 
-```powershell
-$env:SHERLOCK_CMD="C:\tools\sherlock\sherlock.exe"
-$env:MAIGRET_CMD="C:\tools\maigret\maigret.exe"
-$env:HOLEHE_CMD="C:\tools\holehe\holehe.exe"
-$env:NMAP_CMD="C:\Program Files (x86)\Nmap\nmap.exe"
+---
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    CLI[CLI: argo-osint] --> ORCH
+    WEB[Web UI :8000] --> ORCH[Orchestrator]
+    ORCH --> REG[Connector Registry]
+    REG --> C1[crt.sh]
+    REG --> C2[RDAP / DNS / TLS]
+    REG --> C3[Shodan · VT · HIBP · ...]
+    REG --> C4[holehe / maigret / theHarvester]
+    REG --> Cn[+ 50 more]
+    ORCH --> STORE[(SQLite / Postgres)]
+    ORCH --> AUDIT[(SHA-256 audit chain)]
+    STORE --> EXPORT[Exports: MD / JSON / PDF / STIX 2.1 / MISP]
+    EXPORT --> REPORT[Analyst report]
 ```
 
-I report vengono salvati in `reports/`.
+Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-## Output
+---
 
-Il Markdown e pensato per essere letto da un analista. Il JSON contiene le stesse evidenze in forma strutturata per successive pipeline. La piattaforma web genera anche PDF scaricabili per i report completati.
+## Plugin / connector architecture
 
-Se vuoi trasformarlo in un bot Telegram, Discord o web app, il punto di ingresso da riusare e `osint_bot.cli.run_investigation`.
+A connector implements one small interface (`BaseConnector`) that takes a target and returns `Finding` objects with evidence URLs and confidence. A connector declares:
 
-## Cosa non fa
+- **Input types** it accepts (domain, ip, email, handle, phone, wallet, …).
+- **Action class** — `passive` (public data only), `active` (touches target), or `intrusive` (gated).
+- **Rate limit** — per-minute, per-day and burst.
+- **Legal note** — human-readable summary of what data it exposes and when it should not be used.
+- **Optional key** — `required_key` names an env var; if unset, the connector reports `missing_key` cleanly.
 
-- Non esegue scraping aggressivo o bypass di limiti/robots/login.
-- Non cerca indirizzi privati, date di nascita o intestatari di numeri telefonici.
-- Non attribuisce wallet crypto, profili social o email a persone senza fonti indipendenti.
-- Non usa `nmap` su asset non autorizzati.
-- Non automatizza elicitazione ingannevole, impersonificazione o pressione psicologica.
-- Non accede a mercati, credenziali o contenuti illegali nel dark web.
+Add a new source in ~50 lines. See [`docs/CONNECTORS.md`](docs/CONNECTORS.md).
+
+---
+
+## Security and responsible use
+
+Argo is built for authorized investigations. Reading data about a person you have no legal basis to investigate is **your** legal problem, not Argo's — but Argo tries to make the right thing the easy thing.
+
+- **Security model:** [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
+- **Responsible use guide:** [`docs/RESPONSIBLE_USE.md`](docs/RESPONSIBLE_USE.md)
+- **Vulnerability disclosure:** [`SECURITY.md`](SECURITY.md)
+
+### Security model (short version)
+
+- Runs entirely local / self-hosted. Assumed threat model: single-tenant analyst on a trusted machine or VM.
+- **BYOK.** Argo does not intermediate third-party APIs. Your keys, your rate quota, your invoice.
+- **No hardcoded secrets.** All configuration via env vars; `.env.example` is documented; `.gitignore` blocks `.env`, `*.env`, `secrets.env`, `deploy_artifacts/`.
+- **Target data at rest** is stored under case scope in SQLite (default) or Postgres. Encryption-at-rest is currently **not** applied — treat the datastore as sensitive and use OS-level disk encryption. Tracked as a roadmap item.
+- **Audit chain (SHA-256)** for tamper-evidence. Full-chain verification is a single CLI command.
+- **DSAR (GDPR):** deletion and export endpoints are implemented.
+
+---
+
+## Roadmap
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md). Highlights of the near-term plan:
+
+- **Planned:** connector-key encryption at rest.
+- **Planned:** publish Docker image to GHCR.
+- **Planned:** first PyPI release under name `argo-cloud-osint`.
+- **Experimental:** AI enrichment (`ai` extra) — OCR + NER + language detection.
+- **In progress:** Next.js web frontend (`web-next/`) for richer graph visualization.
+
+---
+
+## Contributing
+
+Contributions welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) before opening a PR.
+
+For questions or ideas, open a [discussion](https://github.com/gnudrus-del/argo-cloud-osint-platform/discussions).
+
+---
+
+## Star the project
+
+If Argo helps your OSINT workflow, consider starring the repository so other analysts can find it. It is the single most useful thing you can do to support the project without writing code.
+
+---
+
+## License
+
+Apache License 2.0 — see [`LICENSE`](LICENSE).
+
+---
+
+## Documentazione in italiano
+
+Vedi [`docs/README.it.md`](docs/README.it.md) per la versione italiana.

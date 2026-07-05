@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest a new capability, connector, or workflow.
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a feature. Argo stays focused on **defensive, authorized, privacy-aware OSINT**.
+        Features that enable stalking, doxxing, credential harvesting, or unauthorized scans will be declined.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem you are trying to solve
+      description: What analyst workflow is currently blocked or awkward?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: If it is a new connector, name the public data source and its rate limits. If it is a new export format, name the standard.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This feature is compatible with defensive, authorized, privacy-aware use.
+          required: true
+        - label: I have checked that it is not already tracked in an existing issue or in ROADMAP.md.
+          required: true
