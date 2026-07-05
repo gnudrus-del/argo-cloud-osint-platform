@@ -110,7 +110,7 @@ Stato: implementata in questo snapshot.
 ## Come verificare la Fase 1
 
 ```powershell
-cd C:\Users\gnudr\Documents\Codex\2026-06-24\cffe\outputs\osint-bot
+cd <path\to\argo-osint>
 python -m compileall osint_bot
 python -m unittest discover -s tests
 node --check osint_bot\web_static\app.js

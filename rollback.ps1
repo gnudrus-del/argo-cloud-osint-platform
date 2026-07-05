@@ -34,16 +34,16 @@
     Salta la conferma interattiva (utile per automazioni).
 
 .EXAMPLE
-    .\rollback.ps1 -Host argo-cloud.duckdns.org -List
+    .\rollback.ps1 -Host argo.example.com -List
 
 .EXAMPLE
-    .\rollback.ps1 -Host argo-cloud.duckdns.org -DryRun
+    .\rollback.ps1 -Host argo.example.com -DryRun
 
 .EXAMPLE
-    .\rollback.ps1 -Host argo-cloud.duckdns.org
+    .\rollback.ps1 -Host argo.example.com
 
 .EXAMPLE
-    .\rollback.ps1 -Host argo-cloud.duckdns.org -BackupName 20260629-153002 -Force
+    .\rollback.ps1 -Host argo.example.com -BackupName 20260629-153002 -Force
 #>
 [CmdletBinding()]
 param(
@@ -54,7 +54,7 @@ param(
     [string] $User         = 'ubuntu',
     [string] $RemotePath   = '/opt/argo-osint',
     [string] $Service      = 'argo-osint',
-    [string] $HealthUrl    = 'https://argo-cloud.duckdns.org/api/dashboard',
+    [string] $HealthUrl    = 'https://argo.example.com/api/dashboard',
     [string] $IdentityFile = '',
     [int]    $Port         = 22,
     [string] $BackupName   = '',

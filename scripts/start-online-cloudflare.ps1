@@ -1,7 +1,7 @@
 param(
     [int]$Port = 8769,
     [string]$HostName = "127.0.0.1",
-    [string]$PythonPath = "C:\Users\gnudr\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe",
+    [string]$PythonPath = "",
     [string]$CloudflaredPath = ""
 )
 
