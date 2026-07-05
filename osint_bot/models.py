@@ -63,6 +63,16 @@ class Finding:
     severity: str = ""          # info | low | medium | high | critical
     attck_ttps: list[str] = field(default_factory=list)  # e.g. ["T1589.002"]
     remediation: str = ""
+    # Explainability (Phase 7): what differenziates Argo dalle vetrine OSINT.
+    # ``why_linked``: 1..N frasi in italiano sul motivo del collegamento al
+    # target (es. "stessa email vista su 2 fonti indipendenti",
+    # "username canonicalizzato identico"). Vuoto = sconosciuto.
+    why_linked: list[str] = field(default_factory=list)
+    # ``gaps``: cosa MANCA per confermare il finding. Es. "manca corroborazione
+    # da fonte categoria A/B", "manca timestamp di cattura", "necessaria
+    # verifica DNS aggiornata". L'utente legge questo e capisce subito cosa
+    # serve fare per innalzare la confidence.
+    gaps: list[str] = field(default_factory=list)
 
 
 @dataclass

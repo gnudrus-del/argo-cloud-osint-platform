@@ -472,6 +472,35 @@ TOOL_SPECS = {
         args=("-d", "{target}", "-t", "pdf,doc,docx,xls,xlsx,ppt,pptx", "-n", "10"),
         description="metagoofil: metadata extraction da documenti pubblici correlati al dominio.",
     ),
+    # ---------- People-search / social aggregation (v3) ----------
+    "blackbird": ToolSpec(
+        name="blackbird",
+        executable="blackbird",
+        env_var="BLACKBIRD_CMD",
+        args=("--username", "{target}"),
+        description="blackbird: ricerca username su 600+ siti pubblici (people-search context).",
+    ),
+    "instaloader": ToolSpec(
+        name="instaloader",
+        executable="instaloader",
+        env_var="INSTALOADER_CMD",
+        args=("--no-pictures", "--no-videos", "--no-metadata-json", "{target}"),
+        description="instaloader: metadata di profili Instagram pubblici (no scrape massivo).",
+    ),
+    "snscrape": ToolSpec(
+        name="snscrape",
+        executable="snscrape",
+        env_var="SNSCRAPE_CMD",
+        args=("--jsonl", "--max-results", "20", "twitter-user", "{target}"),
+        description="snscrape: scrape multi-piattaforma (X/Twitter, Reddit, Mastodon).",
+    ),
+    "yt_dlp": ToolSpec(
+        name="yt_dlp",
+        executable="yt-dlp",
+        env_var="YT_DLP_CMD",
+        args=("--dump-json", "--no-download", "{target}"),
+        description="yt-dlp: estrae solo metadata pubblici di video (no download di file).",
+    ),
 }
 
 

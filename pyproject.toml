@@ -8,6 +8,26 @@ license = { text = "MIT" }
 authors = [{ name = "Codex" }]
 dependencies = [
   "reportlab>=4.0",
+  "phonenumbers>=8.13",
+]
+
+# Estras opzionali: la piattaforma base gira senza. Ogni gruppo abilita una
+# capability aggiuntiva (Fasi 10-13). Neo4j e OpenSearch NON hanno deps Python
+# (usano le loro API REST via urllib): bastano i servizi.
+[project.optional-dependencies]
+ai = [
+  "pytesseract>=0.3.10",   # OCR (richiede il binario tesseract)
+  "Pillow>=10.0",
+  "spacy>=3.7",            # NER (scarica un modello: it_core_news_sm)
+  "langdetect>=1.0.9",
+  "deep-translator>=1.11", # traduzione (fallback: argostranslate offline)
+]
+postgres = [
+  "psycopg[binary]>=3.1",  # backend storage Postgres (DATABASE_URL=postgres://…)
+]
+queue = [
+  "celery>=5.3",           # backend coda Celery (QUEUE_BACKEND=celery)
+  "redis>=5.0",
 ]
 
 [project.scripts]

@@ -1,9 +1,36 @@
 import unittest
 
-from osint_bot.orchestrator import plan_from_command
+from osint_bot.orchestrator import ALWAYS_ON_AGENTS, choose_agents, plan_from_command
 
 
 class OrchestratorTests(unittest.TestCase):
+    def test_every_search_runs_all_always_on_agents(self):
+        # Ogni ricerca del sito deve includere tutti gli agenti sempre-attivi,
+        # a prescindere dal tipo di target o dai moduli selezionati.
+        for target_type in ("domain", "email", "phone", "handle", "crypto", "media", "ip"):
+            agents = choose_agents("ricerca generica", target_type, allow_darkweb=False, modules=[])
+            for expected in ALWAYS_ON_AGENTS:
+                self.assertIn(expected, agents, f"{expected} mancante per target_type={target_type}")
+
+    def test_gated_agents_stay_out_without_flags(self):
+        # darkweb e red_team NON devono comparire senza flag/modulo esplicito.
+        agents = choose_agents("analizza example.com", "domain", allow_darkweb=False, modules=[])
+        self.assertNotIn("darkweb", agents)
+        self.assertNotIn("red_team", agents)
+
+    def test_darkweb_agent_activates_with_flag(self):
+        agents = choose_agents("analizza example.com", "domain", allow_darkweb=True, modules=[])
+        self.assertIn("darkweb", agents)
+
+    def test_red_team_agent_activates_with_module(self):
+        agents = choose_agents("analizza example.com", "domain", allow_darkweb=False, modules=["red_team"])
+        self.assertIn("red_team", agents)
+
+    def test_plan_from_command_includes_full_agent_set(self):
+        profile = plan_from_command("Analizza example.com")
+        for expected in ALWAYS_ON_AGENTS:
+            self.assertIn(expected, profile.agents)
+
     def test_domain_command_selects_opsec_and_geo(self):
         profile = plan_from_command("Analizza example.com come dominio, valuta OPSEC e geo pubblica")
         self.assertEqual(profile.target, "example.com")

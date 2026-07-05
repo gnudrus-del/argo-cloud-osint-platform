@@ -111,7 +111,8 @@ $("loginTab").addEventListener("click", () => setAuthMode("login"));
 $("signupTab").addEventListener("click", () => setAuthMode("signup"));
 $("authSubmit").addEventListener("click", submitAuth);
 $("logoutBtn").addEventListener("click", logout);
-$("themeSelect").addEventListener("change", () => setTheme($("themeSelect").value));
+// Palette unica: ambra (selector rimosso dalla UI)
+// $("themeSelect") rimosso — la palette è fissa "ambra".
 $("planBtn").addEventListener("click", plan);
 $("runBtn").addEventListener("click", runJob);
 $("refreshJobs").addEventListener("click", loadJobs);
@@ -120,6 +121,12 @@ if ($("mediaFileInline")) $("mediaFileInline").addEventListener("change", upload
 if ($("caseCreateBtn")) $("caseCreateBtn").addEventListener("click", createCase);
 document.querySelectorAll(".quickMode").forEach((button) => {
   button.addEventListener("click", () => applyMode(button.dataset.mode));
+});
+// Refresh privacy badge quando cambia caso o tipo (target type)
+document.addEventListener("change", (e) => {
+  if (e.target && (e.target.id === "currentCase" || e.target.id === "targetType")) {
+    if (typeof updatePrivacyBadge === "function") updatePrivacyBadge();
+  }
 });
 if ($("globalSearchBtn")) $("globalSearchBtn").addEventListener("click", () => routeGlobalSearch($("globalSearch").value));
 if ($("globalSearch")) {
@@ -134,7 +141,7 @@ setupReportTabs();
 boot();
 
 async function boot() {
-  setTheme(localStorage.getItem("argo-theme") || localStorage.getItem("gufo-theme") || "notte");
+  setTheme("ambra"); // palette fissa
   applyMode(document.querySelector(".quickMode.active")?.dataset.mode || "handle");
   const status = await api("/api/auth/status", {}, true, false);
   if (!status.authenticated) {
@@ -158,7 +165,8 @@ async function boot() {
   await loadDashboard();
 }
 
-function setTheme(theme) {
+function setTheme(_theme) {
+  const theme = "ambra"; // palette unica, ignora valori legacy
   document.body.dataset.theme = theme;
   localStorage.setItem("argo-theme", theme);
   if ($("themeSelect")) $("themeSelect").value = theme;
@@ -218,10 +226,11 @@ const DEFAULT_MODULES = [
 ];
 
 function selectedModules() {
-  const mods = [...DEFAULT_MODULES];
-  if ($("darkweb") && $("darkweb").checked) mods.push("darkweb");
-  if ($("redTeamFlag") && $("redTeamFlag").checked) mods.push("red_team");
-  return mods;
+  // I moduli dei preset aggressivi attivi si sommano ai default (dedup finale).
+  const mods = new Set([...DEFAULT_MODULES, ...(state.activeModules || [])]);
+  if ($("darkweb") && $("darkweb").checked) mods.add("darkweb");
+  if ($("redTeamFlag") && $("redTeamFlag").checked) mods.add("red_team");
+  return [...mods];
 }
 
 function collectSocialHandles() {
@@ -340,14 +349,44 @@ async function runJob() {
   }
 }
 
+// Etichette leggibili per ogni agente + flag "gated" (richiede autorizzazione).
+const AGENT_LABELS = {
+  planner: "Pianificatore",
+  web: "Copertura web",
+  opsec: "OPSEC / segreti esposti",
+  geo: "Geolocalizzazione",
+  socmint: "SOCMINT (profili pubblici)",
+  media: "Media & metadati",
+  crypto: "Wallet crypto",
+  phone: "Analisi telefono",
+  humint: "HUMINT (piano etico)",
+  external: "Tool esterni",
+  reverse_account: "Reverse account (email/tel)",
+  darkweb: "Deep / dark web",
+  red_team: "Red team",
+};
+const GATED_AGENTS = new Set(["darkweb", "red_team"]);
+
+function agentChips(agents) {
+  if (!agents || !agents.length) return "<span class=\"muted\">-</span>";
+  return agents.map((a) => {
+    const label = AGENT_LABELS[a] || a;
+    const gated = GATED_AGENTS.has(a);
+    return `<span class="agentChip${gated ? " agentChip--gated" : ""}" title="${gated ? "Attivo: richiede autorizzazione/flag" : "Sempre attivo"}">${gated ? "🔒 " : ""}${escapeHtml(label)}</span>`;
+  }).join("");
+}
+
 function renderPlan(profile) {
   $("planOutput").innerHTML = "";
   const block = document.createElement("div");
   block.className = "planBlock";
+  const agents = profile.agents || [];
   block.innerHTML = `
     <p><strong>Target</strong>: ${escapeHtml(profile.target || "-")}</p>
     <p><strong>Tipo</strong>: ${escapeHtml(profile.target_type || "-")}</p>
-    <p><strong>Agenti</strong>: ${escapeHtml((profile.agents || []).join(", ") || "-")}</p>
+    <p><strong>Agenti attivi (${agents.length})</strong></p>
+    <div class="agentChips">${agentChips(agents)}</div>
+    <p class="muted agentChipsNote">Ogni ricerca esegue tutti gli agenti applicabili: quelli non pertinenti al target si auto-escludono. 🔒 = richiede flag/autorizzazione.</p>
     <p><strong>Strumenti</strong>: ${escapeHtml((profile.external_tools || []).join(", ") || "-")}</p>
     <p><strong>Seed URL</strong>: ${escapeHtml((profile.seed_urls || []).join(", ") || "-")}</p>
     <p><strong>Profondita</strong>: ${profile.depth} · <strong>Pagine</strong>: ${profile.max_pages}</p>
@@ -360,6 +399,21 @@ function renderPlan(profile) {
 async function loadCapabilities() {
   try {
     const data = await api("/api/capabilities");
+    // Se non-admin: NON mostrare la lista, solo un placeholder col contatore
+    // e un pulsante che apre il modal di sblocco (Ricerca aggressiva riusa lo stesso).
+    if (!data.admin_unlocked) {
+      const conns = (data.connectors && data.connectors[0]) || {};
+      const nOk = conns.count_ok || 0, nTot = conns.count || 0;
+      $("capabilities").innerHTML = `
+        <div class="capability" style="grid-column:1/-1;text-align:center;padding:18px">
+          <strong>🔒 Tool e connettori nascosti</strong>
+          <div class="muted" style="margin:6px 0 12px">${nOk} attivi su ${nTot}. Sblocca con la password amministratore per visualizzarli.</div>
+          <button type="button" class="btn" id="capUnlockBtn">🔐 Sblocca funzioni avanzate</button>
+        </div>`;
+      const b = document.getElementById("capUnlockBtn");
+      if (b) b.addEventListener("click", () => { if (typeof openAdminUnlockModal === "function") openAdminUnlockModal(); });
+      return;
+    }
     const providers = (data.search_providers || []).map((provider) => {
       const cls = provider.configured ? "ok" : "ko";
       return `
@@ -379,7 +433,25 @@ async function loadCapabilities() {
         </div>
       `;
     }).join("");
-    $("capabilities").innerHTML = providers + tools;
+    // Connettori (registro connectors/): tutti visibili con stato.
+    const connectors = (data.connectors || []).map((c) => {
+      const ok = c.status === "ok";
+      const cls = ok ? "ok" : "ko";
+      const tip = ok ? "attivo"
+        : (c.status === "needs_key" ? ("richiede API key: " + (c.needs || "")) : "richiede tool/credenziale (env)");
+      const sub = ok ? (c.input_types || []).join(", ")
+        : (c.status === "needs_key" ? ("API: " + (c.needs || "")) : "config mancante");
+      return `
+        <div class="capability">
+          <strong>${escapeHtml(c.label || c.name)}<span class="statusDot ${cls}" title="${escapeHtml(tip)}"></span></strong>
+          <span>${escapeHtml(sub)}</span>
+        </div>
+      `;
+    }).join("");
+    const connHeader = (data.connectors && data.connectors.length)
+      ? `<div class="capability" style="grid-column:1/-1;opacity:.7;font-size:12px;margin-top:6px">Connettori (${data.connectors.length})</div>`
+      : "";
+    $("capabilities").innerHTML = providers + tools + connHeader + connectors;
   } catch (error) {
     $("capabilities").textContent = error.message;
   }
@@ -391,19 +463,114 @@ async function loadJobs() {
     $("jobCount").textContent = String(data.jobs.length);
     $("jobsList").innerHTML = data.jobs.filter((job) => job.profile).map((job) => `
       <div class="job" data-id="${job.id}" data-status="${job.status}">
+        <button class="jobDeleteBtn" data-del-id="${job.id}" title="Elimina report e cancella tracce" aria-label="Elimina">🗑</button>
         <strong>${escapeHtml(job.profile.target)} · ${escapeHtml(job.profile.target_type)}</strong>
         <span>${escapeHtml(job.status)} · ${escapeHtml(jobStageLabel(job))} · ${escapeHtml(job.updated_at || job.created_at)}</span>
       </div>
     `).join("") || `<div class="empty">Nessun report.</div>`;
-    document.querySelectorAll(".job").forEach((item) => item.addEventListener("click", () => selectJob(item.dataset.id)));
+    document.querySelectorAll(".job").forEach((item) => item.addEventListener("click", (e) => {
+      // Evita di selezionare quando si clicca il cestino.
+      if (e.target.closest(".jobDeleteBtn")) return;
+      selectJob(item.dataset.id);
+    }));
+    document.querySelectorAll(".jobDeleteBtn").forEach((btn) => btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteJob(btn.dataset.delId);
+    }));
   } catch (error) {
     $("jobsList").textContent = error.message;
+  }
+}
+
+// Fase 3 — Banner HighRiskResearchMode. Inserito dinamicamente sopra il viewer
+// del report quando il job ha `high_risk.active=true`. Nessuna modifica a
+// index.html: minimizza il rischio di conflitto con editing in parallelo.
+function renderHighRiskBanner(job) {
+  // Rimuovi sempre l'eventuale banner precedente (job diverso, switch tab).
+  const old = document.getElementById("highRiskBanner");
+  if (old && old.parentNode) old.parentNode.removeChild(old);
+
+  const hr = job && job.high_risk;
+  if (!hr || !hr.active) return;
+
+  const anchor = document.getElementById("progressTimeline");
+  if (!anchor || !anchor.parentNode) return;
+
+  const wrap = document.createElement("div");
+  wrap.id = "highRiskBanner";
+  wrap.className = "highRiskBanner";
+  const reasons = (hr.reasons || []).map((r) => `<li>${escapeHtml(r)}</li>`).join("");
+  const restrictions = (hr.restrictions || []).slice(0, 6)
+    .map((r) => `<span class="srcChip">${escapeHtml(r.label || r.key || "")}</span>`).join("");
+  wrap.innerHTML = `
+    <div class="hrTitle">🛡️ ${escapeHtml(hr.banner || "Modalità' OPSEC attiva.")}</div>
+    ${reasons ? `<details class="hrDetails"><summary>Perché e' attiva (${(hr.reasons || []).length})</summary><ul>${reasons}</ul></details>` : ""}
+    ${restrictions ? `<div class="hrRestrictions">${restrictions}</div>` : ""}
+  `;
+  anchor.parentNode.insertBefore(wrap, anchor);
+}
+
+// Cancellazione granulare di un report (DELETE /api/jobs/<id>).
+// Conferma esplicita obbligatoria perché' rimuove file da disco + record DB.
+// L'audit log registra l'azione lato server (chain-of-custody preservata).
+async function deleteJob(id) {
+  if (!id) return;
+  const reason = prompt(
+    "Elimina questo report?\n\n" +
+    "I file (markdown/json/pdf/forensic/redteam) e il record DB vengono rimossi.\n" +
+    "L'evento resta tracciato nell'audit log.\n\n" +
+    "Motivo opzionale (max 500 char):", ""
+  );
+  if (reason === null) return; // utente ha annullato
+  try {
+    await api(`/api/jobs/${id}`, {
+      method: "DELETE",
+      body: JSON.stringify({ reason: String(reason || "").slice(0, 500) }),
+    });
+    // Se il job aperto era questo, pulisci viewer e banner.
+    if (state.currentJob === id) {
+      state.currentJob = null;
+      state.lastReport = null;
+      const viewer = $("reportViewer");
+      if (viewer) viewer.textContent = "Report eliminato.";
+      const banner = document.getElementById("highRiskBanner");
+      if (banner && banner.parentNode) banner.parentNode.removeChild(banner);
+    }
+    await loadJobs();
+    // Refresha anche dashboard recent-jobs se siamo lì.
+    if (typeof loadDashboard === "function") loadDashboard();
+  } catch (err) {
+    alert("Errore cancellazione: " + ((err && err.message) || err));
+  }
+}
+
+// Cancellazione caso: conferma esplicita + scelta cascade (elimina anche i job
+// del caso oppure li lascia come record orfani per audit).
+async function deleteCase(id, title) {
+  if (!id) return;
+  const cascade = confirm(
+    `Elimina il caso "${title || id}"?\n\n` +
+    "OK  = elimina anche TUTTI i job del caso (file + record).\n" +
+    "Annulla ora se non vuoi procedere.\n\n" +
+    "(Il prossimo passo chiederà la motivazione.)"
+  );
+  if (!cascade && !confirm("Vuoi eliminare SOLO il caso, lasciando i job come record orfani (per audit)?")) return;
+  const reason = prompt("Motivo (opzionale, max 500 char) per l'audit log:", "") ?? "";
+  try {
+    const url = `/api/cases/${id}${cascade ? "?cascade=1" : ""}`;
+    await api(url, { method: "DELETE", body: JSON.stringify({ reason: String(reason).slice(0, 500) }) });
+    await loadCases();
+    if (typeof loadDashboard === "function") loadDashboard();
+  } catch (err) {
+    alert("Errore cancellazione caso: " + ((err && err.message) || err));
   }
 }
 
 async function selectJobBase(id) {
   const job = await api(`/api/jobs/${id}`);
   state.currentJob = id;
+  state.currentJobData = job;  // per messaggi contestuali (skip reasons, ecc.)
+  renderHighRiskBanner(job);
   $("jsonLink").href = `/api/jobs/${id}/report.json`;
   $("mdLink").href = `/api/jobs/${id}/report.md`;
   $("pdfLink").href = `/api/jobs/${id}/report.pdf`;
@@ -411,6 +578,8 @@ async function selectJobBase(id) {
   $("forensicJsonLink").href = `/api/jobs/${id}/forensic.json`;
   if ($("redteamMdLink"))   $("redteamMdLink").href   = `/api/jobs/${id}/redteam.md`;
   if ($("redteamJsonLink")) $("redteamJsonLink").href = `/api/jobs/${id}/redteam.json`;
+  if ($("stixLink")) $("stixLink").href = `/api/jobs/${id}/stix.json`;
+  if ($("mispLink")) $("mispLink").href = `/api/jobs/${id}/misp.json`;
   renderProgress(job);
   if (job.status === "complete") {
     const markdownResponse = await fetch(`/api/jobs/${id}/report.md`);
@@ -481,12 +650,29 @@ function renderForensicViewer() {
   const report = which === "redteam" ? state.redteamReport : state.forensicReport;
   if (!report) {
     nav.innerHTML = "";
-    body.innerHTML = which === "redteam"
-      ? '<p class="muted">Nessun report Red Team per questo job. ' +
-        'Viene generato solo quando il modulo <code>red_team</code> è attivo ' +
-        'e il caso ha uno scope autorizzato non vuoto.</p>'
-      : '<p class="muted">Nessun report forensico per questo job. ' +
+    if (which === "redteam") {
+      // Cerco nella progress-timeline del job un evento redteam_report_skipped
+      // che spiega perché' e' stato saltato.
+      const skip = (state.currentJobData && state.currentJobData.progress || [])
+        .find((p) => p.stage === "redteam_report_skipped");
+      const skipReason = skip ? skip.message : "";
+      body.innerHTML =
+        '<div class="rtEmpty">' +
+          '<div class="rtEmptyIcon">⚔</div>' +
+          '<h3>Report Red Team non disponibile</h3>' +
+          (skipReason
+            ? `<p class="rtWhy">${escapeHtml(skipReason)}</p>`
+            : '<p class="muted">Il report viene generato quando: (1) il modulo <b>red_team</b> è attivo e (2) il caso ha almeno un target nello <b>scope autorizzato</b>.</p>'
+          ) +
+          '<div class="rtActions">' +
+            '<button type="button" class="btnPrimary" onclick="document.querySelector(&quot;.nav[data-panel=cases]&quot;).click()">Apri i Casi</button>' +
+            '<button type="button" class="btnGhost" onclick="document.querySelector(&quot;.nav[data-panel=investigate]&quot;).click()">Nuova ricerca</button>' +
+          '</div>' +
+        '</div>';
+    } else {
+      body.innerHTML = '<p class="muted">Nessun report forensico per questo job. ' +
         'I report forensici a 19 sezioni vengono generati per i job avviati dopo l\'ultimo deploy.</p>';
+    }
     return;
   }
   const sections = report.sections || [];
@@ -954,9 +1140,161 @@ function applyMode(mode) {
   if (active) active.classList.remove("hidden");
 
   if (mode === "domain" || mode === "crypto") {
-    const ph = mode === "domain" ? "example.com / 192.0.2.1 / Acme Spa"
-                                  : "address BTC/ETH o wallet pubblico";
+    const ph = mode === "domain" ? "example.com · 192.0.2.1 · Acme Spa"
+                                  : "address BTC / ETH (bc1q… / 0x…)";
     if ($("genericTarget")) $("genericTarget").placeholder = ph;
+  }
+  updatePrivacyBadge();
+}
+
+// Preset di ricerca aggressiva — MULTI-SELECT.
+// Ogni preset e' un toggle: attivare piu' preset combina i loro moduli/tool
+// e prende il massimo di intensity/pages. Non c'e' piu' "un solo attivo".
+const AGGRESSIVE_PRESETS = {
+  "username-full":   { mode: "handle",  type: "handle",  intensity: "deep",       pages: 60,
+                       modules: ["socmint", "phone_email"] },
+  "email-deep":      { mode: "contact", type: "email",   intensity: "deep",       pages: 40,
+                       modules: ["phone_email", "socmint"] },
+  "phone-osint":     { mode: "contact", type: "phone",   intensity: "deep",       pages: 40,
+                       modules: ["phone_email"] },
+  "person-alias":    { mode: "domain",  type: "person",  intensity: "meticulous", pages: 50,
+                       modules: ["socmint", "humint"] },
+  "domain-recon":    { mode: "domain",  type: "domain",  intensity: "meticulous", pages: 60,
+                       modules: ["company_domain", "opsec"] },
+  "wallet-tx":       { mode: "crypto",  type: "crypto",  intensity: "deep",       pages: 30,
+                       modules: ["crypto"] },
+};
+
+// Set live dei preset attivi (memoria, non persistente).
+state.activePresets = new Set();
+
+const INTENSITY_RANK = { "quick": 1, "deep": 2, "meticulous": 3 };
+
+function toggleAggressivePreset(key) {
+  const p = AGGRESSIVE_PRESETS[key];
+  if (!p) return;
+  if (state.activePresets.has(key)) state.activePresets.delete(key);
+  else state.activePresets.add(key);
+  refreshAggressiveState();
+}
+
+function refreshAggressiveState() {
+  const active = [...state.activePresets].map((k) => AGGRESSIVE_PRESETS[k]).filter(Boolean);
+  document.querySelectorAll(".ahBtn").forEach((b) => {
+    const on = state.activePresets.has(b.dataset.hunt);
+    b.classList.toggle("ahActive", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  if (!active.length) return;  // niente attivo: lascio il form allo stato corrente
+  // Prendi il MASSIMO di intensity e pages, unisci moduli (dedup)
+  let intensity = "quick", pages = 0;
+  const modules = new Set();
+  for (const p of active) {
+    if ((INTENSITY_RANK[p.intensity] || 0) > (INTENSITY_RANK[intensity] || 0)) intensity = p.intensity;
+    if (p.pages > pages) pages = p.pages;
+    (p.modules || []).forEach((m) => modules.add(m));
+  }
+  // Applica il "modo" del PRIMO preset attivato (senno' e' confondente)
+  const first = active[0];
+  applyMode(first.mode);
+  if ($("targetType")) $("targetType").value = first.type;
+  if ($("intensity"))  $("intensity").value  = intensity;
+  if ($("maxPages"))   $("maxPages").value   = String(pages);
+  if ($("provider"))   $("provider").value   = "all";
+  // Rendi disponibili le opzioni avanzate (i moduli combinati verranno mandati dal payload)
+  const adv = document.querySelector(".formAdvanced");
+  if (adv) adv.setAttribute("open", "open");
+  state.activeModules = [...modules];  // consumato in payload()
+  // Contatore visivo
+  const counter = document.getElementById("ahCounter");
+  if (counter) counter.textContent = `${active.length} preset attivi · ${modules.size} moduli`;
+  // Focus sul primo input rilevante
+  const focusMap = {
+    handle:  ".socialBtn",
+    contact: ".email-input, .phone-input",
+    domain:  "#genericTarget",
+    crypto:  "#genericTarget",
+    media:   "#mediaFileInline",
+  };
+  const sel = focusMap[first.mode];
+  if (sel) {
+    const el = document.querySelector(sel);
+    if (el && !el.matches(":focus")) el.scrollIntoView({behavior: "smooth", block: "center"});
+  }
+}
+
+// Backwards-compat: alcuni handler chiamano il nome vecchio.
+const applyAggressivePreset = toggleAggressivePreset;
+
+// Delegation globale: click su qualsiasi .ahBtn TOGGLA il preset
+document.addEventListener("click", (e) => {
+  const btn = e.target && e.target.closest && e.target.closest(".ahBtn");
+  if (btn && btn.dataset.hunt) toggleAggressivePreset(btn.dataset.hunt);
+});
+
+// --- Admin unlock (sblocca la sezione "Ricerca aggressiva") ---------------
+// Nessuna persistenza: chiudendo la scheda la sezione torna bloccata.
+// La password NON viene mai salvata in JS storage; e' verificata server-side.
+function openAdminUnlockModal() {
+  const m = $("adminUnlockModal");
+  if (!m) return;
+  m.classList.remove("hidden");
+  const msg = $("adminUnlockMsg"); if (msg) msg.textContent = "";
+  const u = $("adminUser"); if (u) u.value = "";
+  const p = $("adminPass"); if (p) { p.value = ""; setTimeout(() => u && u.focus(), 60); }
+}
+
+function closeAdminUnlockModal() {
+  const m = $("adminUnlockModal"); if (m) m.classList.add("hidden");
+  const p = $("adminPass"); if (p) p.value = ""; // non lasciare la password nel DOM
+}
+
+async function submitAdminUnlock() {
+  const u = ($("adminUser") && $("adminUser").value.trim()) || "";
+  const p = ($("adminPass") && $("adminPass").value) || "";
+  const msg = $("adminUnlockMsg");
+  if (msg) msg.textContent = "";
+  if (!u || !p) { if (msg) msg.textContent = "Compila username e password."; return; }
+  try {
+    await api("/api/admin/unlock", { method: "POST",
+      body: JSON.stringify({ username: u, password: p }) });
+    // Successo: rimuovo il gate + nascondo il teaser
+    const box = $("aggressiveHunt");
+    if (box) { box.removeAttribute("data-locked"); box.hidden = false; }
+    const teaser = $("ahLockedTeaser"); if (teaser) teaser.hidden = true;
+    closeAdminUnlockModal();
+  } catch (err) {
+    if (msg) msg.textContent = (err && err.message) || "Credenziali non valide.";
+  }
+}
+
+if ($("ahUnlockBtn")) $("ahUnlockBtn").addEventListener("click", openAdminUnlockModal);
+if ($("adminUnlockSubmit")) $("adminUnlockSubmit").addEventListener("click", submitAdminUnlock);
+if ($("adminUnlockCancel")) $("adminUnlockCancel").addEventListener("click", closeAdminUnlockModal);
+if ($("adminPass")) $("adminPass").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") submitAdminUnlock();
+});
+// Cliccando fuori dal box chiude
+if ($("adminUnlockModal")) $("adminUnlockModal").addEventListener("click", (e) => {
+  if (e.target && e.target.id === "adminUnlockModal") closeAdminUnlockModal();
+});
+
+// Mostra il badge "dato personale + base giuridica" quando rilevante
+function updatePrivacyBadge() {
+  const badge = $("privacyBadge"); const msg = $("privacyMsg");
+  if (!badge || !msg) return;
+  const mode = state.currentMode;
+  const hasCase = !!($("currentCase") && $("currentCase").value);
+  const personal = ["contact"].includes(mode) ||
+    ["email","phone","person"].includes(($("targetType") && $("targetType").value) || "");
+  if (!personal) { badge.classList.add("hidden"); return; }
+  badge.classList.remove("hidden");
+  if (hasCase) {
+    badge.dataset.state = "ok";
+    msg.textContent = "Dato personale: caso selezionato. Verifica la base giuridica sia documentata.";
+  } else {
+    badge.dataset.state = "warn";
+    msg.textContent = "⚠ Dato personale: seleziona prima un caso con base giuridica.";
   }
 }
 
@@ -1272,6 +1610,19 @@ function renderCasesList(cases) {
     const card = document.createElement("div");
     card.className = "job";
     card.dataset.status = c.status || "open";
+
+    // Bottone cancella (in alto a destra, allineato al pattern .jobDeleteBtn)
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "jobDeleteBtn caseDelBtn";
+    delBtn.title = "Elimina caso e le sue tracce";
+    delBtn.textContent = "🗑";
+    delBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteCase(c.id, c.title);
+    });
+    card.appendChild(delBtn);
+
     const title = document.createElement("strong");
     title.textContent = c.title;
     card.appendChild(title);
@@ -1511,6 +1862,42 @@ async function loadDashboard() {
   renderDashWarnings(data.warnings || []);
   renderDashRecentCases(data.recent_cases || [], totals.cases || 0);
   renderDashRecentJobs(data.recent_jobs || [], totals.jobs || 0);
+  // Metriche riservate all'admin: se non sbloccato → 403, mostro un CTA
+  // che apre il modal di sblocco. Se sbloccato → mostro i numeri.
+  loadAdminStats();
+}
+
+async function loadAdminStats() {
+  const box = document.getElementById("adminStatsBox");
+  if (!box) return;
+  try {
+    const s = await api("/api/admin/stats");
+    const u = s.users || {}, j = s.jobs || {}, a = s.audit || {};
+    box.innerHTML = `
+      <div class="capability" style="grid-column:1/-1"><strong>📊 Metriche piattaforma</strong></div>
+      <div class="capability"><strong>Utenti totali</strong><span>${u.total ?? 0}</span></div>
+      <div class="capability"><strong>Utenti verificati</strong><span>${u.verified ?? 0}</span></div>
+      <div class="capability"><strong>Attivi ultime 24h</strong><span>${u.active_24h ?? 0}</span></div>
+      <div class="capability"><strong>Attivi ultimi 7gg</strong><span>${u.active_7d ?? 0}</span></div>
+      <div class="capability"><strong>Nuove iscrizioni (7gg)</strong><span>${u.signups_7d ?? 0}</span></div>
+      <div class="capability"><strong>Job totali</strong><span>${j.total ?? 0}</span></div>
+      <div class="capability"><strong>Job per stato</strong><span>${
+        Object.entries(j.by_status || {}).map(([k,v])=>`${k}: ${v}`).join(" · ") || "—"
+      }</span></div>
+      <div class="capability"><strong>Audit chain</strong><span>${a.chain_valid ? "✓ integra" : "⚠ compromessa"} (${a.events_total ?? 0} eventi)</span></div>
+    `;
+    box.hidden = false;
+  } catch (err) {
+    // 403 = non-admin: mostro CTA discreta.
+    box.innerHTML = `
+      <div class="capability" style="grid-column:1/-1;text-align:center;padding:14px">
+        <span class="muted">📊 Metriche piattaforma riservate all'amministratore. </span>
+        <button type="button" class="btn" id="statsUnlockBtn" style="margin-left:8px">🔐 Sblocca</button>
+      </div>`;
+    const b = document.getElementById("statsUnlockBtn");
+    if (b) b.addEventListener("click", () => { if (typeof openAdminUnlockModal === "function") openAdminUnlockModal(); });
+    box.hidden = false;
+  }
 }
 
 function renderDashError(message) {

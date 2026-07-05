@@ -180,6 +180,164 @@ Da browser: `https://argo-tuonome.duckdns.org`
 3. Click sul link → account attivato
 4. Login
 
+## 7bis. Aggiornamenti successivi
+
+Una volta che la VM è in piedi, per pubblicare le modifiche locali ci sono due
+modalita' equivalenti:
+
+* **Bash (default consigliato — usabile anche dall'assistente):**
+  `./deploy.sh`, `./verify-live.sh`, `./rollback.sh` — wrapper sottili che
+  invocano i corrispondenti `.ps1` con i parametri giusti e l'host pubblico.
+* **PowerShell (manuale):** lancia direttamente [`deploy.ps1`](deploy.ps1),
+  [`verify-live.ps1`](verify-live.ps1), [`rollback.ps1`](rollback.ps1).
+
+Lo script copia **solo** `osint_bot/` in `/opt/argo-osint/osint_bot/`, quindi
+**non tocca** `.env`, `web_jobs/` né il `.venv` remoto.
+
+Copia **solo** `osint_bot/` in `/opt/argo-osint/osint_bot/`, quindi **non tocca**
+`.env`, `web_jobs/` né il `.venv` remoto. Esegue in ordine: test SSH → backup
+remoto (`osint_bot.bak-YYYYMMDD-HHMMSS`) → copia (rsync con `--delete`, fallback
+scp) → `sudo systemctl restart argo-osint` → status → health check su
+`/api/dashboard` (200/401/403 = backend attivo).
+
+**Prerequisiti:** client OpenSSH (`ssh`/`scp`, inclusi in Windows 10/11) e accesso
+con la stessa chiave SSH usata per la VM. `rsync` è opzionale (se assente usa scp).
+
+```bash
+# anteprima senza modificare la VM (consigliato la prima volta)
+./deploy.sh --dry-run
+
+# deploy reale
+./deploy.sh
+```
+
+Override host: `HOST=argo-altro.duckdns.org ./deploy.sh`. Parametri PowerShell
+utili (`-IdentityFile <chiave>`, `-Port <n>`, `-User`, `-RemotePath`, `-Service`,
+`-HealthUrl`) restano disponibili passando direttamente a `deploy.ps1`. Nessun
+IP/segreto è hardcoded in alcuno script.
+
+**Verifica automatica post-deploy** (read-only, solo HTTP, niente SSH):
+
+```bash
+./verify-live.sh
+```
+
+Controlla in sequenza: HTTP `/api/dashboard` (401/403/200 = nuovo backend, 404 =
+vecchio), marker `renderAuditTab` / `/api/dashboard` / `evidenceHostLabel` in
+`/app.js`, marker Fase 1 in `/app.css`, `id="panel-dashboard"` in `/`. Stampa
+`VERSIONE NUOVA ONLINE` oppure `VERSIONE INCOMPLETA / VECCHIA` con dettaglio.
+
+**Cache del browser:** dalla versione corrente del backend i file statici sono
+serviti con `Cache-Control: no-cache, must-revalidate` + `ETag`. Il browser
+rivalida ogni volta: 304 quando invariato, 200 con la nuova versione appena
+cambia. **Ctrl+F5 non è più necessario** dopo un deploy.
+
+**Rollback automatico** con `./rollback.sh` (sceglie da solo il backup piu'
+recente, ma puoi listare/selezionare):
+
+```bash
+./rollback.sh -List                                # elenca backup
+./rollback.sh -DryRun                              # anteprima
+./rollback.sh                                      # esecuzione (chiede 'yes')
+./rollback.sh -BackupName 20260629-153002 -Force   # backup specifico
+```
+
+Lo script salva sempre la versione corrente in `osint_bot.rollback-rescue-<ts>`
+prima di sostituirla, quindi **il rollback stesso e' annullabile**: in caso di
+errore stampa il comando di recupero.
+
+**Rollback manuale** (se non puoi usare lo script) — `deploy.ps1` stampa il
+comando esatto con il timestamp reale:
+
+```bash
+ssh ubuntu@<IP> "rm -rf /opt/argo-osint/osint_bot && mv /opt/argo-osint/osint_bot.bak-YYYYMMDD-HHMMSS /opt/argo-osint/osint_bot && sudo systemctl restart argo-osint"
+```
+
+## 7ter. Tool CLI esterni (`install-tools-vm.sh`)
+
+Per attivare i tool OSINT esterni (sherlock, maigret, holehe, subfinder, ...),
+copia ed esegui sulla VM lo script `scripts/install-tools-vm.sh`:
+
+```bash
+scp scripts/install-tools-vm.sh ubuntu@<HOST>:/tmp/
+ssh ubuntu@<HOST> 'sudo bash /tmp/install-tools-vm.sh'
+```
+
+Cosa fa (idempotente):
+
+* **Tier 1 (apt)** — whatweb, wafw00f, exiftool, dnstwist, dnsenum, whois, jq, curl, wget.
+* **Tier 2 (pip)** — venv dedicato `/opt/argo-tools/.venv` con sherlock-project,
+  maigret, holehe, theHarvester, socialscan, h8mail (symlinkati in
+  `/opt/argo-tools/bin`).
+* **Tier 3 (bin)** — binari precompilati dalle GitHub Releases: subfinder,
+  httpx, amass, trufflehog (in `/opt/argo-tools/bin`).
+* **Drop-in systemd** — `/etc/systemd/system/argo-osint.service.d/tools-path.conf`
+  estende il `PATH` del servizio includendo `/opt/argo-tools/bin`, riavvia
+  `argo-osint`. Il file della unit originale non viene toccato.
+
+Tool **NON installati per policy OPSEC** (richiedono autorizzazione esplicita
+prima dell'uso): `nmap`, `masscan`, `nuclei`, `wpscan`, `naabu`, `katana`.
+Installazione manuale con `sudo apt install <tool>` quando lo scope di un caso
+lo autorizza esplicitamente.
+
+Verifica:
+```bash
+sudo bash /tmp/install-tools-vm.sh --check     # lista locale
+```
+oppure dal pannello UI **Chiavi API** > sezione *Stato copertura*: dopo il
+restart del servizio (~30s di cache health-check) i tool installati mostrano
+il pallino verde.
+
+### Installer v2 (set completo)
+
+Per coprire tutti i ~60 tool del catalogo (oltre OSINT passivo, anche scanner
+attivi gated da scope/red-team policy, e tool che richiedono credenziali
+utente), esegui dopo il v1:
+
+```bash
+scp scripts/install-tools-vm-v2.sh ubuntu@<HOST>:/tmp/
+ssh ubuntu@<HOST> 'sudo bash /tmp/install-tools-vm-v2.sh'
+```
+
+Aggiunge (tutto in `/opt/argo-tools/`, drop-in systemd aggiornato):
+
+* **Tier 4 (apt)** — nmap, masscan, nikto, enum4linux, snmp/snmpwalk,
+  ffmpeg/ffprobe, fierce, gobuster, ffuf, smbmap, testssl.sh.
+* **Tier 5 (Go install)** — installa Go 1.22 in `/usr/local/go` e poi:
+  dnsx, naabu, katana, nuclei, dalfox, gospider, gau, hakrawler,
+  waybackurls, subjack, mosint (tutti in `/opt/argo-tools/go/bin`).
+* **Tier 6 (pip esteso)** — arjun, dirsearch, cloud-enum, recon-ng,
+  spiderfoot, social-analyzer, linkfinder, metagoofil, toutatis, ghunt,
+  censys, shodan, EyeWitness.
+* **Tier 7 (git clone + wrapper)** — osintgram, secretfinder, phunter,
+  git-dumper.
+* **Tier 8 (binary)** — gitleaks.
+* **Fix bug v1** — alias case-sensitive `theHarvester` (Linux è
+  case-sensitive, il symlink era stato fatto solo in minuscolo).
+
+**Tool che richiedono CREDENZIALI per funzionare** (la CLI è installata, ma
+la config è tua):
+
+| Tool | Cosa serve |
+|------|------------|
+| ghunt | `ghunt login` → cookie Google |
+| osintgram | login Instagram in `/opt/argo-tools/repos/osintgram/config/` |
+| censys | API key (`CENSYS_API_ID` + `CENSYS_API_SECRET`) |
+| shodan | `shodan init <API_KEY>` |
+| wpscan (se installato a mano) | `WPSCAN_API_TOKEN` |
+
+**Skip motivati**:
+* `wpscan` (Ruby + bundler complesso) — `sudo apt install ruby-dev && gem install wpscan`
+* `infoga` (Python 2 deprecato, repo upstream non mantenuto).
+
+Verifica integrazione con Argo via `external_tools.all_tools_health()`:
+```bash
+ssh ubuntu@<HOST> 'PATH=/opt/argo-tools/bin:$PATH \
+  /opt/argo-osint/.venv/bin/python -c \
+  "from osint_bot.external_tools import all_tools_health; \
+   print(len([t for t in all_tools_health() if t[\"available\"]]), \"available\")"'
+```
+
 ## 8. Hardening minimo addizionale
 
 ```bash

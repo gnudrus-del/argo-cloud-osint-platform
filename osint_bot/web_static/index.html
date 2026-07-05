@@ -11,31 +11,373 @@
     <link rel="stylesheet" href="/app.css">
   </head>
   <body>
-    <section id="authScreen" class="authScreen">
-      <div class="authBox">
-        <div class="authBrand">
-          <img src="/argo-logo.svg" alt="Argo logo" class="brandLogo">
-          <div>
-            <h1 class="brandWordmark"><span class="brand-ink">Argo</span> <span class="brand-gold">Cloud</span></h1>
-            <p class="brandTag">Open Source Intelligence</p>
+    <section id="authScreen" class="authScreen landing">
+      <!-- Cursor follower + mesh gradient background (fissi, non-interactive) -->
+      <div class="cursorBlob" aria-hidden="true"></div>
+      <div class="meshGradient" aria-hidden="true">
+        <span class="mesh mesh-1"></span>
+        <span class="mesh mesh-2"></span>
+        <span class="mesh mesh-3"></span>
+      </div>
+
+      <!-- Sticky nav landing -->
+      <header class="landingNav">
+        <a href="#top" class="landingBrand">
+          <img src="/argo-logo.svg" alt="" class="brandLogo">
+          <strong class="brandWordmark"><span class="brand-ink">Argo</span> <span class="brand-gold">Cloud</span></strong>
+        </a>
+        <nav class="landingNavLinks">
+          <a href="#why">Perché Argo</a>
+          <a href="#how">Come funziona</a>
+          <a href="#stack">Motore</a>
+          <a href="#start" class="landingNavCta">Inizia</a>
+        </nav>
+      </header>
+
+      <!-- HERO -->
+      <section class="hero" id="top">
+        <p class="heroEyebrow reveal">Open Source Intelligence · GDPR-oriented · court-ready</p>
+        <h1 class="heroTitle heroTitle--wow">
+          <span class="heroWord heroWord--vanish reveal delay-1" data-text="Traccia">Traccia</span>
+          <span class="heroWord heroWord--vanish reveal delay-2" data-text="ogni">ogni</span>
+          <span class="heroWord heroWord--vanish reveal delay-3" data-text="indizio.">indizio.</span>
+          <br>
+          <span class="heroWord heroWord--vanish reveal delay-4" data-text="Non">Non</span>
+          <span class="heroWord heroWord--vanish reveal delay-5" data-text="lasci">lasci</span>
+          <span class="heroWord heroWord--vanish reveal delay-6" data-text="traccia.">traccia.</span>
+        </h1>
+        <p class="heroLead reveal delay-7">
+          Argo è il motore OSINT italiano privacy-by-design.
+          58 connettori nativi, ricerca aggregata, report court-ready.
+          Zero dati inviati a servizi cloud terzi.
+        </p>
+        <div class="heroCtas reveal delay-8">
+          <a href="#start" class="heroCta heroCta--primary">
+            Prova gratis
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+          <a href="#how" class="heroCta heroCta--ghost">Come funziona</a>
+        </div>
+        <div class="heroScrollHint reveal delay-9" aria-hidden="true">
+          <span>Scorri</span>
+          <span class="heroScrollLine"></span>
+        </div>
+      </section>
+
+      <!-- STICKY MARQUEE: numeri chiave che scorrono al posto delle "logos" -->
+      <section class="marquee" aria-label="Numeri chiave">
+        <div class="marqueeTrack">
+          <span>58 connettori nativi</span>
+          <span>·</span>
+          <span>Zero SaaS obbligatori</span>
+          <span>·</span>
+          <span>Audit chain SHA-256</span>
+          <span>·</span>
+          <span>Report STIX 2.1 · MISP</span>
+          <span>·</span>
+          <span>GDPR + RoE</span>
+          <span>·</span>
+          <span>Codice open source Apache 2.0</span>
+          <span>·</span>
+          <span>58 connettori nativi</span>
+          <span>·</span>
+          <span>Zero SaaS obbligatori</span>
+          <span>·</span>
+          <span>Audit chain SHA-256</span>
+          <span>·</span>
+          <span>Report STIX 2.1 · MISP</span>
+          <span>·</span>
+          <span>GDPR + RoE</span>
+          <span>·</span>
+          <span>Codice open source Apache 2.0</span>
+        </div>
+      </section>
+
+      <!-- WHY — sticky reveal 3 blocchi -->
+      <section class="why" id="why">
+        <div class="whySticky">
+          <p class="sectionKicker">Perché Argo</p>
+          <h2 class="sectionTitle">
+            OSINT che <span class="brand-gold">non</span> vende<br>
+            i tuoi target.
+          </h2>
+        </div>
+        <div class="whyGrid">
+          <article class="whyCard revealUp">
+            <span class="whyCard__num">01</span>
+            <h3>Nulla lascia la tua VM.</h3>
+            <p>Aggreghiamo fonti pubbliche in locale. Nessun target, nessun caso, nessuna query passa da un provider esterno.</p>
+          </article>
+          <article class="whyCard revealUp">
+            <span class="whyCard__num">02</span>
+            <h3>Prova ogni claim.</h3>
+            <p>Ogni finding porta con sé provenance, hash SHA-256, timestamp e catena audit verificabile. Court-ready per default.</p>
+          </article>
+          <article class="whyCard revealUp">
+            <span class="whyCard__num">03</span>
+            <h3>Compliance nel design.</h3>
+            <p>Rules of Engagement per ogni caso, base giuridica documentata, DSAR built-in, cancellazione tombstonata.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- HOW — 4 step con progress a sinistra -->
+      <section class="how" id="how">
+        <p class="sectionKicker">Come funziona</p>
+        <h2 class="sectionTitle">Da un'entità <span class="brand-gold">a un report</span> in 4 mosse.</h2>
+        <ol class="howSteps">
+          <li class="howStep revealUp">
+            <span class="howStep__index">01</span>
+            <div>
+              <h3>Apri un caso</h3>
+              <p>Base giuridica, scope autorizzato, collaboratori. Nulla parte senza mandato.</p>
+            </div>
+          </li>
+          <li class="howStep revealUp">
+            <span class="howStep__index">02</span>
+            <div>
+              <h3>Cerca l'entità</h3>
+              <p>Email, telefono, username, dominio, wallet, IP. Argo sceglie i 58 connettori giusti.</p>
+            </div>
+          </li>
+          <li class="howStep revealUp">
+            <span class="howStep__index">03</span>
+            <div>
+              <h3>Verifica le fonti</h3>
+              <p>Grafo entità-relazioni, scoring Admiralty, corroborazioni cross-source, why_linked.</p>
+            </div>
+          </li>
+          <li class="howStep revealUp">
+            <span class="howStep__index">04</span>
+            <div>
+              <h3>Genera il report</h3>
+              <p>PDF forense a 19 sezioni · JSON · Markdown · STIX 2.1 · MISP event. Audit chain firmata.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- STACK — mosaic di categorie connettori -->
+      <section class="stack" id="stack">
+        <p class="sectionKicker">Il motore</p>
+        <h2 class="sectionTitle"><span class="brand-gold">58</span> connettori. Un solo motore.</h2>
+        <div class="stackGrid">
+          <div class="stackCell revealUp"><strong>Email</strong><span>holehe · gravatar · hunter · hibp</span></div>
+          <div class="stackCell revealUp"><strong>Username</strong><span>maigret · sherlock · socid</span></div>
+          <div class="stackCell revealUp"><strong>Telefono</strong><span>ignorant · phone_meta · footprint</span></div>
+          <div class="stackCell revealUp"><strong>Dominio</strong><span>crt.sh · rdap · dns · subdomains · TLS</span></div>
+          <div class="stackCell revealUp"><strong>Rete</strong><span>ASN · shodan · port_scan · fingerprint</span></div>
+          <div class="stackCell revealUp"><strong>Threat intel</strong><span>threatfox · otx · virustotal · misp</span></div>
+          <div class="stackCell revealUp"><strong>Corporate</strong><span>edgar · companies house · opencorp</span></div>
+          <div class="stackCell revealUp"><strong>Reverse</strong><span>ghunt · toutatis · telegram</span></div>
+        </div>
+      </section>
+
+      <!-- DEMO — simulatore live senza login -->
+      <section class="demo" id="demo">
+        <p class="sectionKicker">Prova senza registrarti</p>
+        <h2 class="sectionTitle">Un'anteprima. <span class="brand-gold">In 3 secondi.</span></h2>
+        <p class="demoLead">Digita un'email, un dominio o un @username finto. Argo simula una ricerca reale con dati sintetici. Nessuna chiamata di rete verso il target.</p>
+
+        <div class="demoCard revealUp">
+          <div class="demoInputWrap">
+            <svg class="demoInputIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input id="demoInput" type="text" placeholder="es. mario.rossi@example.com" autocomplete="off" spellcheck="false">
+            <button id="demoRun" type="button" class="demoBtn">
+              <span class="demoBtn__label">Analizza</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <p class="demoHint">Provalo con: <button type="button" class="demoChip" data-demo="mario.rossi@example.com">mario.rossi@example.com</button> · <button type="button" class="demoChip" data-demo="@thehackernews">@thehackernews</button> · <button type="button" class="demoChip" data-demo="hackerone.com">hackerone.com</button></p>
+
+          <div id="demoOutput" class="demoOutput" aria-live="polite">
+            <div class="demoIdle">
+              <span class="demoIdleDot"></span>
+              <span class="demoIdleDot"></span>
+              <span class="demoIdleDot"></span>
+              <p>In attesa di un input</p>
+            </div>
           </div>
         </div>
-        <div class="authTabs">
-          <button id="loginTab" class="active" type="button">Accedi</button>
-          <button id="signupTab" type="button">Iscriviti gratis</button>
+      </section>
+
+      <!-- USE-CASES — profili di riferimento per chi Argo è pensato -->
+      <section class="voices" id="voices">
+        <p class="sectionKicker">Casi d'uso previsti</p>
+        <h2 class="sectionTitle">Per chi è pensato <span class="brand-gold">Argo.</span></h2>
+        <p class="voicesLead">I profili qui sotto descrivono i <strong>casi d'uso</strong> per cui il prodotto è stato pensato. Se ti riconosci in uno di questi contesti, probabilmente Argo può aiutarti — e per verificarlo puoi leggere direttamente il <a href="#stack" class="voicesInlineLink">codice</a>.</p>
+
+        <div class="voicesRotator" aria-roledescription="carousel">
+          <div class="voicesTrack" id="voicesTrack">
+            <article class="voiceCard is-active">
+              <blockquote>Situazione tipica: analista OSINT indipendente che oggi usa tre servizi cloud e teme la fuoriuscita dei dati d'inchiesta. Con Argo tutto resta sulla propria VM, e la catena audit produce evidenze richiamabili in perizia.</blockquote>
+              <footer>
+                <span class="voiceAvatar" style="--vg1:#f5b740;--vg2:#b06ab3">AO</span>
+                <div>
+                  <strong>Analista OSINT indipendente</strong>
+                  <span>Studio investigativo autorizzato</span>
+                </div>
+              </footer>
+            </article>
+            <article class="voiceCard">
+              <blockquote>Situazione tipica: SOC/CTI che deve correlare entità sospette senza mandare IoC a terzi. Il grafo entità-relazioni accelera l'attribuzione e il report STIX si integra con un TIP esistente senza modifiche.</blockquote>
+              <footer>
+                <span class="voiceAvatar" style="--vg1:#4facfe;--vg2:#f5b740">TI</span>
+                <div>
+                  <strong>Threat Intelligence Analyst</strong>
+                  <span>SOC interno di un'organizzazione regolamentata</span>
+                </div>
+              </footer>
+            </article>
+            <article class="voiceCard">
+              <blockquote>Situazione tipica: giornalismo d'inchiesta con esigenza probatoria. La combinazione Rules of Engagement + catena audit permette di rispondere alla domanda "come lo sai" con hash, timestamp e catena immutabile.</blockquote>
+              <footer>
+                <span class="voiceAvatar" style="--vg1:#f5b740;--vg2:#4facfe">GI</span>
+                <div>
+                  <strong>Giornalista d'inchiesta</strong>
+                  <span>Freelance o testata indipendente</span>
+                </div>
+              </footer>
+            </article>
+            <article class="voiceCard">
+              <blockquote>Situazione tipica: studio legale con obbligo di riservatezza sui dati degli assistiti. L'esecuzione locale garantisce che nulla esca dal perimetro dello studio, e la licenza Apache 2.0 rimuove il costo per numero di casi.</blockquote>
+              <footer>
+                <span class="voiceAvatar" style="--vg1:#b06ab3;--vg2:#f5b740">SL</span>
+                <div>
+                  <strong>Studio legale (penale/cybercrime)</strong>
+                  <span>Diritto penale, riservatezza contrattuale</span>
+                </div>
+              </footer>
+            </article>
+          </div>
+          <div class="voicesDots" role="tablist" aria-label="Naviga tra i casi d'uso">
+            <button type="button" class="voicesDot is-active" data-voice="0" aria-label="Caso d'uso 1"></button>
+            <button type="button" class="voicesDot" data-voice="1" aria-label="Caso d'uso 2"></button>
+            <button type="button" class="voicesDot" data-voice="2" aria-label="Caso d'uso 3"></button>
+            <button type="button" class="voicesDot" data-voice="3" aria-label="Caso d'uso 4"></button>
+          </div>
         </div>
-        <label>Username
-          <input id="authUser" autocomplete="username" placeholder="analyst">
-        </label>
-        <label id="authEmailRow" class="hidden">Email
-          <input id="authEmail" autocomplete="email" type="email" placeholder="nome@example.com">
-        </label>
-        <label>Password
-          <input id="authPass" autocomplete="current-password" type="password" placeholder="minimo 12 caratteri">
-        </label>
-        <button id="authSubmit" type="button">Accedi</button>
-        <p id="authMessage" class="authMessage"></p>
-      </div>
+      </section>
+
+      <!-- FREE FOREVER — box open-source -->
+      <section class="freeSection" id="free">
+        <div class="freeBox revealUp">
+          <p class="sectionKicker">Uno strumento, non un abbonamento.</p>
+          <h2 class="sectionTitle freeTitle">Nessun <span class="brand-gold">paywall</span>, nessuna scadenza, nessuna telemetria.</h2>
+          <p class="freeLead">Argo è software libero sotto licenza Apache 2.0: lo scarichi, lo installi sulla tua infrastruttura, lo modifichi e — se vuoi — lo redistribuisci. Non contiamo i tuoi casi, i tuoi connettori, le tue ricerche. Nessun trial, nessuna versione "Pro", nessun upselling. Ti chiediamo un'email al momento della registrazione per verificare l'identità dell'account e per poterti raggiungere se emerge una vulnerabilità critica: è l'unica informazione che vediamo, e resta tua.</p>
+          <div class="freeGrid">
+            <div class="freeCell">
+              <span class="freeCell__num">∞</span>
+              <strong>Ricerche</strong>
+              <span>Nessun quota-limit imposto da noi.</span>
+            </div>
+            <div class="freeCell">
+              <span class="freeCell__num">58</span>
+              <strong>Connettori</strong>
+              <span>Tutti quelli integrati, subito.</span>
+            </div>
+            <div class="freeCell">
+              <span class="freeCell__num">0€</span>
+              <strong>Licenza</strong>
+              <span>Uso commerciale incluso.</span>
+            </div>
+            <div class="freeCell">
+              <span class="freeCell__num">100%</span>
+              <strong>Codice ispezionabile</strong>
+              <span>Ogni riga leggibile su GitHub.</span>
+            </div>
+          </div>
+          <div class="freeCtas">
+            <a href="#start" class="heroCta heroCta--primary">
+              Prova subito online
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ — accordion accessibile con <details> nativi -->
+      <section class="faq" id="faq">
+        <p class="sectionKicker">Domande frequenti</p>
+        <h2 class="sectionTitle">Le cose che <span class="brand-gold">chiedete</span> più spesso.</h2>
+
+        <div class="faqList">
+          <details class="faqItem revealUp">
+            <summary>È veramente open source? Anche per uso commerciale?</summary>
+            <div class="faqBody"><p>Sì. Licenza <strong>Apache 2.0</strong>: puoi self-hostare, modificare, distribuire e usare Argo commercialmente. L'unica cosa che ti chiediamo è di mantenere il copyright notice nei file che redistribuisci. Nessun "modello dual", nessun "core+enterprise": <strong>un solo codice, uno solo per tutti</strong>.</p></div>
+          </details>
+          <details class="faqItem revealUp">
+            <summary>Come garantite che nessun dato dei miei target finisca da voi?</summary>
+            <div class="faqBody"><p>Non ti chiediamo di installare nulla di nostro come dipendenza runtime. Argo gira <strong>interamente sulla tua VM o macchina</strong>. Non c'è telemetria, non c'è "ping home". Le API BYOK (Shodan, VirusTotal, HIBP, ecc.) le chiami direttamente tu con la tua chiave — noi non le intermediamo. Puoi verificarlo con <code>strace</code> o dal codice.</p></div>
+          </details>
+          <details class="faqItem revealUp">
+            <summary>Come si self-hosta? Serve un ops team?</summary>
+            <div class="faqBody"><p>Setup: <code>git clone</code>, <code>python -m venv</code>, <code>pip install</code>, systemd unit, Caddy davanti per HTTPS. Il repo include <code>deploy_artifacts/</code> con installer, Caddyfile pronto, docker-compose opzionale per Neo4j/Postgres/Redis. <strong>Misure reali dall'istanza demo</strong> (Ubuntu 24.04 su Oracle Cloud, 1 vCPU / 5.9 GB): il processo Argo occupa <strong>~57 MB RSS</strong>, il sistema completo <strong>~700 MB</strong>, la cartella <code>/opt/argo-osint</code> è <strong>109 MB</strong>, load average stabile a 0.00. In teoria basta molto meno di 4 GB, ma non abbiamo ancora misurato l'uso continuativo sotto carico reale. Il nostro primo deploy ha richiesto <strong>~45 minuti</strong> includendo debug della security list Oracle; su una Ubuntu pulita senza sorprese di rete dovrebbe essere sensibilmente più rapido.</p></div>
+          </details>
+          <details class="faqItem revealUp">
+            <summary>Cos'è la "catena audit court-ready" in pratica?</summary>
+            <div class="faqBody"><p>Ogni evento (login, ricerca, finding, cancellazione) viene appeso a una lista di record. Ogni record contiene: <code>timestamp</code>, <code>actor</code>, <code>action</code>, <code>details</code>, <code>previous_hash</code>, <code>hash</code> (SHA-256 dell'evento + del precedente). Modificare un evento in mezzo alla catena invalida tutti gli hash successivi — <strong>la manomissione è rilevabile con una comando</strong>. È il pattern usato da Certificate Transparency e da Git.</p></div>
+          </details>
+          <details class="faqItem revealUp">
+            <summary>Perché "italiano"? Cosa cambia rispetto ad altri tool OSINT?</summary>
+            <div class="faqBody"><p>Argo nasce con l'idea che l'OSINT professionale in Italia (e in UE) ha requisiti specifici: <strong>GDPR</strong>, <strong>base giuridica documentata per ogni caso</strong>, <strong>Rules of Engagement firmate</strong>, <strong>DSAR pronti</strong>, <strong>retention configurabile</strong>. Non è un tool americano tradotto: è pensato per la compliance italiana ed europea dal giorno zero. UI, documentazione, warning e report escono in italiano nativo.</p></div>
+          </details>
+          <details class="faqItem revealUp">
+            <summary>Quali connettori posso usare senza pagare nessuno?</summary>
+            <div class="faqBody"><p>Su 58 connettori totali, <strong>43 sono no-key</strong>: crt.sh, RDAP, DNS, TLS cert, Wayback, Gravatar, GDELT, Nominatim, PhishTank, OpenPhish, subdomain enumeration, port scan (attivo, gated), holehe, maigret, telegram checker, ecc. I 15 BYOK (Shodan, VirusTotal, HIBP, ecc.) diventano disponibili nel momento in cui incolli la tua chiave nel tab "Chiavi API".</p></div>
+          </details>
+          <details class="faqItem revealUp">
+            <summary>Posso contribuire? Come si aggiunge un connettore?</summary>
+            <div class="faqBody"><p>Sì, PR benvenute. Un connettore è una classe che estende <code>BaseConnector</code>, dichiara uno <code>spec</code> tipizzato (input types, rate limit, cache TTL, legal note) e implementa <code>_fetch()</code>. Con un test offline che simula l'output. Il pattern è documentato in <code>CONTRIBUTING.md</code> con un template minimale. Regole d'oro: passivo di default, degradazione graceful se manca la chiave, nessun servizio SaaS obbligatorio.</p></div>
+          </details>
+          <details class="faqItem revealUp">
+            <summary>C'è supporto commerciale? Formazione? Deploy on-premise per aziende?</summary>
+            <div class="faqBody"><p>Il progetto è mantenuto <strong>volontariamente</strong> e non ha ancora una struttura commerciale. Non c'è un canale di supporto paid, non c'è un team che risponde a ticket, non ci sono contratti SLA. Se hai bisogno di deploy assistito o formazione, per ora la strada realistica è farlo internamente col codice open. <strong>Il codice free-and-open resta sempre completamente utilizzabile.</strong></p></div>
+          </details>
+        </div>
+      </section>
+
+      <!-- START — la card auth originale con id preservati -->
+      <section class="startSection" id="start">
+        <p class="sectionKicker reveal">Inizia adesso</p>
+        <h2 class="sectionTitle reveal">Crea il tuo account. <span class="brand-gold">Gratis.</span></h2>
+        <p class="startLead reveal">Nessuna carta. Nessuna telemetria. Codice ispezionabile.</p>
+
+        <div class="authBox reveal">
+          <div class="authBrand">
+            <img src="/argo-logo.svg" alt="Argo logo" class="brandLogo">
+            <div>
+              <h3 class="brandWordmark"><span class="brand-ink">Argo</span> <span class="brand-gold">Cloud</span></h3>
+              <p class="brandTag">Open Source Intelligence</p>
+            </div>
+          </div>
+          <div class="authTabs">
+            <button id="loginTab" class="active" type="button">Accedi</button>
+            <button id="signupTab" type="button">Iscriviti gratis</button>
+          </div>
+          <label>Username
+            <input id="authUser" autocomplete="username" placeholder="analyst">
+          </label>
+          <label id="authEmailRow" class="hidden">Email
+            <input id="authEmail" autocomplete="email" type="email" placeholder="nome@example.com">
+          </label>
+          <label>Password
+            <input id="authPass" autocomplete="current-password" type="password" placeholder="minimo 12 caratteri">
+          </label>
+          <button id="authSubmit" type="button">Accedi</button>
+          <p id="authMessage" class="authMessage"></p>
+        </div>
+      </section>
+
+      <footer class="landingFoot">
+        <span><strong>Argo OSINT</strong> — la piattaforma investigativa che rimane tua.</span>
+        <span>·</span>
+        <span>Open source Apache 2.0</span>
+        <span>·</span>
+        <span>Progettata privacy-first</span>
+        <span>·</span>
+        <span>Ingegneria italiana, standard internazionali</span>
+      </footer>
     </section>
 
     <div id="appShell" class="shell hidden">
@@ -99,23 +441,15 @@
             <p>Compila i dati. Le aree sono tutte attive: spunta solo deep/dark web o red team se servono.</p>
           </div>
           <div class="topActions">
-            <label>Palette
-              <select id="themeSelect">
-                <option value="notte">Notte azzurra</option>
-                <option value="ghiaccio">Ghiaccio</option>
-                <option value="bosco">Bosco scuro</option>
-                <option value="ambra">Ambra</option>
-              </select>
-            </label>
             <button id="refreshJobs" class="iconButton" title="Aggiorna report">
-              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v6h-6"/></svg>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v6h-6"/></svg>
             </button>
           </div>
         </section>
 
         <section id="panel-dashboard" class="panel active">
           <section class="surface heroSearch">
-            <h2 class="heroTitle">Motore OSINT gratuito per ricerche autorizzate</h2>
+            <h2 class="heroTitle">Motore OSINT per ricerche autorizzate</h2>
             <p class="heroSub">Cerca una entità — nome, username, email, telefono, dominio, azienda, IP o wallet — e Argo aggrega le fonti pubbliche in un profilo verificabile.</p>
             <div class="globalSearchBar">
               <div class="globalSearchInputWrap">
@@ -160,6 +494,10 @@
               <div id="dashJobs" class="jobs">Carico…</div>
             </section>
           </div>
+          <!-- Metriche riservate all'amministratore (popolate solo se sbloccato). -->
+          <section class="surface" style="margin-top:16px">
+            <div id="adminStatsBox" class="capabilities" hidden></div>
+          </section>
         </section>
 
         <section id="panel-cases" class="panel">
@@ -169,7 +507,7 @@
                 <h2>I tuoi casi</h2>
                 <span id="casesCount" class="tag muted">0</span>
               </div>
-              <p class="modeHint">Ogni indagine e un <strong>caso</strong>. Specifica titolo, base giuridica e finalita. I job che lanci in Ricerca finiscono dentro il caso selezionato qui.</p>
+              <p class="modeHint">Ogni indagine e un <strong>caso</strong>. Specifica titolo, base giuridica e finalità. I job che lanci in Ricerca finiscono dentro il caso selezionato qui.</p>
               <div id="casesList" class="jobs">Carico…</div>
             </section>
             <section class="surface">
@@ -180,8 +518,8 @@
               <label>Titolo
                 <input id="caseTitle" placeholder="Esempio: Recon perimetro example.com — ingaggio 2026/03">
               </label>
-              <label>Finalita
-                <textarea id="casePurpose" rows="3" placeholder="Perche stai facendo questa indagine? (per la finalita GDPR e per il RoPA esportabile)"></textarea>
+              <label>Finalità
+                <textarea id="casePurpose" rows="3" placeholder="Perché stai facendo questa indagine? (per la finalità GDPR e per il RoPA esportabile)"></textarea>
               </label>
               <div class="formGrid">
                 <label>Base giuridica — tipo
@@ -223,170 +561,221 @@
         </section>
 
         <section id="panel-investigate" class="panel">
-          <div class="grid two investigateGrid">
-            <section class="surface">
-              <div class="surfaceHead">
-                <h2>Dati iniziali</h2>
-                <span class="tag">guidato</span>
-              </div>
-              <label class="wideLabel currentCaseLabel">Caso corrente
-                <select id="currentCase"><option value="">— seleziona o crea un caso —</option></select>
-              </label>
-              <div class="quickModes" aria-label="Percorsi rapidi">
-                <button class="quickMode active" data-mode="handle" type="button">Username / social</button>
-                <button class="quickMode" data-mode="domain" type="button">Dominio / azienda</button>
-                <button class="quickMode" data-mode="contact" type="button">Email / PEC / telefono</button>
-                <button class="quickMode" data-mode="media" type="button">Immagine / video</button>
-                <button class="quickMode" data-mode="crypto" type="button">Crypto wallet</button>
-              </div>
-              <p id="modeHint" class="modeHint">Username pubblico: Sherlock e Maigret cercano profili aperti; contatti solo se visibili pubblicamente nelle fonti.</p>
+          <div class="investigateLayout">
+            <section class="surface investigateMain">
+              <header class="formHero">
+                <h2 class="formTitle">Nuova ricerca</h2>
+                <p class="formLead">Scegli il tipo, inserisci il valore. Il resto lo decide Argo.</p>
+              </header>
 
-              <!-- DYNAMIC INPUT AREA based on mode -->
-
-              <!-- Mode: handle (social grid) -->
-              <div id="socialPanel" class="modePanel">
-                <div class="surfaceSubhead">
-                  <h3>Username / Social</h3>
-                  <span class="muted">Clic su un social per inserire l'handle</span>
-                </div>
-                <div id="socialGrid" class="socialGrid">
-                  <!-- buttons populated by JS -->
-                </div>
-                <div id="socialInputs" class="socialInputs">
-                  <!-- inputs revealed on click -->
-                </div>
-              </div>
-
-              <!-- Mode: contact (email/pec/phone) -->
-              <div id="contactPanel" class="modePanel hidden">
-                <div class="surfaceSubhead">
-                  <h3>Contatti</h3>
-                  <span class="muted">Email, PEC, telefono</span>
-                </div>
-                <div class="contactBlocks">
-                  <fieldset class="contactBlock">
-                    <legend>Email (max 5)</legend>
-                    <input class="email-input" type="email" placeholder="email 1">
-                    <input class="email-input" type="email" placeholder="email 2">
-                    <input class="email-input" type="email" placeholder="email 3">
-                    <input class="email-input" type="email" placeholder="email 4">
-                    <input class="email-input" type="email" placeholder="email 5">
-                  </fieldset>
-                  <fieldset class="contactBlock">
-                    <legend>PEC (max 5)</legend>
-                    <input class="pec-input" type="email" placeholder="pec 1">
-                    <input class="pec-input" type="email" placeholder="pec 2">
-                    <input class="pec-input" type="email" placeholder="pec 3">
-                    <input class="pec-input" type="email" placeholder="pec 4">
-                    <input class="pec-input" type="email" placeholder="pec 5">
-                  </fieldset>
-                  <fieldset class="contactBlock">
-                    <legend>Telefono (max 5)</legend>
-                    <input class="phone-input" type="tel" placeholder="telefono 1">
-                    <input class="phone-input" type="tel" placeholder="telefono 2">
-                    <input class="phone-input" type="tel" placeholder="telefono 3">
-                    <input class="phone-input" type="tel" placeholder="telefono 4">
-                    <input class="phone-input" type="tel" placeholder="telefono 5">
-                  </fieldset>
-                </div>
-              </div>
-
-              <!-- Mode: media (file upload inline) -->
-              <div id="mediaPanel" class="modePanel hidden">
-                <div class="surfaceSubhead">
-                  <h3>Immagine / Video</h3>
-                  <span class="muted">Carica per analisi automatica EXIF + geo + reverse</span>
-                </div>
-                <div class="uploadDrop" id="uploadDrop">
-                  <input id="mediaFileInline" type="file" accept="image/*,video/*">
-                  <p class="uploadHint">Trascina qui o clicca per caricare. L'analisi parte automaticamente.</p>
-                </div>
-                <div id="mediaInlineResult" class="mediaResult muted">Nessun file caricato.</div>
-              </div>
-
-              <!-- Mode: domain / crypto -->
-              <div id="genericPanel" class="modePanel hidden">
-                <div class="surfaceSubhead">
-                  <h3>Target principale</h3>
-                  <span class="muted">Inserisci dominio, IP, wallet o nome azienda</span>
-                </div>
-                <input id="genericTarget" placeholder="example.com / 192.0.2.1 / bc1q... / Acme Spa">
-              </div>
-
-              <!-- Common fields (sempre visibili) -->
-              <div class="formGrid">
-                <label>Tipo
-                  <select id="targetType">
-                    <option value="auto">Rileva automaticamente</option>
-                    <option value="domain">Dominio</option>
-                    <option value="company">Azienda</option>
-                    <option value="person">Persona autorizzata</option>
-                    <option value="handle">Username / handle</option>
-                    <option value="email">Email</option>
-                    <option value="phone">Telefono</option>
-                    <option value="crypto">Crypto / wallet</option>
-                    <option value="ip">IP</option>
-                    <option value="media">Immagine / video</option>
-                  </select>
+              <!-- 1. CASO (obbligatorio) -->
+              <div class="formStep">
+                <span class="stepNum">1</span>
+                <label class="wideLabel">Caso di indagine
+                  <select id="currentCase"><option value="">— seleziona un caso —</option></select>
                 </label>
-                <label>Fonti ricerca
-                  <select id="provider">
-                    <option value="all">Tutti disponibili + dork</option>
-                    <option value="brave">Brave</option>
-                    <option value="bing">Bing</option>
-                    <option value="serper">Serper</option>
-                    <option value="auto">Auto API</option>
-                    <option value="none">Solo dati inseriti</option>
-                  </select>
-                </label>
-                <label>Intensita
-                  <select id="intensity">
-                    <option value="meticulous">Meticolosa</option>
-                    <option value="deep">Massima autorizzata</option>
-                    <option value="quick">Rapida</option>
-                  </select>
-                </label>
-                <label>Pagine massime
-                  <input id="maxPages" type="number" min="1" max="80" value="24">
-                </label>
+                <p class="formHelp">Per dati personali (email, telefono, persona) il caso con base giuridica è obbligatorio.</p>
               </div>
 
-              <label class="wideLabel">URL seed affidabili
-                <textarea id="seedUrls" rows="3" placeholder="Link pubblici verificabili, uno per riga"></textarea>
-              </label>
+              <!-- 2. TIPO + VALORE -->
+              <div class="formStep">
+                <span class="stepNum">2</span>
+                <div class="quickModes" aria-label="Tipo di ricerca">
+                  <button class="quickMode active" data-mode="handle" type="button">
+                    <span class="qmIcon">@</span><span>Username</span>
+                  </button>
+                  <button class="quickMode" data-mode="domain" type="button">
+                    <span class="qmIcon">🌐</span><span>Dominio / Azienda</span>
+                  </button>
+                  <button class="quickMode" data-mode="contact" type="button">
+                    <span class="qmIcon">✉</span><span>Email / Telefono</span>
+                  </button>
+                  <button class="quickMode" data-mode="media" type="button">
+                    <span class="qmIcon">🖼</span><span>Immagine / Video</span>
+                  </button>
+                  <button class="quickMode" data-mode="crypto" type="button">
+                    <span class="qmIcon">₿</span><span>Wallet crypto</span>
+                  </button>
+                </div>
+                <p id="modeHint" class="formHelp">Username pubblico: profili aperti via Sherlock e Maigret.</p>
 
-              <label class="wideLabel">Informazioni gia note
-                <textarea id="knownFacts" rows="3" placeholder="Alias, indirizzi noti, fonti aggiuntive…"></textarea>
-              </label>
+                <!-- Pannelli dinamici per modo -->
+                <div id="socialPanel" class="modePanel">
+                  <div id="socialGrid" class="socialGrid"></div>
+                  <div id="socialInputs" class="socialInputs"></div>
+                </div>
 
-              <div class="surfaceSubhead">
-                <h3>Aree da cercare</h3>
-                <span class="muted">Tutte attive di default. Flagga solo le opzioni gated.</span>
+                <div id="contactPanel" class="modePanel hidden">
+                  <div class="contactBlocks">
+                    <fieldset class="contactBlock">
+                      <legend>Email</legend>
+                      <input class="email-input" type="email" placeholder="email 1">
+                      <input class="email-input" type="email" placeholder="email 2">
+                      <input class="email-input" type="email" placeholder="email 3">
+                    </fieldset>
+                    <fieldset class="contactBlock">
+                      <legend>PEC</legend>
+                      <input class="pec-input" type="email" placeholder="pec 1">
+                      <input class="pec-input" type="email" placeholder="pec 2">
+                    </fieldset>
+                    <fieldset class="contactBlock">
+                      <legend>Telefono</legend>
+                      <input class="phone-input" type="tel" placeholder="telefono 1">
+                      <input class="phone-input" type="tel" placeholder="telefono 2">
+                      <input class="phone-input" type="tel" placeholder="telefono 3">
+                    </fieldset>
+                  </div>
+                </div>
+
+                <div id="mediaPanel" class="modePanel hidden">
+                  <div class="uploadDrop" id="uploadDrop">
+                    <input id="mediaFileInline" type="file" accept="image/*,video/*">
+                    <p class="uploadHint">📤 Trascina qui o clicca per caricare<br><span class="muted">Analisi EXIF + geo + reverse parte automaticamente</span></p>
+                  </div>
+                  <div id="mediaInlineResult" class="mediaResult muted">Nessun file caricato.</div>
+                </div>
+
+                <div id="genericPanel" class="modePanel hidden">
+                  <input id="genericTarget" placeholder="example.com · 192.0.2.1 · bc1q… · Acme Spa">
+                </div>
               </div>
-              <p class="modeHint">Aree attive automaticamente: aziende/domini, OPSEC, geo, immagini/video, contatti, crypto, SOCMINT, HUMINT etico. Contatti sempre mostrati in chiaro.</p>
 
-              <div class="toggles">
-                <label class="gated">
-                  <input id="darkweb" type="checkbox">
-                  <span>deep/dark web (autorizza e abilita)</span>
-                </label>
-                <label class="gated">
-                  <input id="redTeamFlag" type="checkbox">
-                  <span>red team (gate autorizzazione)</span>
-                </label>
-                <label>
-                  <input id="confirmAuth" type="checkbox" checked>
-                  <span>target autorizzato</span>
-                </label>
-                <label>
-                  <input id="networkScan" type="checkbox">
-                  <span>network scan autorizzato (solo con target autorizzato)</span>
-                </label>
+              <!-- 3. RICERCA AGGRESSIVA (people/entity workflows) — richiede unlock admin -->
+              <div class="ahLockedTeaser" id="ahLockedTeaser">
+                <button type="button" id="ahUnlockBtn" class="btnGhost ahUnlockBtn">
+                  🔐 Sblocca funzioni avanzate
+                </button>
+              </div>
+              <div class="aggressiveHunt" id="aggressiveHunt" data-locked="1" hidden>
+                <h3 class="ahTitle">🎯 Ricerca aggressiva <span class="ahBadge">multi-preset</span></h3>
+                <p class="ahLead">Clicca <b>più preset insieme</b> per combinare i tool: intensity e pagine massime prendono il valore più alto, i moduli si sommano.</p>
+                <p class="ahCounter" id="ahCounter">Nessun preset attivo — seleziona uno o più.</p>
+                <div class="ahGrid">
+                  <button type="button" class="ahBtn" data-hunt="username-full">
+                    <span class="ahIco">@</span>
+                    <span><strong>Username — full scan</strong>
+                      <small>sherlock + maigret + blackbird + whatsmyname</small>
+                    </span>
+                  </button>
+                  <button type="button" class="ahBtn" data-hunt="email-deep">
+                    <span class="ahIco">✉</span>
+                    <span><strong>Email — deep breach + accounts</strong>
+                      <small>holehe + h8mail + hunter + hibp + emailrep</small>
+                    </span>
+                  </button>
+                  <button type="button" class="ahBtn" data-hunt="phone-osint">
+                    <span class="ahIco">☎</span>
+                    <span><strong>Telefono — phone OSINT</strong>
+                      <small>phoneinfoga + phunter + normalizzazione E.164</small>
+                    </span>
+                  </button>
+                  <button type="button" class="ahBtn" data-hunt="person-alias">
+                    <span class="ahIco">👤</span>
+                    <span><strong>Persona — alias & news</strong>
+                      <small>maigret + gdelt + sec_edgar + opencorporates</small>
+                    </span>
+                  </button>
+                  <button type="button" class="ahBtn" data-hunt="domain-recon">
+                    <span class="ahIco">🌐</span>
+                    <span><strong>Dominio — attack surface</strong>
+                      <small>amass + subfinder + httpx + securitytrails + wayback</small>
+                    </span>
+                  </button>
+                  <button type="button" class="ahBtn" data-hunt="wallet-tx">
+                    <span class="ahIco">₿</span>
+                    <span><strong>Wallet — chain analysis</strong>
+                      <small>etherscan + blockchair + trufflehog</small>
+                    </span>
+                  </button>
+                </div>
               </div>
 
-              <div class="actions">
-                <button id="planBtn" class="secondary" type="button">Anteprima piano</button>
-                <button id="runBtn" type="button">Avvia ricerca</button>
+              <!-- 4. PRIVACY / RISCHIO (info live) -->
+              <div id="privacyBadge" class="privacyBadge hidden">
+                <span class="privacyIcon">🛡</span>
+                <span id="privacyMsg">Dato personale: richiesto caso con base giuridica.</span>
+              </div>
+
+              <!-- 4. AVANZATE (collapsible) -->
+              <details class="formAdvanced">
+                <summary>⚙ Opzioni avanzate</summary>
+                <div class="advancedGrid">
+                  <label>Tipo
+                    <select id="targetType">
+                      <option value="auto">Auto-rilevamento</option>
+                      <option value="domain">Dominio</option>
+                      <option value="company">Azienda</option>
+                      <option value="person">Persona</option>
+                      <option value="handle">Username</option>
+                      <option value="email">Email</option>
+                      <option value="phone">Telefono</option>
+                      <option value="crypto">Wallet crypto</option>
+                      <option value="ip">IP</option>
+                      <option value="media">Media</option>
+                    </select>
+                  </label>
+                  <label>Provider di ricerca
+                    <select id="provider">
+                      <option value="all">Tutti i disponibili</option>
+                      <option value="brave">Brave</option>
+                      <option value="bing">Bing</option>
+                      <option value="serper">Serper</option>
+                      <option value="auto">Auto API</option>
+                      <option value="none">Solo dati inseriti</option>
+                    </select>
+                  </label>
+                  <label>Intensità
+                    <select id="intensity">
+                      <option value="meticulous">Meticolosa</option>
+                      <option value="deep">Massima autorizzata</option>
+                      <option value="quick">Rapida</option>
+                    </select>
+                  </label>
+                  <label>Pagine max
+                    <input id="maxPages" type="number" min="1" max="80" value="24">
+                  </label>
+                </div>
+                <label class="wideLabel">URL seed (opzionale)
+                  <textarea id="seedUrls" rows="2" placeholder="Link pubblici verificabili, uno per riga"></textarea>
+                </label>
+                <label class="wideLabel">Informazioni note (opzionale)
+                  <textarea id="knownFacts" rows="2" placeholder="Alias, contesto, fonti aggiuntive…"></textarea>
+                </label>
+                <div class="gatedToggles">
+                  <label class="gatedToggle" for="darkweb">
+                    <span>🕶</span>
+                    <span class="gtLabel">Deep / Dark web
+                      <small>Opt-in con autorizzazione documentata</small>
+                    </span>
+                    <input id="darkweb" type="checkbox">
+                    <span class="gtSwitch" aria-hidden="true"></span>
+                  </label>
+                  <label class="gatedToggle" for="redTeamFlag">
+                    <span>⚔</span>
+                    <span class="gtLabel">Red team
+                      <small>Richiede scope esplicito nel caso</small>
+                    </span>
+                    <input id="redTeamFlag" type="checkbox">
+                    <span class="gtSwitch" aria-hidden="true"></span>
+                  </label>
+                  <label class="gatedToggle" for="networkScan">
+                    <span>📡</span>
+                    <span class="gtLabel">Network scan attivo
+                      <small>Solo su target autorizzato</small>
+                    </span>
+                    <input id="networkScan" type="checkbox">
+                    <span class="gtSwitch" aria-hidden="true"></span>
+                  </label>
+                </div>
+                <input id="confirmAuth" type="checkbox" checked hidden>
+              </details>
+
+              <!-- 5. AVVIO -->
+              <div class="formCta">
+                <button id="runBtn" type="button" class="btnPrimary">
+                  <span>🚀 Avvia ricerca</span>
+                </button>
+                <button id="planBtn" type="button" class="btnGhost">Solo anteprima del piano</button>
               </div>
             </section>
 
@@ -421,6 +810,8 @@
                   <a id="forensicJsonLink" class="smallLink" href="#" target="_blank">Forensic JSON</a>
                   <a id="redteamMdLink" class="smallLink" href="#" target="_blank">Red Team MD</a>
                   <a id="redteamJsonLink" class="smallLink" href="#" target="_blank">Red Team JSON</a>
+                  <a id="stixLink" class="smallLink" href="#" target="_blank" title="STIX 2.1 bundle per TIP/SIEM">STIX 2.1</a>
+                  <a id="mispLink" class="smallLink" href="#" target="_blank" title="MISP core-format event">MISP</a>
                 </div>
               </div>
               <div class="reportTabs" role="tablist" aria-label="Tipo report">
@@ -529,10 +920,10 @@
               </div>
               <p class="modeHint">L'OPSEC routing e gestito automaticamente dal planner in base al caso, al tipo di target e ai flag di autorizzazione.</p>
               <ul class="securityList">
-                <li><strong>Standard protetto:</strong> default per target autorizzati senza necessita di isolamento.</li>
+                <li><strong>Standard protetto:</strong> default per target autorizzati senza necessità di isolamento.</li>
                 <li><strong>Mozilla/Firefox dedicato:</strong> attivato se la sorgente richiede un profilo separato.</li>
                 <li><strong>Tor isolato:</strong> obbligatorio per dark/deep web flaggato.</li>
-                <li><strong>Multi-provider:</strong> usato quando esistono API configurate per piu motori.</li>
+                <li><strong>Multi-provider:</strong> usato quando esistono API configurate per più motori.</li>
               </ul>
               <label class="wideLabel">Override percorso OPSEC (opzionale)
                 <select id="sourceRoute">
@@ -604,6 +995,25 @@
       </main>
     </div>
 
+    <!-- Admin unlock modal (sblocco ricerca aggressiva & funzioni restricted) -->
+    <div id="adminUnlockModal" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+      <div class="modalBox">
+        <h2 id="adminModalTitle">🔐 Sblocco funzioni avanzate</h2>
+        <p class="modeHint">Le funzioni di ricerca aggressiva richiedono credenziali amministratore. La sessione di sblocco vale solo per questa pagina (nessuna persistenza).</p>
+        <label>Username
+          <input id="adminUser" type="text" autocomplete="username" placeholder="admin username">
+        </label>
+        <label>Password
+          <input id="adminPass" type="password" autocomplete="current-password" placeholder="password admin">
+        </label>
+        <p id="adminUnlockMsg" class="authMessage"></p>
+        <div class="actions">
+          <button type="button" id="adminUnlockCancel" class="secondary">Annulla</button>
+          <button type="button" id="adminUnlockSubmit">Sblocca</button>
+        </div>
+      </div>
+    </div>
+
     <!-- HighRiskResearchMode modal -->
     <div id="highRiskModal" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-labelledby="hrModalTitle">
       <div class="modalBox highRiskBox">
@@ -629,5 +1039,216 @@
     </div>
 
     <script src="/app.js"></script>
+    <!-- Landing pre-login: cursor follower + reveal on scroll.
+         Auto-disattivato dopo il login (appShell diventa visibile, authScreen si nasconde). -->
+    <script>
+      (function () {
+        const landing = document.getElementById("authScreen");
+        if (!landing || !landing.classList.contains("landing")) return;
+
+        // Hero words: applica classe .on al mount per triggerare la staggered animation
+        requestAnimationFrame(() => {
+          landing.querySelectorAll(".hero .reveal").forEach(el => el.classList.add("on"));
+          landing.querySelectorAll(".hero .heroWord.reveal").forEach(el => el.classList.add("on"));
+        });
+
+        // IntersectionObserver per .revealUp e .reveal (fallback per browser senza scroll-timeline)
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("on");
+              io.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.15, rootMargin: "0px 0px -80px 0px" });
+        landing.querySelectorAll(".revealUp, .startSection .reveal").forEach(el => io.observe(el));
+
+        // Cursor blob follower (rAF si SPEGNE quando arriva alla destinazione)
+        const blob = landing.querySelector(".cursorBlob");
+        if (blob && matchMedia("(hover: hover) and (pointer: fine)").matches
+                && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          let x = window.innerWidth / 2, y = window.innerHeight / 2;
+          let targetX = x, targetY = y;
+          let rafId = null;
+          const update = () => {
+            const dx = targetX - x, dy = targetY - y;
+            x += dx * 0.12;
+            y += dy * 0.12;
+            blob.style.setProperty("--x", x + "px");
+            blob.style.setProperty("--y", y + "px");
+            // Ferma il loop se siamo arrivati (dist < 0.5px) → CPU 0
+            if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+              rafId = null;
+              return;
+            }
+            rafId = requestAnimationFrame(update);
+          };
+          landing.addEventListener("mousemove", (e) => {
+            targetX = e.clientX;
+            targetY = e.clientY;
+            if (!rafId) rafId = requestAnimationFrame(update);
+          }, { passive: true });
+        }
+
+        // Smooth scroll per gli anchor della nav landing
+        landing.querySelectorAll('a[href^="#"]').forEach(a => {
+          a.addEventListener("click", (e) => {
+            const id = a.getAttribute("href").slice(1);
+            const target = document.getElementById(id);
+            if (target) {
+              e.preventDefault();
+              target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          });
+        });
+
+        // ── DEMO simulator ─────────────────────────────────────────────
+        const demoInput = document.getElementById("demoInput");
+        const demoRun = document.getElementById("demoRun");
+        const demoOutput = document.getElementById("demoOutput");
+        const demoChips = landing.querySelectorAll(".demoChip");
+
+        // Rilevatore tipo target
+        const detectType = (v) => {
+          if (/^@?[a-z0-9_.]{2,32}$/i.test(v) && !v.includes(".")) return "handle";
+          if (v.includes("@")) return "email";
+          if (/^\+?\d[\d\s().-]{5,}$/.test(v)) return "phone";
+          if (/^\d{1,3}(\.\d{1,3}){3}$/.test(v)) return "ip";
+          if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v)) return "domain";
+          return "generic";
+        };
+
+        // Fake findings per tipo
+        const fakeResults = {
+          email: [
+            { icon: "✓", label: "Dominio email valido", value: "gmail.com risolve (MX ok)", grade: "A1" },
+            { icon: "◐", label: "Gravatar", value: "profilo pubblico associato", grade: "A1" },
+            { icon: "◐", label: "Registrata su", value: "amazon.com · spotify.com · twitter.com", grade: "B2" },
+            { icon: "!", label: "Data breach", value: "1 breach noto (HIBP): Adobe 2013", grade: "B2" },
+            { icon: "◐", label: "Legit score", value: "82/100 · legittima", grade: "A2" },
+          ],
+          handle: [
+            { icon: "✓", label: "Profili trovati", value: "GitHub · GitLab · Reddit · Steam (10/12 con detection deterministica)", grade: "A1" },
+            { icon: "◐", label: "Maigret full", value: "confermato su 6 piattaforme aggiuntive", grade: "A2" },
+            { icon: "◐", label: "socid-extractor", value: "user_id numerico + created_at estratti", grade: "B2" },
+            { icon: "◐", label: "Cross-corroboration", value: "email associata su 2 fonti indipendenti", grade: "A2" },
+          ],
+          domain: [
+            { icon: "✓", label: "DNS", value: "A · AAAA · MX · NS · TXT (9 record)", grade: "A1" },
+            { icon: "✓", label: "TLS cert", value: "Let's Encrypt · SAN: 3 domini · SHA-256 fingerprint", grade: "A1" },
+            { icon: "◐", label: "Subdomains", value: "47 host attivi (CT logs + brute DNS + Common Crawl)", grade: "A1" },
+            { icon: "◐", label: "Wayback", value: "1247 URL storiche · 23 interessanti (/admin, /api, .env)", grade: "A1" },
+            { icon: "◐", label: "Reputation", value: "clean (ThreatFox · VT via BYOK)", grade: "B2" },
+          ],
+          phone: [
+            { icon: "✓", label: "libphonenumber", value: "valido · mobile · Italia (+39) · TIM", grade: "A1" },
+            { icon: "◐", label: "Ignorant", value: "registrato su Instagram · Amazon", grade: "B2" },
+            { icon: "◐", label: "Legit score", value: "76/100 · legittima", grade: "A2" },
+          ],
+          ip: [
+            { icon: "✓", label: "ASN (Team Cymru)", value: "AS15169 GOOGLE · US · 8.8.8.0/24", grade: "A1" },
+            { icon: "✓", label: "Shodan InternetDB", value: "porte 53 · CPE: dnsmasq", grade: "B2" },
+            { icon: "◐", label: "Reputation", value: "no threat intel", grade: "A2" },
+          ],
+          generic: [
+            { icon: "?", label: "Tipo non riconosciuto", value: "Argo prova comunque una ricerca aggregata cross-connettore", grade: "F6" },
+          ],
+        };
+
+        const stages = ["classificazione target...", "selezione connettori...", "raccolta cross-source...", "corroborazione + scoring...", "generazione anteprima..."];
+
+        let demoRunning = false;
+        async function runDemo(rawValue) {
+          if (demoRunning) return;
+          const value = (rawValue || demoInput.value || "").trim();
+          if (!value) {
+            demoInput.focus();
+            return;
+          }
+          demoRunning = true;
+          demoRun.disabled = true;
+          demoInput.value = value;
+          const type = detectType(value);
+
+          // Loading UI
+          demoOutput.innerHTML = '<div class="demoLoading"><div class="demoSpinner"></div><div class="demoStage" id="demoStageText">' + stages[0] + '</div></div>';
+          const stageEl = document.getElementById("demoStageText");
+
+          // Progress stage animation
+          for (let i = 1; i < stages.length; i++) {
+            await new Promise(r => setTimeout(r, 380));
+            if (stageEl) stageEl.textContent = stages[i];
+          }
+          await new Promise(r => setTimeout(r, 300));
+
+          // Render results
+          const items = fakeResults[type] || fakeResults.generic;
+          let html = '<div class="demoResult">';
+          html += '<div class="demoTargetLine">Target: <strong>' + escapeHtml(value) + '</strong> · tipo: <strong>' + type + '</strong> · connettori consultati: ' + Math.min(58, 4 + Math.floor(Math.random() * 8)) + '</div>';
+          items.forEach(f => {
+            html += '<div class="demoFinding">' +
+                    '<div class="demoFindingIcon">' + f.icon + '</div>' +
+                    '<div class="demoFindingBody"><strong>' + escapeHtml(f.label) + '</strong><span>' + escapeHtml(f.value) + '</span></div>' +
+                    '<div class="demoFindingGrade">' + f.grade + '</div>' +
+                    '</div>';
+          });
+          html += '<div class="demoDisclaimer">☺ Simulazione con dati sintetici. Nessuna chiamata reale verso il target. La versione live esegue davvero i ' + items.length + '+ connettori corrispondenti e produce evidenze con provenance SHA-256.</div>';
+          html += '</div>';
+          demoOutput.innerHTML = html;
+          demoRun.disabled = false;
+          demoRunning = false;
+        }
+
+        function escapeHtml(s) {
+          return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+        }
+
+        if (demoRun) demoRun.addEventListener("click", () => runDemo());
+        if (demoInput) demoInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") { e.preventDefault(); runDemo(); }
+        });
+        demoChips.forEach(c => c.addEventListener("click", () => runDemo(c.dataset.demo)));
+
+        // ── VOICES auto-rotate ─────────────────────────────────────────
+        const voiceCards = landing.querySelectorAll(".voiceCard");
+        const voiceDots = landing.querySelectorAll(".voicesDot");
+        let voiceIndex = 0;
+        let voiceTimer = null;
+
+        function showVoice(i) {
+          voiceIndex = (i + voiceCards.length) % voiceCards.length;
+          voiceCards.forEach((c, idx) => c.classList.toggle("is-active", idx === voiceIndex));
+          voiceDots.forEach((d, idx) => d.classList.toggle("is-active", idx === voiceIndex));
+        }
+        function startVoiceRotate() {
+          if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          voiceTimer = setInterval(() => showVoice(voiceIndex + 1), 5200);
+        }
+        function stopVoiceRotate() {
+          if (voiceTimer) { clearInterval(voiceTimer); voiceTimer = null; }
+        }
+        voiceDots.forEach((dot) => {
+          dot.addEventListener("click", () => {
+            const i = parseInt(dot.dataset.voice, 10);
+            showVoice(i);
+            stopVoiceRotate();
+            startVoiceRotate(); // reset timer
+          });
+        });
+        // Pausa auto-rotate quando la sezione voices non è visibile
+        const voicesEl = document.getElementById("voices");
+        if (voicesEl && "IntersectionObserver" in window) {
+          const voicesObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) startVoiceRotate();
+              else stopVoiceRotate();
+            });
+          }, { threshold: 0.3 });
+          voicesObserver.observe(voicesEl);
+        } else {
+          startVoiceRotate();
+        }
+      })();
+    </script>
   </body>
 </html>

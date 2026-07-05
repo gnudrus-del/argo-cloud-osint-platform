@@ -37,6 +37,7 @@ from .email_verification import (
     verify_token,
 )
 from .external_recon import run_recon_pipeline
+from .high_risk import audit_event_payload as high_risk_audit, detect_high_risk
 from .external_tools import TOOL_SPECS, all_tools_health, resolve_command, tool_health_status
 from . import provider_health
 from .target_classifier import classify_target
@@ -52,9 +53,10 @@ from .redteam_report import (
 )
 from .scope import CaseScope, parse_entry as parse_scope_entry
 from .job_queue import JobQueue, JobSpec
+from .celery_queue import create_job_queue
 from .link_analysis import export_d3_json, resolve_entities
 from .media import analyze_media_file
-from .orchestrator import RunProfile, plan_from_command
+from .orchestrator import ALWAYS_ON_AGENTS, RunProfile, plan_from_command
 from .pdf_report import write_pdf_from_markdown
 from .search import provider_has_key
 from .safety import redact_email, redact_phone
@@ -75,7 +77,9 @@ MAX_UPLOAD_BYTES = int(os.getenv("OSINT_MAX_UPLOAD_BYTES", "26214400"))
 SECURE_COOKIE = os.getenv("OSINT_SECURE_COOKIE", "0") == "1"
 SESSION_STORE: SessionStore = InMemorySessionStore()
 RATE_LIMITER: RateLimiter = InMemoryRateLimiter()
-JOB_QUEUE = JobQueue()
+# Backend di coda scelto dall'env QUEUE_BACKEND (celery -> Redis, altrimenti
+# in-process). Duck-type compatibile: register_dispatcher/submit_spec/pending_count.
+JOB_QUEUE = create_job_queue()
 STORAGE: Storage | None = None
 _STORAGE_LOCK = __import__("threading").Lock()
 CONNECTOR_REGISTRY = build_default_registry()
@@ -100,6 +104,14 @@ API_KEY_CATALOG: list[dict] = [
     {"service": "github",     "label": "GitHub Token","env_var": "GITHUB_TOKEN",        "doc": "https://github.com/settings/tokens", "category": "Code recon"},
     {"service": "leakix",     "label": "LeakIX",      "env_var": "LEAKIX_API_KEY",      "doc": "https://leakix.net/auth/api", "category": "Leak intel"},
     {"service": "fullhunt",   "label": "FullHunt",    "env_var": "FULLHUNT_API_KEY",    "doc": "https://fullhunt.io/", "category": "Network OSINT"},
+    # Phase 8 connectors (BYOK)
+    {"service": "securitytrails", "label": "SecurityTrails", "env_var": "SECURITYTRAILS_API_KEY", "doc": "https://securitytrails.com/corp/api", "category": "Network OSINT"},
+    {"service": "greynoise",  "label": "GreyNoise",   "env_var": "GREYNOISE_API_KEY",   "doc": "https://viz.greynoise.io/account/api-key", "category": "Threat intel"},
+    {"service": "otx",        "label": "AlienVault OTX","env_var": "OTX_API_KEY",        "doc": "https://otx.alienvault.com/api", "category": "Threat intel"},
+    {"service": "etherscan",  "label": "Etherscan",   "env_var": "ETHERSCAN_API_KEY",   "doc": "https://etherscan.io/apis", "category": "Blockchain"},
+    {"service": "companies_house","label": "Companies House (UK)","env_var": "COMPANIES_HOUSE_API_KEY","doc": "https://developer.company-information.service.gov.uk/", "category": "Corporate registry"},
+    {"service": "google_pse", "label": "Google PSE (key|cx)","env_var": "GOOGLE_PSE_API_KEY", "doc": "https://programmablesearchengine.google.com/", "category": "Search providers"},
+    {"service": "influencers_club","label": "Influencers Club","env_var": "INFLUENCERS_CLUB_API_KEY","doc": "https://influencers.club/", "category": "Reverse account"},
 ]
 
 
@@ -132,23 +144,26 @@ def resolve_api_key(service: str, actor: str = "") -> str:
 
 
 def get_storage() -> Storage:
-    """Lazy singleton Storage anchored at JOB_ROOT/gufo.sqlite3.
+    """Lazy singleton dello storage.
 
-    On first init, migrates any legacy ``web_jobs/*.json`` and ``users.json``
-    plus a pre-existing ``audit.log`` (if the DB audit table is empty) into
-    SQLite. Tests can reset STORAGE to None or assign a Storage pointing at
-    a tmp directory.
+    Backend scelto dal factory ``create_storage`` in base a ``DATABASE_URL``:
+    Postgres se ``postgres://...`` e psycopg è installato, altrimenti SQLite in
+    ``JOB_ROOT/gufo.sqlite3`` (default). La migrazione dei legacy file gira solo
+    sul backend SQLite (ha ``migrate_from_files``). Tests can reset STORAGE to
+    None or assign a backend pointing at a tmp directory.
     """
     global STORAGE
     with _STORAGE_LOCK:
         if STORAGE is None:
             JOB_ROOT.mkdir(parents=True, exist_ok=True)
-            STORAGE = Storage(JOB_ROOT / "gufo.sqlite3")
-            try:
-                STORAGE.migrate_from_files(JOB_ROOT)
-            except Exception:
-                # Migration is best-effort; failures here must not block boot.
-                pass
+            from .storage_base import create_storage
+            STORAGE = create_storage(JOB_ROOT)
+            if hasattr(STORAGE, "migrate_from_files"):
+                try:
+                    STORAGE.migrate_from_files(JOB_ROOT)
+                except Exception:
+                    # Migration is best-effort; failures here must not block boot.
+                    pass
         return STORAGE
 
 
@@ -452,20 +467,30 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.send_json({"status": "ok", "time": now_iso()})
             if path == "/api/capabilities":
                 self.require_auth()
-                return self.send_json(capabilities(actor_from_request(self)))
+                sess = current_session(self)
+                unlocked = bool(sess and sess.get("admin_unlocked"))
+                return self.send_json(capabilities(actor_from_request(self), admin_unlocked=unlocked))
             if path == "/api/tools/health":
                 self.require_auth()
+                sess = current_session(self)
+                if not (sess and sess.get("admin_unlocked")):
+                    # Non-admin: rispondiamo senza svelare la lista tool.
+                    raise WebError(HTTPStatus.FORBIDDEN, "Elenco tool riservato agli amministratori.")
                 return self.send_json({"tools": all_tools_health()})
+            if path == "/api/keys":
+                # La lista chiavi API è a sua volta segreto di piattaforma.
+                self.require_auth()
+                sess = current_session(self)
+                if not (sess and sess.get("admin_unlocked")):
+                    raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per gestire le chiavi API.")
+                actor = actor_from_request(self)
+                return self.send_json({"keys": get_storage().list_api_keys(actor), "catalog": API_KEY_CATALOG})
             if path == "/api/jobs":
                 self.require_auth()
                 return self.send_json({"jobs": list_jobs(actor_from_request(self))})
             if path.startswith("/api/jobs/"):
                 self.require_auth()
                 return self.handle_job_get(path, actor_from_request(self))
-            if path == "/api/keys":
-                self.require_auth()
-                actor = actor_from_request(self)
-                return self.send_json({"keys": get_storage().list_api_keys(actor), "catalog": API_KEY_CATALOG})
             if path == "/api/cases":
                 self.require_auth()
                 actor = actor_from_request(self)
@@ -480,10 +505,21 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.handle_roe_get(path, actor)
             if path == "/api/connectors":
                 self.require_auth()
+                sess = current_session(self)
+                if not (sess and sess.get("admin_unlocked")):
+                    raise WebError(HTTPStatus.FORBIDDEN,
+                                   "Catalogo connettori riservato agli amministratori.")
                 return self.send_json({"connectors": CONNECTOR_REGISTRY.catalog()})
             if path == "/api/dashboard":
                 self.require_auth()
                 return self.send_json(dashboard_overview(actor_from_request(self)))
+            if path == "/api/admin/stats":
+                self.require_auth()
+                sess = current_session(self)
+                if not (sess and sess.get("admin_unlocked")):
+                    raise WebError(HTTPStatus.FORBIDDEN,
+                                   "Statistiche di piattaforma riservate all'amministratore.")
+                return self.send_json(admin_stats())
             if path.startswith("/api/graph/"):
                 self.require_auth()
                 actor = actor_from_request(self)
@@ -500,7 +536,10 @@ class OsintHandler(BaseHTTPRequestHandler):
         except WebError as exc:
             self.send_json({"error": exc.message}, exc.status)
         except Exception as exc:
-            self.send_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            # NON leakiamo str(exc) al client: potrebbe contenere path assoluti,
+            # nomi utente OS, valori interni. Log server-side + messaggio generico.
+            LOG.exception("Unhandled error on %s: %s", getattr(self, "path", "?"), exc)
+            self.send_json({"error": "Errore interno."}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def do_POST(self) -> None:
         try:
@@ -518,6 +557,29 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.send_json({"status": "logged_out"})
             self.require_auth()
             self.require_csrf()
+            if path == "/api/admin/unlock":
+                # Unlock delle funzioni admin (es. ricerca aggressiva).
+                # Fail-close: nessun log della password, audit solo su success.
+                payload = self.read_json()
+                username = str((payload or {}).get("username", "")).strip()
+                password = str((payload or {}).get("password", ""))
+                if not verify_admin_credentials(username, password):
+                    # Ritardo costante per non permettere timing enumeration.
+                    time.sleep(0.15)
+                    raise WebError(HTTPStatus.UNAUTHORIZED, "Credenziali admin non valide.")
+                # Persist il flag admin_unlocked nella sessione utente: la UI/API
+                # reveleranno tool e connettori sensibili solo per questa sessione.
+                sess = current_session(self)
+                if sess is not None:
+                    sess["admin_unlocked"] = True
+                    sess["admin_unlocked_at"] = time.time()
+                    SESSION_STORE.put(sess["id"], sess)
+                get_storage().append_audit_event(
+                    actor_from_request(self),
+                    "admin_unlock",
+                    {"username": username, "feature": "aggressive_hunt+tool_reveal"},
+                )
+                return self.send_json({"unlocked": True})
             if path == "/api/plan":
                 payload = self.read_json()
                 profile = build_profile(payload)
@@ -538,7 +600,37 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.send_json(job, HTTPStatus.ACCEPTED)
             if path == "/api/media":
                 return self.handle_media_upload()
+            if path == "/api/enrich/text":
+                payload = self.read_json()
+                text = str(payload.get("text") or "")
+                if not text.strip():
+                    raise WebError(HTTPStatus.BAD_REQUEST, "Campo 'text' obbligatorio.")
+                from .enrichment_ai import enrich_text
+                translate_to = str(payload.get("translate_to") or "").strip()
+                result = enrich_text(
+                    text[:200_000],
+                    summarize=bool(payload.get("summarize", True)),
+                    translate_to=translate_to,
+                )
+                return self.send_json(result)
+            if path == "/api/search/findings":
+                # Ricerca full-text cross-caso sui findings indicizzati (OpenSearch).
+                payload = self.read_json()
+                query = str(payload.get("query") or "").strip()
+                if not query:
+                    raise WebError(HTTPStatus.BAD_REQUEST, "Campo 'query' obbligatorio.")
+                from .opensearch_index import OpenSearchIndex
+                client = OpenSearchIndex()
+                if not client.available():
+                    raise WebError(HTTPStatus.SERVICE_UNAVAILABLE,
+                                   "OpenSearch non configurato (OPENSEARCH_URL).")
+                case_id = str(payload.get("case_id") or "").strip()
+                size = min(int(payload.get("size", 25) or 25), 100)
+                return self.send_json(client.search(query, size=size, case_id=case_id))
             if path == "/api/keys":
+                sess = current_session(self)
+                if not (sess and sess.get("admin_unlocked")):
+                    raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per gestire le chiavi API.")
                 payload = self.read_json()
                 actor = actor_from_request(self)
                 service = str(payload.get("service") or "").strip()
@@ -557,6 +649,9 @@ class OsintHandler(BaseHTTPRequestHandler):
                 )
                 return self.send_json({"keys": store.list_api_keys(actor), "catalog": API_KEY_CATALOG})
             if path == "/api/keys/test":
+                sess = current_session(self)
+                if not (sess and sess.get("admin_unlocked")):
+                    raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per testare le chiavi API.")
                 # Test on-demand di una chiave (NON la salva, solo verifica).
                 # Usa la chiave già salvata se non viene fornita "value" nel payload.
                 payload = self.read_json()
@@ -636,7 +731,121 @@ class OsintHandler(BaseHTTPRequestHandler):
         except WebError as exc:
             self.send_json({"error": exc.message}, exc.status)
         except Exception as exc:
-            self.send_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            # NON leakiamo str(exc) al client: potrebbe contenere path assoluti,
+            # nomi utente OS, valori interni. Log server-side + messaggio generico.
+            LOG.exception("Unhandled error on %s: %s", getattr(self, "path", "?"), exc)
+            self.send_json({"error": "Errore interno."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def do_DELETE(self) -> None:
+        try:
+            path = urlparse(self.path).path
+            self.enforce_rate_limit()
+            self.require_auth()
+            self.require_csrf()
+            if path.startswith("/api/jobs/"):
+                actor = actor_from_request(self)
+                return self.handle_job_delete(path, actor)
+            if path.startswith("/api/cases/"):
+                actor = actor_from_request(self)
+                return self.handle_case_delete(path, actor)
+            raise WebError(HTTPStatus.NOT_FOUND, "Endpoint non trovato.")
+        except WebError as exc:
+            self.send_json({"error": exc.message}, exc.status)
+        except Exception as exc:
+            # NON leakiamo str(exc) al client: potrebbe contenere path assoluti,
+            # nomi utente OS, valori interni. Log server-side + messaggio generico.
+            LOG.exception("Unhandled error on %s: %s", getattr(self, "path", "?"), exc)
+            self.send_json({"error": "Errore interno."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def handle_job_delete(self, path: str, actor: str) -> None:
+        parts = [p for p in path.split("/") if p]
+        if len(parts) != 3:
+            raise WebError(HTTPStatus.NOT_FOUND, "Endpoint non trovato.")
+        job_id = parts[2]
+        # read_job applies ownership check (404 if not owner) -> nessun leak.
+        job = read_job(job_id, requester=actor)
+        # Motivazione opzionale (audit). Body JSON ammesso ma non obbligatorio.
+        try:
+            payload = self.read_json()
+        except Exception:
+            payload = {}
+        reason = str((payload or {}).get("reason", "")).strip()[:500]
+        removed_files = delete_job_artifacts(job)
+        rows = get_storage().delete_job(job_id)
+        get_storage().append_audit_event(
+            actor,
+            "job_deleted",
+            {
+                "job_id": job_id,
+                "case_id": job.get("case_id", ""),
+                "files_removed": removed_files,
+                "rows_removed": rows,
+                "reason": reason,
+            },
+        )
+        return self.send_json({
+            "status": "ok",
+            "job_id": job_id,
+            "files_removed": removed_files,
+            "rows_removed": rows,
+        })
+
+    def handle_case_delete(self, path: str, actor: str) -> None:
+        """DELETE /api/cases/<id> — rimuove il caso.
+
+        - Solo l'owner. read_case restituisce 404 (non 403) su non-owner: preserva
+          l'invariante "nessun leak di esistenza" gia' presente per i job.
+        - Cascade OPT-IN via ``?cascade=1`` in query: elimina anche i job del
+          caso (file + record + audit event per ognuno). Default OFF: i job
+          restano come record orfani (case_id preservato per audit trail).
+        - L'evento ``case_deleted`` viene sempre appeso all'audit log:
+          cancelliamo i dati, MAI la responsabilita' dell'azione.
+        """
+        parts = [p for p in path.split("/") if p]
+        if len(parts) != 3:
+            raise WebError(HTTPStatus.NOT_FOUND, "Endpoint non trovato.")
+        case_id = parts[2]
+        case = read_case(case_id, requester=actor)  # 404 se non owner
+
+        try:
+            payload = self.read_json()
+        except Exception:
+            payload = {}
+        reason = str((payload or {}).get("reason", "")).strip()[:500]
+
+        qs = urlparse(self.path).query or ""
+        cascade = "cascade=1" in qs or "cascade=true" in qs
+
+        store = get_storage()
+        jobs_removed: list[str] = []
+        files_removed_total: list[str] = []
+        if cascade:
+            for job in store.list_jobs(owner=actor, limit=1000):
+                if job.get("case_id") == case_id:
+                    files_removed_total.extend(delete_job_artifacts(job))
+                    store.delete_job(job["id"])
+                    jobs_removed.append(job["id"])
+
+        store.delete_case(case_id)
+        store.append_audit_event(
+            actor,
+            "case_deleted",
+            {
+                "case_id": case_id,
+                "title": case.get("title", ""),
+                "cascade": cascade,
+                "jobs_removed": jobs_removed,
+                "files_removed": files_removed_total,
+                "reason": reason,
+            },
+        )
+        return self.send_json({
+            "status": "ok",
+            "case_id": case_id,
+            "cascade": cascade,
+            "jobs_removed": jobs_removed,
+            "files_removed": files_removed_total,
+        })
 
     def handle_signup(self) -> None:
         if not SIGNUPS_ENABLED:
@@ -681,12 +890,16 @@ class OsintHandler(BaseHTTPRequestHandler):
                 "status": result.get("status"),
             })
         except EmailSendError as exc:
-            # Rollback the user — we don't want orphan unverified accounts
+            # Rollback the user — we don't want orphan unverified accounts.
+            # NON esponiamo dettagli tecnici (potrebbero includere SMTP host,
+            # username relay, ecc.); log server-side per debug.
             users.pop(username, None)
             save_users(users)
-            store.append_audit_event(username, "signup_rollback_email_error", {"error": str(exc)})
+            LOG.warning("Signup rollback for %s: email send failed: %s", username, exc)
+            store.append_audit_event(username, "signup_rollback_email_error",
+                                     {"reason": "email_send_failed"})
             raise WebError(HTTPStatus.SERVICE_UNAVAILABLE,
-                           f"Errore invio email di verifica: {exc}")
+                           "Errore invio email di verifica. Riprova più tardi.")
         # Don't start session — user must verify first
         return self.send_json({
             "status": "pending_verification",
@@ -795,6 +1008,9 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         job = read_job(job_id, requester=requester)
         if len(parts) == 3:
             return self.send_json(job)
+        # Export threat-intel generati al volo dall'investigation JSON.
+        if len(parts) == 4 and parts[3] in {"stix.json", "misp.json"}:
+            return self.handle_threatintel_export(job, parts[3])
         if len(parts) == 4 and parts[3] in {
             "report.md", "report.json", "report.pdf",
             "forensic.md", "forensic.json",
@@ -834,6 +1050,30 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
             return self.send_file(Path(report_path), content_type)
         raise WebError(HTTPStatus.NOT_FOUND, "Risorsa job non trovata.")
 
+    def handle_threatintel_export(self, job: dict, kind: str) -> None:
+        """Genera STIX 2.1 bundle o MISP event dall'investigation JSON del job.
+
+        Rispetta la redaction: se il caso non ha include_contact, esporta dalla
+        versione redatta del JSON (nessun contatto personale nei bundle condivisi).
+        """
+        json_path = job.get("json_path")
+        if not json_path or not Path(json_path).exists():
+            raise WebError(HTTPStatus.NOT_FOUND, "Report JSON non disponibile per l'export.")
+        inv = json.loads(Path(json_path).read_text(encoding="utf-8"))
+        include_contact = bool(job.get("settings", {}).get("include_contact"))
+        if not include_contact:
+            inv = redact_report_json(inv)
+        if kind == "stix.json":
+            from .stix_export import investigation_to_stix_bundle
+            payload = investigation_to_stix_bundle(inv)
+        else:
+            from .stix_export import investigation_to_misp_event
+            payload = investigation_to_misp_event(inv)
+        return self.send_raw(
+            json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"),
+            "application/json; charset=utf-8",
+        )
+
     def handle_media_upload(self) -> None:
         content_type = self.headers.get("Content-Type", "")
         if not content_type.startswith("multipart/form-data"):
@@ -850,7 +1090,25 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         upload_path = UPLOAD_ROOT / f"{uuid.uuid4().hex}_{filename}"
         upload_path.write_bytes(data)
         metadata = analyze_media_file(upload_path)
-        self.send_json({"metadata": metadata.to_dict()})
+        response: dict = {"metadata": metadata.to_dict()}
+        # OCR opzionale su immagini: estrae testo + entità se tesseract è presente.
+        if (metadata.media_type or "").startswith("image"):
+            try:
+                from .enrichment_ai import ocr_image
+                ocr = ocr_image(str(upload_path))
+                if ocr.available and ocr.text:
+                    response["ocr"] = {
+                        "engine": ocr.engine,
+                        "text": ocr.text[:5000],
+                        "entities": [{"text": e.text, "label": e.label,
+                                      "confidence": round(e.confidence, 2)}
+                                     for e in ocr.entities],
+                    }
+                elif not ocr.available:
+                    response["ocr"] = {"available": False, "note": ocr.note}
+            except Exception as exc:
+                response["ocr"] = {"available": False, "note": f"OCR error: {exc}"}
+        self.send_json(response)
 
     # ------------------------------------------------------------------
     # Pillar 1 — Connector endpoints
@@ -1068,10 +1326,40 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         self.send_file(static_path, content_type)
 
     def send_file(self, path: Path, content_type: str) -> None:
+        # Difesa in profondità contro path-traversal: il file DEVE essere sotto
+        # JOB_ROOT (dove si generano report/upload) oppure sotto STATIC_ROOT
+        # (asset del frontend). Anche se un attaccante forzasse un path via DB,
+        # qui si ferma con 404.
+        try:
+            real = path.resolve(strict=True)
+            allowed_roots = (JOB_ROOT.resolve(), STATIC_ROOT.resolve())
+            if not any(str(real).startswith(str(r) + os.sep) or str(real) == str(r) for r in allowed_roots):
+                raise WebError(HTTPStatus.NOT_FOUND, "File non trovato.")
+        except FileNotFoundError:
+            raise WebError(HTTPStatus.NOT_FOUND, "File non trovato.")
         if not path.is_file():
             raise WebError(HTTPStatus.NOT_FOUND, "File non trovato.")
         data = path.read_bytes()
-        self.send_raw(data, content_type)
+        # Cache-busting basato sul contenuto: ETag SHA-256 weak su (size, mtime).
+        # Con `Cache-Control: no-cache` il browser RIVALIDA ad ogni richiesta:
+        # 304 se l'ETag combacia (zero byte), 200 con la nuova versione appena
+        # cambia. Niente piu' "Ctrl+F5" obbligatorio dopo un deploy.
+        stat = path.stat()
+        etag = 'W/"%d-%d"' % (stat.st_size, int(stat.st_mtime_ns))
+        client_etag = self.headers.get("If-None-Match", "")
+        if client_etag and client_etag == etag:
+            self.send_response(HTTPStatus.NOT_MODIFIED)
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
+            self.end_headers()
+            return
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-cache, must-revalidate")
+        self.send_header("ETag", etag)
+        self.end_headers()
+        self.wfile.write(data)
 
     def send_raw(self, data: bytes, content_type: str) -> None:
         self.send_response(HTTPStatus.OK)
@@ -1133,6 +1421,11 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
 
     def end_headers(self) -> None:
         self.send_header("X-Content-Type-Options", "nosniff")
+        # Difesa clickjacking (retrocompatibile con CSP frame-ancestors 'none').
+        self.send_header("X-Frame-Options", "DENY")
+        # Isolamento cross-origin: previene attacchi Spectre-like e leaks.
+        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         self.send_header(
@@ -1183,6 +1476,17 @@ def create_job(profile: RunProfile, payload: dict, actor: str = "system") -> dic
     else:
         # Verify the case exists and the actor can see it; raises WebError otherwise.
         read_case(case_id, requester=actor)
+    # Fase 3 — detection automatica HighRiskResearchMode. Calcoliamo qui (non
+    # nel worker) cosi' il contesto e' visibile gia' dalla creazione del job e
+    # finisce nell'audit log nello stesso istante.
+    high_risk = detect_high_risk(
+        target=profile.target,
+        target_type=profile.target_type,
+        command=getattr(profile, "command", "") or "",
+        modules=list(payload.get("modules") or []),
+        allow_darkweb=bool(payload.get("allow_darkweb")),
+        seed_urls=list(payload.get("seed_urls") or []),
+    )
     job = {
         "id": job_id,
         "owner": actor or "anonymous",
@@ -1193,6 +1497,7 @@ def create_job(profile: RunProfile, payload: dict, actor: str = "system") -> dic
         "updated_at": now_iso(),
         "profile": profile_to_dict(profile),
         "settings": public_settings(payload),
+        "high_risk": high_risk.to_dict(),
         "links": {
             "self": f"/api/jobs/{job_id}",
             "markdown": f"/api/jobs/{job_id}/report.md",
@@ -1201,7 +1506,8 @@ def create_job(profile: RunProfile, payload: dict, actor: str = "system") -> dic
         },
     }
     write_job(job_id, job)
-    get_storage().append_audit_event(
+    store = get_storage()
+    store.append_audit_event(
         actor,
         "job_created",
         {
@@ -1215,6 +1521,12 @@ def create_job(profile: RunProfile, payload: dict, actor: str = "system") -> dic
             "modules": list(payload.get("modules") or []),
         },
     )
+    if high_risk.active:
+        store.append_audit_event(
+            actor,
+            "high_risk_mode_activated",
+            {"job_id": job_id, **high_risk_audit(high_risk)},
+        )
     return job
 
 
@@ -1393,6 +1705,11 @@ def _generate_redteam_report(
     """
     if "red_team" not in (profile.agents or []) and "red_team" not in (payload.get("modules") or []):
         return None, None
+    # Segno esplicitamente perche' l'utente possa capire dal progress log del job.
+    def _log_skip(reason: str) -> None:
+        job.setdefault("progress", []).append({
+            "at": now_iso(), "stage": "redteam_report_skipped", "message": reason,
+        })
 
     # Preferisco il path esplicito (passato da execute_job), fallback su job.
     investigation_json = investigation_json_path
@@ -1401,6 +1718,7 @@ def _generate_redteam_report(
         if jp and Path(jp).exists():
             investigation_json = Path(jp)
         else:
+            _log_skip("Report investigation JSON non trovato: impossibile costruire il Red Team.")
             return None, None
 
     try:
@@ -1459,6 +1777,10 @@ def _generate_redteam_report(
     scope_entries_raw = case_data.get("allowed_targets") or [] if isinstance(case_data, dict) else []
     if not scope_entries_raw:
         # Nessuno scope → niente report Red Team (Priorità 8 del brief).
+        _log_skip(
+            "Red Team NON generato: il caso non ha target autorizzati (allowed_targets vuoto). "
+            "Apri il caso in Casi → Scope autorizzato e aggiungi almeno un target, poi rilancia il job."
+        )
         return None, None
     scope = CaseScope(case_id=case_id or job.get("id", "unknown"))
     for raw in scope_entries_raw:
@@ -1603,6 +1925,15 @@ def execute_job(job_id: str, profile: RunProfile, payload: dict, actor: str = "s
                 "at": now_iso(), "stage": "redteam_report_error", "message": str(exc),
             })
 
+        # --- Sync best-effort verso Neo4j (grafo) e OpenSearch (full-text).
+        # Entrambi sono no-op se non configurati via env; non devono mai
+        # interrompere il job (wrap difensivo + funzioni che non sollevano).
+        try:
+            _sync_external_stores(job_id=job_id, json_path=json_path,
+                                  case_id=job.get("case_id") or "", job=job)
+        except Exception as exc:
+            LOG.warning("external store sync failed: %s", exc)
+
         job.setdefault("progress", []).append({"at": now_iso(), "stage": "complete", "message": "Report completato."})
         job.update(
             {
@@ -1623,6 +1954,58 @@ def execute_job(job_id: str, profile: RunProfile, payload: dict, actor: str = "s
         job.update({"status": "error", "updated_at": now_iso(), "error": str(exc)})
         get_storage().append_audit_event(actor, "job_error", {"job_id": job_id, "target_type": profile.target_type, "error": str(exc)})
     write_job(job_id, job)
+
+
+def _sync_external_stores(*, job_id: str, json_path, case_id: str, job: dict) -> None:
+    """Sincronizza grafo + findings verso Neo4j/OpenSearch se configurati.
+
+    Ricostruisce il grafo dall'investigation JSON con lo stesso builder usato
+    dall'endpoint /api/graph, poi delega ai due helper best-effort. Registra
+    l'esito nel progress log del job (visibile all'utente) senza mai sollevare.
+    """
+    if not json_path or not Path(json_path).exists():
+        return
+    inv = json.loads(Path(json_path).read_text(encoding="utf-8"))
+
+    # OpenSearch: indicizzazione full-text dei findings.
+    try:
+        from .opensearch_index import index_investigation
+        os_res = index_investigation(job_id, inv, case_id=case_id, indexed_at=now_iso())
+        if os_res.get("indexed"):
+            job.setdefault("progress", []).append({
+                "at": now_iso(), "stage": "opensearch",
+                "message": f"Indicizzati {os_res.get('count', 0)} findings su OpenSearch.",
+            })
+    except Exception as exc:
+        LOG.warning("opensearch index failed: %s", exc)
+
+    # Neo4j: sync del grafo entità-relazioni.
+    try:
+        from .neo4j_sync import capabilities as _neo_caps, sync_investigation_graph
+        if _neo_caps().get("configured"):
+            from .models import Evidence as _Ev, Finding as _F
+            findings = []
+            for fd in (inv.get("findings") or []):
+                try:
+                    findings.append(_F(
+                        kind=fd.get("kind", ""), value=str(fd.get("value", "")),
+                        confidence=float(fd.get("confidence", 0.5) or 0.5),
+                        evidence=[_Ev(**e) for e in (fd.get("evidence") or [])],
+                        notes=fd.get("notes", ""), severity=fd.get("severity", ""),
+                        attck_ttps=list(fd.get("attck_ttps") or []),
+                    ))
+                except Exception:
+                    pass
+            # Stesso builder dell'endpoint /api/graph: resolve_entities + export_d3_json.
+            graph = export_d3_json(resolve_entities(findings))
+            neo_res = sync_investigation_graph(graph, case_id=case_id)
+            if neo_res.get("synced"):
+                job.setdefault("progress", []).append({
+                    "at": now_iso(), "stage": "neo4j",
+                    "message": f"Grafo sincronizzato su Neo4j ({neo_res.get('nodes', 0)} nodi).",
+                })
+    except Exception as exc:
+        LOG.warning("neo4j sync failed: %s", exc)
 
 
 def profile_to_dict(profile: RunProfile) -> dict:
@@ -1656,7 +2039,107 @@ def public_settings(payload: dict) -> dict:
     return {key: payload.get(key) for key in allowed if key in payload}
 
 
-def capabilities(actor: str = "") -> dict:
+# Connettori che dipendono da un tool locale configurato via env (health_check
+# è un semplice controllo di config, senza rete → sicuro nel capabilities).
+_LOCAL_TOOL_CONNECTORS = {
+    "maigret", "holehe", "ignorant", "ghunt", "toutatis", "theharvester",
+    "flowsint", "misp", "phone_meta", "socid_extractor",
+    "telegram_checker", "linkedin2username",
+}
+
+
+def _obfuscate_tools(tools: list[dict]) -> list[dict]:
+    """Nascondi nomi/env dei tool. Espone solo un placeholder + conteggio."""
+    ok = sum(1 for t in tools if t.get("available"))
+    total = len(tools)
+    if not total:
+        return []
+    return [{
+        "name": "🔒 Tool nascosti",
+        "env_var": "",
+        "configured": ok > 0,
+        "available": True,
+        "health_reason": f"{ok}/{total} disponibili. Sblocca con la password amministratore per elencarli.",
+        "checked_at": "",
+        "description": "Tool di ricerca oscurati a utenti non-admin.",
+        "hidden": True,
+    }]
+
+
+def _obfuscate_connectors(conns: list[dict]) -> list[dict]:
+    ok = sum(1 for c in conns if c.get("status") == "ok")
+    total = len(conns)
+    if not total:
+        return []
+    return [{
+        "name": "hidden",
+        "label": "🔒 Connettori nascosti",
+        "action_class": "passive",
+        "input_types": [],
+        "output_categories": [],
+        "required_key": "",
+        "status": "locked",
+        "needs": "admin_password",
+        "count": total,
+        "count_ok": ok,
+        "hidden": True,
+    }]
+
+
+def _obfuscate_providers(providers: list[dict]) -> list[dict]:
+    configured = sum(1 for p in providers if p.get("configured") and p.get("service") != "all")
+    total = sum(1 for p in providers if p.get("service") != "all")
+    return [{
+        "name": "hidden", "service": "hidden",
+        "label": "🔒 Provider nascosti",
+        "env_var": "", "state": "locked",
+        "configured": configured > 0,
+        "message": f"{configured}/{total} configurati. Sblocca per gestirli.",
+        "last4": "", "checked_at": "", "category": "Locked",
+        "hidden": True,
+    }]
+
+
+def _connector_capabilities(actor: str = "") -> list[dict]:
+    """Espone il registro connettori alla UI con uno stato calcolato SENZA rete.
+
+    Stato: 'ok' (nativo o configurato) | 'needs_key' (manca API key BYOK) |
+    'needs_config' (manca il tool/credenziale locale via env).
+    """
+    out: list[dict] = []
+    for name in CONNECTOR_REGISTRY.names():
+        try:
+            conn = CONNECTOR_REGISTRY.get(name)
+            spec = conn.spec
+        except Exception:
+            continue
+        needs = ""
+        if spec.required_key:
+            key = resolve_api_key(spec.required_key, actor) if actor else os.getenv(
+                next((e["env_var"] for e in API_KEY_CATALOG if e["service"] == spec.required_key), ""), "")
+            status = "ok" if key else "needs_key"
+            needs = spec.required_key
+        elif name in _LOCAL_TOOL_CONNECTORS:
+            try:
+                status = "ok" if conn.health_check() else "needs_config"
+            except Exception:
+                status = "needs_config"
+        else:
+            status = "ok"  # nativo no-key
+        out.append({
+            "name": name,
+            "label": spec.label,
+            "action_class": spec.action_class,
+            "input_types": list(spec.input_types),
+            "output_categories": list(spec.output_categories),
+            "required_key": spec.required_key,
+            "status": status,
+            "needs": needs,
+        })
+    return out
+
+
+def capabilities(actor: str = "", admin_unlocked: bool = False) -> dict:
     """Snapshot delle capabilities runtime per l'utente corrente.
 
     Per ogni provider in API_KEY_CATALOG, restituisce uno stato semantico
@@ -1716,14 +2199,47 @@ def capabilities(actor: str = "") -> dict:
             "checked_at": status.checked_at,
         })
 
+    # Tutti gli agenti sempre attivi + i due gated (darkweb, red_team) esposti
+    # con marcatura, così la UI può indicare quali richiedono un flag esplicito.
+    all_agents = [*ALWAYS_ON_AGENTS, "darkweb", "red_team"]
+    try:
+        from .enrichment_ai import capabilities as _ai_caps
+        ai_caps = _ai_caps()
+    except Exception:
+        ai_caps = {}
+    try:
+        from .neo4j_sync import capabilities as _neo_caps
+        from .opensearch_index import capabilities as _os_caps
+        stores = {"neo4j": _neo_caps(), "opensearch": _os_caps()}
+    except Exception:
+        stores = {}
+    try:
+        from .celery_queue import capabilities as _q_caps
+        queue_caps = _q_caps()
+    except Exception:
+        queue_caps = {}
+    connectors = _connector_capabilities(actor)
+    # Segreto di piattaforma (Fase 22): tool/connettori/provider di ricerca
+    # sono OSCURATI a chi non ha sbloccato con la password admin. La UI mostra
+    # solo un conteggio aggregato; l'API non svela i nomi.
+    if not admin_unlocked:
+        tools = _obfuscate_tools(tools)
+        connectors = _obfuscate_connectors(connectors)
+        providers = _obfuscate_providers(providers)
     return {
-        "agents": ["planner", "web", "opsec", "socmint", "geo", "media", "crypto", "phone", "darkweb", "humint", "external"],
+        "agents": all_agents,
+        "always_on_agents": list(ALWAYS_ON_AGENTS),
+        "gated_agents": ["darkweb", "red_team"],
+        "admin_unlocked": bool(admin_unlocked),
+        "ai_enrichment": ai_caps,
+        "external_stores": stores,
         "tools": tools,
+        "connectors": connectors,
         "search_providers": providers,
         "auth_enabled": True,
         "signup_enabled": SIGNUPS_ENABLED,
         "plans": ["free", "pro"],
-        "queue": {"pending": JOB_QUEUE.pending_count()},
+        "queue": {"pending": JOB_QUEUE.pending_count(), **queue_caps},
     }
 
 
@@ -1920,6 +2436,53 @@ def list_jobs(owner: str = "") -> list[dict]:
     return get_storage().list_jobs(owner=owner, limit=50)
 
 
+# ---------------------------------------------------------------------------
+# Admin unlock — accesso alle funzioni "restricted" (es. ricerca aggressiva).
+#
+# Credenziali admin: mai in codice.
+#   - ``ARGO_ADMIN_USER``           : username admin
+#   - ``ARGO_ADMIN_PASSWORD_HASH``  : hash in formato "pbkdf2_sha256$<iter>$<salt_hex>$<hash_hex>"
+#
+# Il file .env sulla VM ha chmod 600 ed e' caricato via EnvironmentFile della
+# unit systemd — NON e' nel repo git. Se le due env non sono impostate,
+# l'endpoint fail-close: nessuno puo' sbloccare.
+# ---------------------------------------------------------------------------
+def verify_admin_credentials(username: str, password: str) -> bool:
+    """Verifica user+password admin.
+
+    Confronta ``username`` con ``ARGO_ADMIN_USER`` (case-sensitive) e verifica
+    l'hash PBKDF2-SHA256 stored in ``ARGO_ADMIN_PASSWORD_HASH``. Costante-time:
+    usa ``hmac.compare_digest`` sia sull'user sia sull'hash calcolato.
+
+    Fail-closed: se una delle due env manca o l'hash e' mal-formato → False.
+    """
+    admin_user = os.getenv("ARGO_ADMIN_USER", "")
+    stored = os.getenv("ARGO_ADMIN_PASSWORD_HASH", "")
+    if not admin_user or not stored:
+        return False
+    if not username or not password:
+        return False
+    # constant-time username check
+    user_ok = hmac.compare_digest(username.encode("utf-8"),
+                                  admin_user.encode("utf-8"))
+    # Parse "pbkdf2_sha256$<iter>$<salt_hex>$<hash_hex>"
+    try:
+        algo, iter_s, salt_hex, hash_hex = stored.split("$")
+        if algo != "pbkdf2_sha256":
+            return False
+        iterations = int(iter_s)
+        salt = bytes.fromhex(salt_hex)
+        expected = bytes.fromhex(hash_hex)
+    except (ValueError, AttributeError):
+        return False
+    derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"),
+                                  salt, iterations, dklen=len(expected))
+    hash_ok = hmac.compare_digest(derived, expected)
+    # Restituisce True solo se ENTRAMBE le comparazioni sono OK; le eseguo
+    # sempre e ANDo alla fine per evitare timing side-channel su user.
+    return user_ok and hash_ok
+
+
 def compliance_warnings(cases: list[dict], jobs: list[dict]) -> list[dict]:
     """Avvisi privacy/compliance derivati, mostrati nella dashboard.
 
@@ -1957,6 +2520,61 @@ def compliance_warnings(cases: list[dict], jobs: list[dict]) -> list[dict]:
             "message": f"{error_jobs} job in stato di errore: verifica fonti o autorizzazioni.",
         })
     return out
+
+
+def admin_stats() -> dict:
+    """Metriche di piattaforma (solo admin sbloccato).
+
+    Riusa lo storage esistente: utenti totali/verificati/attivi, job (per stato),
+    casi, audit chain (verificabile). Nessun dato personale del target
+    dell'indagine viene esposto — solo aggregati.
+    """
+    store = get_storage()
+    users = store.all_users()
+    users_total = len(users)
+    users_verified = sum(1 for u in users.values() if u.get("verified"))
+    users_disabled = sum(1 for u in users.values() if u.get("disabled"))
+    # "attivi negli ultimi 7gg" = user con login_success nell'audit chain recente
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    week_ago = (now - timedelta(days=7)).isoformat(timespec="seconds")
+    day_ago = (now - timedelta(days=1)).isoformat(timespec="seconds")
+    events = store.all_audit_events()
+    logins_7d = {e.get("actor") for e in events
+                 if e.get("action") == "login_success" and e.get("timestamp", "") >= week_ago}
+    logins_24h = {e.get("actor") for e in events
+                  if e.get("action") == "login_success" and e.get("timestamp", "") >= day_ago}
+    signups_7d = sum(1 for e in events
+                     if e.get("action") == "user_signup" and e.get("timestamp", "") >= week_ago)
+    # Job aggregati per stato
+    jobs = store.list_jobs(limit=10_000)
+    by_status: dict[str, int] = {}
+    for j in jobs:
+        by_status[j.get("status", "?")] = by_status.get(j.get("status", "?"), 0) + 1
+    # Audit chain integrity
+    chain_ok = store.verify_audit_chain()
+    return {
+        "users": {
+            "total": users_total,
+            "verified": users_verified,
+            "disabled": users_disabled,
+            "active_7d": len(logins_7d),
+            "active_24h": len(logins_24h),
+            "signups_7d": signups_7d,
+        },
+        "jobs": {
+            "total": len(jobs),
+            "by_status": by_status,
+        },
+        "cases": {
+            "total": len(store.list_cases(limit=10_000)),
+        },
+        "audit": {
+            "events_total": len(events),
+            "chain_valid": bool(chain_ok),
+        },
+        "signup_enabled": SIGNUPS_ENABLED,
+    }
 
 
 def dashboard_overview(actor: str = "") -> dict:
@@ -2058,6 +2676,37 @@ def read_job(job_id: str, requester: str = "") -> dict:
 
 def write_job(job_id: str, job: dict) -> None:
     get_storage().put_job(job_id, job)
+
+
+def delete_job_artifacts(job: dict) -> list[str]:
+    """Rimuove dal disco TUTTI gli artefatti report associati a un job.
+
+    Tipi coperti: markdown_path, json_path, pdf_path, forensic_markdown_path,
+    forensic_json_path, redteam_markdown_path, redteam_json_path. Resilient:
+    file gia' assenti vengono ignorati senza errore. Restituisce l'elenco dei
+    path effettivamente rimossi (utile per audit trail).
+    """
+    removed: list[str] = []
+    keys = (
+        "markdown_path", "json_path", "pdf_path",
+        "forensic_markdown_path", "forensic_json_path",
+        "redteam_markdown_path", "redteam_json_path",
+    )
+    for key in keys:
+        raw = job.get(key)
+        if not raw:
+            continue
+        try:
+            p = Path(str(raw))
+            if p.is_file():
+                p.unlink()
+                removed.append(str(p))
+        except OSError:
+            # File system error: continue silently — un report che non si
+            # cancella non e' una emergenza ed il record DB viene comunque
+            # rimosso a valle.
+            continue
+    return removed
 
 
 def safe_filename(value: str) -> str:

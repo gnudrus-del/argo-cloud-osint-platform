@@ -528,6 +528,14 @@ class Storage:
         """
         self._conn().execute("DELETE FROM cases WHERE id = ?", (case_id,))
 
+    def delete_job(self, job_id: str) -> int:
+        """Hard delete one job row. The audit event registering the deletion
+        is appended by the caller (web.py handle_job_delete) so chain-of-custody
+        integrity is preserved. Returns the number of rows removed (0 or 1).
+        """
+        cur = self._conn().execute("DELETE FROM jobs WHERE id = ?", (job_id,))
+        return cur.rowcount or 0
+
     # --------------------------------------------------------------- api keys
 
     def put_api_key(self, username: str, service: str, value: str) -> None:
