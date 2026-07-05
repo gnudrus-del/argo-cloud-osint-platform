@@ -37,6 +37,8 @@ For console (dev only):
 """
 from __future__ import annotations
 
+from ._ua import user_agent as _ua
+
 import base64
 import hashlib
 import hmac
@@ -190,7 +192,7 @@ def send_via_resend(to_email: str, subject: str, html: str, text: str) -> None:
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "User-Agent": "Argo-OSINT/1.0 (+https://argo-cloud.duckdns.org)",
+            "User-Agent": _ua(),
             "Accept": "application/json",
         },
         method="POST",

@@ -1,0 +1,77 @@
+"""Connector: OpenCorporates — global company registry.
+
+Free tier without key (limited). BYOK opzionale per piu' query.
+
+Action class: passive. Input: ``company``, ``person`` (officer search).
+"""
+from __future__ import annotations
+
+import json
+import urllib.parse
+import urllib.request
+
+from ..connector import (
+    ACTION_PASSIVE,
+    BaseConnector,
+    ConnectorContext,
+    ConnectorResult,
+    ConnectorSpec,
+    RateLimit,
+)
+from ..models import Evidence, Finding
+
+_SPEC = ConnectorSpec(
+    name="opencorporates",
+    label="OpenCorporates",
+    action_class=ACTION_PASSIVE,
+    input_types=("company",),
+    output_categories=("corporate_registry",),
+    required_key="",
+    cache_ttl=86400,
+    rate_limit=RateLimit(per_minute=10, per_day=200, burst=2),
+    legal_note="OpenCorporates aggrega registri imprese pubblici.",
+    health_check_url="https://api.opencorporates.com/v0.4/companies/search?q=test&limit=1",
+)
+
+
+class OpenCorporatesConnector(BaseConnector):
+    spec = _SPEC
+
+    def _fetch(self, context: ConnectorContext) -> ConnectorResult:
+        params = {"q": context.target.strip(), "limit": 5, "format": "json"}
+        if context.api_key:
+            params["api_token"] = context.api_key
+        url = "https://api.opencorporates.com/v0.4/companies/search?" + urllib.parse.urlencode(params)
+        req = urllib.request.Request(url, headers={
+            "Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        except Exception as exc:
+            return ConnectorResult(connector=self.spec.name, status="error",
+                                   error=f"OpenCorporates: {exc}")
+        results = ((data or {}).get("results") or {}).get("companies") or []
+        findings: list[Finding] = []
+        for r in results[:5]:
+            c = r.get("company") or {}
+            name = c.get("name", "")
+            jur = c.get("jurisdiction_code", "")
+            ev = [Evidence(url=c.get("opencorporates_url", ""), title="OpenCorporates")]
+            findings.append(Finding(
+                kind="company_record", value=f"{name} ({jur})",
+                confidence=0.85, source_reliability="B", info_credibility=2,
+                evidence=ev,
+                notes=f"OpenCorporates: numero={c.get('company_number', '?')}, "
+                      f"status={c.get('current_status', '?')}, "
+                      f"creata={c.get('incorporation_date', '?')}",
+            ))
+        return ConnectorResult(connector=self.spec.name, status="ok",
+                               findings=findings,
+                               raw={"total": len(results)})
+
+    def health_check(self) -> bool:
+        try:
+            urllib.request.urlopen(self.spec.health_check_url, timeout=5).close()
+            return True
+        except Exception:
+            return False

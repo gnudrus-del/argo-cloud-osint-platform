@@ -9,9 +9,11 @@ from .analyze import analyze
 from .discovery import automatic_seed_results
 from .dorks import build_dorks, dork_results
 from .entities import enrich_investigation_entities
+from .explainability import enrich_investigation_explanations
 from .external_tools import available_tools
 from .fetch import FetchConfig, Fetcher
-from .grading import apply_default_grades
+from .grading import apply_default_grades, level_breakdown
+from .high_risk import detect_high_risk
 from .models import Investigation, SearchResult
 from .orchestrator import plan_from_command
 from .report import save_report
@@ -71,6 +73,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    # Fase 6 — HighRiskResearchMode: stessi vincoli compliance della UI web.
+    # Stampa banner e ragioni PRIMA di eseguire, cosi' l'operatore sa in che
+    # modalita' sta lavorando e puo' interrompere se non e' quel che voleva.
+    _print_opsec_banner_if_needed(args)
+
     try:
         markdown_path, json_path = run_investigation(args)
     except (SafetyError, SearchError) as exc:
@@ -82,6 +89,45 @@ def main(argv: list[str] | None = None) -> int:
     if json_path:
         print(f"JSON: {json_path}")
     return 0
+
+
+def _print_opsec_banner_if_needed(args: argparse.Namespace) -> None:
+    """Stampa il banner OPSEC se la ricerca attiva HighRiskResearchMode."""
+    ctx = detect_high_risk(
+        target=args.target or "",
+        target_type=args.type or "",
+        command=getattr(args, "command", "") or "",
+        modules=[],  # CLI usa --agent, non modules; allow_darkweb e' gia' coperto sotto
+        allow_darkweb=bool(getattr(args, "allow_darkweb", False)),
+        seed_urls=list(getattr(args, "seed_url", []) or []),
+    )
+    if not ctx.active:
+        return
+    print("=" * 70, file=sys.stderr)
+    print("🛡  " + ctx.banner, file=sys.stderr)
+    print("Motivi di attivazione:", file=sys.stderr)
+    for r in ctx.reasons:
+        print(f"  - {r}", file=sys.stderr)
+    print("Restrizioni applicate:", file=sys.stderr)
+    for key, label in ctx.restrictions[:6]:
+        print(f"  · {label}", file=sys.stderr)
+    print("=" * 70, file=sys.stderr)
+
+
+def _print_evidence_breakdown(findings) -> None:
+    """Stampa la classificazione operativa dei finding (Fase 6).
+
+    Distingue dato verificato / probabile / non verificato / non disponibile,
+    cosi' l'operatore CLI ha gli stessi 4 livelli della piattaforma web.
+    """
+    if not findings:
+        return
+    levels = level_breakdown(findings)
+    print("Livelli di affidabilita' (Admiralty -> operativi):", file=sys.stderr)
+    print(f"  ✓ verificato      : {levels['verificato']}", file=sys.stderr)
+    print(f"  ~ probabile       : {levels['probabile']}", file=sys.stderr)
+    print(f"  ? non_verificato  : {levels['non_verificato']}", file=sys.stderr)
+    print(f"  - non_disponibile : {levels['non_disponibile']}", file=sys.stderr)
 
 
 def run_investigation(args: argparse.Namespace) -> tuple[Path | None, Path | None]:
@@ -172,6 +218,11 @@ def run_investigation(args: argparse.Namespace) -> tuple[Path | None, Path | Non
         skipped_urls=skipped,
     )
     enrich_investigation_entities(investigation)
+    # Fase 7 — spiegabilita': perche' collegato + cosa manca per confermare.
+    enrich_investigation_explanations(investigation)
+
+    # Fase 6 — breakdown operativo dei finding (verificato/probabile/...).
+    _print_evidence_breakdown(findings)
 
     return save_report(investigation, Path(args.output_dir), args.format)
 

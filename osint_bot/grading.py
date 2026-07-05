@@ -197,6 +197,58 @@ def apply_default_grades(findings) -> None:
             finding.info_credibility = c
 
 
+# Tassonomia operativa per la UI/CLI: classifica ogni finding in 4 livelli
+# basati sul codice Admiralty (reliability A-F, credibility 1-6). Il bot deve
+# poter distinguere dato verificato, probabile, non verificato e non
+# disponibile (requisito Fase 6).
+EVIDENCE_LEVEL_VERIFIED   = "verificato"
+EVIDENCE_LEVEL_PROBABLE   = "probabile"
+EVIDENCE_LEVEL_UNVERIFIED = "non_verificato"
+EVIDENCE_LEVEL_UNKNOWN    = "non_disponibile"
+
+
+def classify_evidence_level(reliability: str, credibility: int) -> str:
+    """Map (reliability, credibility) -> uno dei 4 livelli operativi.
+
+    Tabella:
+      A1, A2, B1, B2                          -> verificato
+      A3, B3, C1, C2, C3                       -> probabile
+      A4-A5, B4-B5, C4-C5, D*, E* (con info 1-5) -> non_verificato
+      F* o info=6                              -> non_disponibile
+    """
+    rel = (reliability or "F").upper()
+    try:
+        cred = int(credibility)
+    except (TypeError, ValueError):
+        cred = 6
+    if rel == "F" or cred == 6:
+        return EVIDENCE_LEVEL_UNKNOWN
+    if rel in {"A", "B"} and cred <= 2:
+        return EVIDENCE_LEVEL_VERIFIED
+    if rel in {"A", "B"} and cred == 3:
+        return EVIDENCE_LEVEL_PROBABLE
+    if rel == "C" and cred <= 3:
+        return EVIDENCE_LEVEL_PROBABLE
+    return EVIDENCE_LEVEL_UNVERIFIED
+
+
+def level_breakdown(findings) -> dict[str, int]:
+    """Conta i finding per livello operativo (Fase 6).
+
+    Sempre tutti e 4 i livelli presenti (zero se assenti), cosi' la UI/CLI
+    puo' stampare un breakdown coerente senza guard."""
+    out = {
+        EVIDENCE_LEVEL_VERIFIED:   0,
+        EVIDENCE_LEVEL_PROBABLE:   0,
+        EVIDENCE_LEVEL_UNVERIFIED: 0,
+        EVIDENCE_LEVEL_UNKNOWN:    0,
+    }
+    for finding in findings:
+        level = classify_evidence_level(finding.source_reliability, finding.info_credibility)
+        out[level] = out.get(level, 0) + 1
+    return out
+
+
 def distribution(findings) -> dict[str, int]:
     """Histogram of finding grades, e.g. {'B2': 14, 'C3': 7, 'F6': 2}.
 

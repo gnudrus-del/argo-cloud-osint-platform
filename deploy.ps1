@@ -27,7 +27,7 @@
     .\deploy.ps1 -Host 203.0.113.10
 
 .EXAMPLE
-    .\deploy.ps1 -Host argo-cloud.duckdns.org -DryRun
+    .\deploy.ps1 -Host your-argo-host.example.com -DryRun
 
 .EXAMPLE
     .\deploy.ps1 -Host 203.0.113.10 -IdentityFile $HOME\.ssh\id_ed25519
@@ -41,8 +41,9 @@ param(
     [string] $User         = 'ubuntu',
     [string] $RemotePath   = '/opt/argo-osint',
     [string] $Service      = 'argo-osint',
-    [string] $HealthUrl    = 'https://argo-cloud.duckdns.org/api/dashboard',
-    [string] $LocalPath    = $PSScriptRoot,
+    # HealthUrl derivato di default dall'host passato (evita hardcode del dominio).
+    [string] $HealthUrl    = '',
+    [string] $LocalPath    = '',
     [string] $IdentityFile = '',
     [int]    $Port         = 22,
     [switch] $DryRun
@@ -53,6 +54,18 @@ param(
 # messaggi verrebbero promossi a errore terminante. Usiamo check espliciti su
 # $LASTEXITCODE + throw, e -ErrorAction Stop sui cmdlet critici.
 $ErrorActionPreference = 'Continue'
+
+# HealthUrl fallback: derivato dall'host passato se non specificato.
+if (-not $HealthUrl) { $HealthUrl = "https://$VMHost/api/dashboard" }
+
+# $PSScriptRoot puo' essere vuoto in alcuni contesti di invocazione (es. tramite
+# wrapper). Derivo la directory dello script dal $MyInvocation che e' sempre
+# popolato quando si esegue tramite `-File ...`.
+if (-not $LocalPath) {
+    $scriptPath = $MyInvocation.MyCommand.Definition
+    if ($scriptPath) { $LocalPath = Split-Path -Parent $scriptPath }
+    if (-not $LocalPath) { $LocalPath = (Get-Location).Path }
+}
 
 # ---- helper di output -------------------------------------------------------
 function Write-Step($m) { Write-Host "==> $m" -ForegroundColor Cyan }

@@ -129,39 +129,42 @@ def infer_target_type(target: str, text: str) -> str:
     return "company"
 
 
+# Agenti sempre attivi su ogni ricerca del sito. Includono tutti gli agenti
+# "non-gated": ciascuno si auto-skippa quando non pertinente al target (es. phone
+# su un dominio, reverse_account senza autorizzazione), quindi eseguirli tutti
+# massimizza la copertura senza rischi legali o di sicurezza. I due agenti gated
+# (darkweb, red_team) restano fuori da questa base e si attivano solo dietro il
+# rispettivo flag/modulo esplicito.
+ALWAYS_ON_AGENTS = [
+    "planner", "web", "opsec", "geo", "socmint",
+    "media", "crypto", "phone", "humint", "external", "reverse_account",
+]
+
+
 def choose_agents(text: str, target_type: str, allow_darkweb: bool, modules: list[str] | None = None) -> list[str]:
     lower = text.casefold()
-    agents = ["planner", "web", "opsec"]
     selected = set(modules or [])
 
-    if target_type in {"domain", "ip", "company", "org"} or "company_domain" in selected:
-        agents.extend(["geo"])
+    # Base: tutti gli agenti sicuri girano sempre. Non filtriamo più per keyword
+    # o target_type — la selezione di pertinenza avviene dentro ciascun agente.
+    agents = list(ALWAYS_ON_AGENTS)
+
+    # Gate dark/deep web: solo se autorizzato esplicitamente (allow_darkweb) o
+    # richiesto via modulo/keyword. run_agents lo rimuove comunque se il flag
+    # allow_darkweb è assente, e DarkwebAgent.run() ri-verifica (defense in depth).
+    wants_darkweb = (
+        allow_darkweb
+        or "darkweb" in selected
+        or any(k in lower for k in ("dark web", "darkweb", "deep web", ".onion"))
+    )
+    if wants_darkweb:
+        agents.append("darkweb")
+
+    # Gate red team: solo dietro modulo/flag autorizzato. RedTeamAgent.run()
+    # ri-verifica confirm_authorization e il report red-team resta subordinato
+    # a scope non vuoto + autorizzazione (vedi web._generate_redteam_report).
     if "red_team" in selected:
-        agents.extend(["geo", "external", "red_team"])
-    if target_type in {"handle", "person", "email", "phone"} or "socmint" in lower or "socmint" in selected:
-        agents.extend(["socmint"])
-    if target_type == "phone" or "phone_email" in selected:
-        agents.append("phone")
-    # Reverse-account discovery: only when target is email/phone and the user
-    # said this is authorised. The agent itself re-checks confirm_authorization.
-    if target_type in {"email", "phone"} and "phone_email" in selected:
-        agents.append("reverse_account")
-    if target_type == "crypto" or "crypto" in lower or "blockchain" in lower or "wallet" in lower or "crypto" in selected:
-        agents.append("crypto")
-    if target_type == "media" or "immagin" in lower or "video" in lower or "metadat" in lower or "exif" in lower or "media" in selected:
-        agents.append("media")
-    if "geo" in lower or "geolocal" in lower or "map" in lower or "geo" in selected:
-        agents.append("geo")
-    if "dark web" in lower or "darkweb" in lower or "deep web" in lower or ".onion" in lower or "darkweb" in selected:
-        agents.append("darkweb")
-    if "humint" in lower or "humanit" in lower or "elicit" in lower or "intervista" in lower or "humint" in selected:
-        agents.append("humint")
-    if "tool" in lower or "sherlock" in lower or "maigret" in lower or "holehe" in lower or "nmap" in lower:
-        agents.append("external")
-    if "external" in selected:
-        agents.append("external")
-    if allow_darkweb and "darkweb" not in agents and (".onion" in lower):
-        agents.append("darkweb")
+        agents.append("red_team")
 
     return unique(agents)
 
