@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/gnudrus-del/argo-cloud-osint-platform/security/advisories/new
+    about: Please use GitHub Security Advisories for anything sensitive.
+  - name: Ask a question / share a workflow
+    url: https://github.com/gnudrus-del/argo-cloud-osint-platform/discussions
+    about: Use Discussions for open-ended questions and workflow sharing.

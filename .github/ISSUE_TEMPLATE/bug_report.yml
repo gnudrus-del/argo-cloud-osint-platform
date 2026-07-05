@@ -1,0 +1,82 @@
+name: Bug report
+description: Report a reproducible defect (crash, wrong output, broken deploy).
+title: "[Bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug in Argo Cloud OSINT Platform.
+        **Please do not include real target data, real credentials, or your API keys in this issue.**
+        Redact anything that identifies a real person, host or organization.
+
+  - type: input
+    id: version
+    attributes:
+      label: Argo version
+      description: Output of `argo-osint --version`, or the git commit hash you are running.
+      placeholder: "0.1.0 or commit d98a09e"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-mode
+    attributes:
+      label: Install mode
+      options:
+        - Local (pip install -e .)
+        - Docker
+        - Compose
+        - Systemd on VM
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS and Python
+      placeholder: "Ubuntu 24.04 · Python 3.12.3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal command sequence that triggers the bug. Use a public target (example.com) if possible.
+      placeholder: |
+        1. argo-osint example.com --type domain --provider none
+        2. Observe the crash / wrong output
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include stack trace, error message, or wrong output. Redact anything sensitive.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / additional context
+      description: Optional. Paste relevant log lines (redacted).
+      render: text
+
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have removed real target data, credentials and API keys from this report.
+          required: true

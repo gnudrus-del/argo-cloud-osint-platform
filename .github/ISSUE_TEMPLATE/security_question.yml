@@ -1,0 +1,34 @@
+name: Security question (non-sensitive only)
+description: Public, non-sensitive question about Argo's security posture, threat model, or hardening guides.
+title: "[Security question] "
+labels: ["security", "question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Do NOT report vulnerabilities here.
+
+        Actual vulnerabilities must be reported privately via
+        **GitHub Security Advisories**:
+        <https://github.com/gnudrus-del/argo-cloud-osint-platform/security/advisories/new>
+
+        See [`SECURITY.md`](../../SECURITY.md) for details.
+
+        This template is only for **public, non-sensitive** questions about
+        the security model, threat model, or hardening choices.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: Explain what you want to understand about Argo's security posture.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: This is a public, non-sensitive question. I am not disclosing an unpatched vulnerability here.
+          required: true

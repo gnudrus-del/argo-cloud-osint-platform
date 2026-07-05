@@ -1,6 +1,8 @@
 services:
-  gufo-osint:
+  argo-osint:
     build: .
+    image: argo-cloud-osint-platform:local
+    container_name: argo-osint
     ports:
       - "8000:8000"
     environment:
@@ -18,10 +20,16 @@ services:
       HIBP_API_KEY: ${HIBP_API_KEY:-}
       HUNTER_API_KEY: ${HUNTER_API_KEY:-}
     volumes:
-      - gufo_jobs:/app/web_jobs
-      - gufo_reports:/app/reports
+      - argo_jobs:/app/web_jobs
+      - argo_reports:/app/reports
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/dashboard', timeout=3).status in (200,401) else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 volumes:
-  gufo_jobs:
-  gufo_reports:
+  argo_jobs:
+  argo_reports:

@@ -1,36 +1,86 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "osint-bot"
+name = "argo-cloud-osint"
 version = "0.1.0"
-description = "Defensive OSINT research bot with sourced Markdown and JSON reports."
+description = "Self-hosted defensive OSINT platform with CLI + web UI, BYOK connectors, audit chain, and STIX/MISP/PDF/JSON/Markdown exports."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Codex" }]
+license = { text = "Apache-2.0" }
+authors = [{ name = "Argo Cloud OSINT Platform contributors" }]
+maintainers = [{ name = "Argo Cloud OSINT Platform contributors" }]
+keywords = [
+    "osint",
+    "threat-intelligence",
+    "defensive-osint",
+    "self-hosted",
+    "investigation",
+    "stix",
+    "misp",
+    "privacy-by-design",
+    "cyber-security",
+    "digital-forensics",
+    "socmint",
+    "recon",
+    "gdpr",
+    "python",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Internet",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
 dependencies = [
-  "reportlab>=4.0",
-  "phonenumbers>=8.13",
+    "reportlab>=4.0",
+    "phonenumbers>=8.13",
 ]
 
-# Estras opzionali: la piattaforma base gira senza. Ogni gruppo abilita una
-# capability aggiuntiva (Fasi 10-13). Neo4j e OpenSearch NON hanno deps Python
-# (usano le loro API REST via urllib): bastano i servizi.
 [project.optional-dependencies]
+web = []
 ai = [
-  "pytesseract>=0.3.10",   # OCR (richiede il binario tesseract)
-  "Pillow>=10.0",
-  "spacy>=3.7",            # NER (scarica un modello: it_core_news_sm)
-  "langdetect>=1.0.9",
-  "deep-translator>=1.11", # traduzione (fallback: argostranslate offline)
+    "pytesseract>=0.3.10",
+    "Pillow>=10.0",
+    "spacy>=3.7",
+    "langdetect>=1.0.9",
+    "deep-translator>=1.11",
 ]
 postgres = [
-  "psycopg[binary]>=3.1",  # backend storage Postgres (DATABASE_URL=postgres://…)
+    "psycopg[binary]>=3.1",
 ]
 queue = [
-  "celery>=5.3",           # backend coda Celery (QUEUE_BACKEND=celery)
-  "redis>=5.0",
+    "celery>=5.3",
+    "redis>=5.0",
+]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.5",
+    "build>=1.0",
+    "twine>=4.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/gnudrus-del/argo-cloud-osint-platform"
+Documentation = "https://github.com/gnudrus-del/argo-cloud-osint-platform/tree/main/docs"
+Repository = "https://github.com/gnudrus-del/argo-cloud-osint-platform"
+Issues = "https://github.com/gnudrus-del/argo-cloud-osint-platform/issues"
+Changelog = "https://github.com/gnudrus-del/argo-cloud-osint-platform/blob/main/CHANGELOG.md"
+Security = "https://github.com/gnudrus-del/argo-cloud-osint-platform/security/policy"
+
 [project.scripts]
+argo-osint = "osint_bot.cli:main"
 osint-bot = "osint_bot.cli:main"
 
 [tool.setuptools]
@@ -38,3 +88,16 @@ packages = ["osint_bot"]
 
 [tool.setuptools.package-data]
 osint_bot = ["web_static/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["web-next", "tools", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
