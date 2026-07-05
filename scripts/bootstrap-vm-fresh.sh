@@ -66,7 +66,7 @@ else
 fi
 
 # Caddyfile (placeholder — verra' personalizzato col dominio reale)
-DOMAIN="${ARGO_DOMAIN:-argo-cloud.duckdns.org}"
+DOMAIN="${ARGO_DOMAIN:-argo.example.com}"
 cat > /etc/caddy/Caddyfile <<EOF
 $DOMAIN {
     encode gzip
@@ -117,9 +117,9 @@ if [ ! -f /opt/argo-osint/.env ]; then
 OSINT_WEB_TOKEN=
 EMAIL_VERIFICATION_SECRET=
 EMAIL_PROVIDER=console
-EMAIL_FROM_ADDR=noreply@argo-cloud.duckdns.org
+EMAIL_FROM_ADDR=noreply@argo.example.com
 EMAIL_FROM_NAME=Argo
-EMAIL_VERIFICATION_BASE_URL=https://argo-cloud.duckdns.org
+EMAIL_VERIFICATION_BASE_URL=https://argo.example.com
 OSINT_SECURE_COOKIE=1
 OSINT_SESSION_TTL_SECONDS=28800
 OSINT_SIGNUPS_ENABLED=1

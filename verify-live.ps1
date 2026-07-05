@@ -16,7 +16,7 @@
     Nessun IP/segreto e' hardcoded.
 
 .PARAMETER VMHost
-    Hostname pubblico del sito (default: argo-cloud.duckdns.org).
+    Hostname pubblico del sito (default: argo.example.com).
     Alias: -Host.
 
 .PARAMETER Scheme
@@ -24,12 +24,12 @@
 
 .EXAMPLE
     .\verify-live.ps1
-    .\verify-live.ps1 -Host argo-cloud.duckdns.org
+    .\verify-live.ps1 -Host argo.example.com
 #>
 [CmdletBinding()]
 param(
     [Alias('Host', 'H')]
-    [string] $VMHost = 'argo-cloud.duckdns.org',
+    [string] $VMHost = 'argo.example.com',
     [ValidateSet('https', 'http')]
     [string] $Scheme = 'https'
 )

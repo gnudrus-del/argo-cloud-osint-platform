@@ -3,14 +3,14 @@
 # dall'assistente (tool Bash) usando la chiave SSH gia' configurata sul PC,
 # senza che l'utente debba aprire una PowerShell.
 #
-# Default host: argo-cloud.duckdns.org. Override con: HOST=<altro> ./deploy.sh
+# Default host: argo.example.com. Override con: HOST=<altro> ./deploy.sh
 # Flag passa-through: ./deploy.sh --dry-run   ./deploy.sh --force
 #
 # Niente credenziali/IP hardcoded: l'host arriva da $HOST o dal default
 # pubblico documentato nello spec.
 
 set -u
-HOST="${HOST:-argo-cloud.duckdns.org}"
+HOST="${HOST:-argo.example.com}"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 ARGS=( -ExecutionPolicy Bypass -File "${SCRIPT_DIR}/deploy.ps1" -Host "$HOST" )

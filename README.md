@@ -11,7 +11,7 @@ Non e progettato per doxxing, stalking, aggiramento di login, scraping aggressiv
 ## Setup
 
 ```powershell
-cd C:\Users\gnudr\Documents\Codex\2026-06-24\cffe\outputs\osint-bot
+cd <path\to\argo-osint>
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e .
