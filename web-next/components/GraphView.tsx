@@ -48,7 +48,6 @@ export default function GraphView({ data }: { data: GraphData }) {
 
   return (
     <div ref={ref} style={{ width: "100%", height: 560, border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
-      {/* @ts-expect-error dynamic import typing */}
       <ForceGraph2D
         width={size.w}
         height={size.h}
