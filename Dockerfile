@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 LABEL org.opencontainers.image.title="Argo Cloud OSINT Platform"
 LABEL org.opencontainers.image.description="Self-hosted defensive OSINT platform with CLI + web UI, BYOK connectors, audit chain, and STIX/MISP/PDF/JSON/Markdown exports."
