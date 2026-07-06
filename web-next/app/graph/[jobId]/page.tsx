@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { api, ApiError, links } from "@/lib/api";
 import type { GraphData, Job } from "@/lib/types";
 import GraphView from "@/components/GraphView";
 import AgentChips from "@/components/AgentChips";
 
-export default function GraphPage({ params }: { params: { jobId: string } }) {
-  const { jobId } = params;
+// Next 15+ moved dynamic route params to a Promise (Async Request APIs).
+// In a client component we unwrap with React.use().
+export default function GraphPage({ params }: { params: Promise<{ jobId: string }> }) {
+  const { jobId } = use(params);
   const [job, setJob] = useState<Job | null>(null);
   const [graph, setGraph] = useState<GraphData | null>(null);
   const [error, setError] = useState("");
