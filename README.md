@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/gnudrus-del/argo-cloud-osint-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/gnudrus-del/argo-cloud-osint-platform/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/gnudrus-del/argo-cloud-osint-platform?display_name=tag&sort=semver)](https://github.com/gnudrus-del/argo-cloud-osint-platform/releases)
+[![PyPI](https://img.shields.io/pypi/v/argo-cloud-osint?label=pypi)](https://pypi.org/project/argo-cloud-osint/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![GHCR image](https://img.shields.io/badge/ghcr.io-argo--cloud--osint--platform-0f5cad?logo=docker)](https://github.com/gnudrus-del/argo-cloud-osint-platform/pkgs/container/argo-cloud-osint-platform)
@@ -100,7 +101,14 @@ Argo is a **defensive** tool. It refuses to be a weapon.
 
 ## Quickstart (5 minutes)
 
-### Local install
+### Install from PyPI
+
+```bash
+pip install argo-cloud-osint
+argo-osint --help
+```
+
+### Install from source
 
 ```bash
 git clone https://github.com/gnudrus-del/argo-cloud-osint-platform.git
@@ -109,6 +117,12 @@ python -m venv .venv
 # Linux/macOS: source .venv/bin/activate
 # Windows PowerShell: .\.venv\Scripts\Activate.ps1
 pip install -e .
+```
+
+### Install from Docker
+
+```bash
+docker pull ghcr.io/gnudrus-del/argo-cloud-osint-platform:0.1.0
 ```
 
 ### Run the CLI
