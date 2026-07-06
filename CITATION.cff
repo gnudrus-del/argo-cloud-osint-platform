@@ -1,20 +1,61 @@
 cff-version: 1.2.0
-message: "If you use Argo Cloud OSINT Platform in academic work, professional reports, or investigations, please cite it as follows."
+message: >-
+  If Argo Cloud OSINT Platform contributes to your published work,
+  professional report, or investigation, please cite it using the
+  metadata below. This metadata is machine-readable (Citation File
+  Format v1.2) and may be exported from GitHub as APA or BibTeX from
+  the "Cite this repository" widget on the repository home page.
 title: "Argo Cloud OSINT Platform"
-abstract: "Self-hosted defensive OSINT platform with CLI + web UI, BYOK connectors, SHA-256 audit chain, and STIX 2.1 / MISP / PDF / JSON / Markdown exports. Privacy-by-design, GDPR-aware, Apache-2.0."
 type: software
+abstract: >-
+  Self-hosted, privacy-by-design open-source-intelligence platform
+  providing a command-line interface, a web user interface, a plugin
+  architecture with fifty-eight native connectors (forty-three
+  key-free and fifteen bring-your-own-key), a SHA-256 tamper-evident
+  audit chain, GDPR data-subject rights endpoints, and reproducible
+  exports in Markdown, JSON, PDF, STIX 2.1 and MISP core-format 2.4.
+  Designed for authorised, defensive investigations under a
+  privacy-by-design and audit-first operating model.
 authors:
   - name: "Argo Cloud OSINT Platform contributors"
+    website: "https://github.com/gnudrus-del/argo-cloud-osint-platform"
 repository-code: "https://github.com/gnudrus-del/argo-cloud-osint-platform"
 url: "https://github.com/gnudrus-del/argo-cloud-osint-platform"
 license: Apache-2.0
 version: "0.1.0"
+date-released: "2026-07-05"
 keywords:
-  - osint
-  - defensive-osint
-  - threat-intelligence
-  - self-hosted
-  - stix
-  - misp
-  - privacy-by-design
-  - gdpr
+  - "open source intelligence"
+  - "defensive OSINT"
+  - "threat intelligence"
+  - "digital investigations"
+  - "self-hosted"
+  - "STIX 2.1"
+  - "MISP"
+  - "audit chain"
+  - "privacy by design"
+  - "GDPR"
+  - "computer forensics"
+  - "authorised investigation"
+identifiers:
+  - type: url
+    value: "https://github.com/gnudrus-del/argo-cloud-osint-platform/releases/tag/v0.1.0"
+    description: "First public release (v0.1.0)"
+references:
+  - type: software
+    title: "Contributor Covenant"
+    version: "2.1"
+    url: "https://www.contributor-covenant.org/version/2/1/code_of_conduct/"
+    notes: "Adopted as the project's Code of Conduct."
+  - type: standard
+    title: "Structured Threat Information Expression (STIX) Version 2.1"
+    authors:
+      - name: "OASIS Cyber Threat Intelligence Technical Committee"
+    year: 2021
+    url: "https://docs.oasis-open.org/cti/stix/v2.1/os/stix-v2.1-os.html"
+    notes: "Reference format for the platform's STIX export."
+  - type: standard
+    title: "MISP Core Format"
+    version: "2.4"
+    url: "https://www.misp-project.org/"
+    notes: "Reference format for the platform's MISP event export."
