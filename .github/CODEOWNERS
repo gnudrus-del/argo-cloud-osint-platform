@@ -1,0 +1,37 @@
+# Code owners for Argo Cloud OSINT Platform
+#
+# Each line is a file-pattern followed by one or more owners. Owners are
+# automatically requested for review when a PR touches matching files.
+# Owners must have write access to the repository.
+#
+# The single-maintainer configuration currently routes every path to
+# @gnudrus-del. When the project gains additional maintainers, split
+# by area (connectors, docs, security, frontend, packaging).
+
+*                       @gnudrus-del
+
+# Core platform
+/osint_bot/             @gnudrus-del
+
+# Connectors
+/osint_bot/connectors/  @gnudrus-del
+
+# Web UI (Python-served)
+/osint_bot/web_static/  @gnudrus-del
+
+# Next.js frontend
+/web-next/              @gnudrus-del
+
+# Documentation
+/docs/                  @gnudrus-del
+/README.md              @gnudrus-del
+/CODE_OF_CONDUCT.md     @gnudrus-del
+/CONTRIBUTING.md        @gnudrus-del
+/SECURITY.md            @gnudrus-del
+/CHANGELOG.md           @gnudrus-del
+
+# CI + packaging
+/.github/               @gnudrus-del
+/pyproject.toml         @gnudrus-del
+/Dockerfile             @gnudrus-del
+/docker-compose.yml     @gnudrus-del

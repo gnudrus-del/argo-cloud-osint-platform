@@ -3,11 +3,59 @@
 > A self-hosted defensive OSINT platform for analysts who need sourced, auditable and privacy-aware investigations.
 
 [![CI](https://github.com/gnudrus-del/argo-cloud-osint-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/gnudrus-del/argo-cloud-osint-platform/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/gnudrus-del/argo-cloud-osint-platform?display_name=tag&sort=semver)](https://github.com/gnudrus-del/argo-cloud-osint-platform/releases)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
-[![Made with Python](https://img.shields.io/badge/made%20with-python-3776ab.svg)](https://www.python.org/)
+[![GHCR image](https://img.shields.io/badge/ghcr.io-argo--cloud--osint--platform-0f5cad?logo=docker)](https://github.com/gnudrus-del/argo-cloud-osint-platform/pkgs/container/argo-cloud-osint-platform)
+[![Attested](https://img.shields.io/badge/build_provenance-Sigstore-2b8f2e?logo=sigstore)](https://github.com/gnudrus-del/argo-cloud-osint-platform/attestations)
+[![Live demo](https://img.shields.io/badge/live_demo-argo--cloud.duckdns.org-orange)](https://argo-cloud.duckdns.org)
 
 Argo runs entirely on your infrastructure. It aggregates public sources (58 native connectors, key-free and BYOK), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. No telemetry, no cloud dependency, no vendor lock-in.
+
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/assets/screenshot-landing.png" alt="Argo Cloud — public landing page" width="820">
+</p>
+
+<p align="center">
+  <em>Public landing at <code>/</code>. Above the fold: value proposition, hero, and a marquee of the platform's non-negotiables.</em>
+</p>
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/screenshot-dashboard.png" alt="Dashboard — case-based OSINT engine" width="100%">
+      <p align="center"><em>Dashboard — single-entity search bar, entity-type auto-detection, case-scoped queries.</em></p>
+    </td>
+    <td width="50%">
+      <img src="docs/assets/screenshot-casi.png" alt="Cases — legal basis, RoE, retention" width="100%">
+      <p align="center"><em>Cases — every case declares its legal basis, Rules of Engagement, collaborators and retention.</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/screenshot-report.png" alt="Report — sources, Admiralty grading, exports" width="100%">
+      <p align="center"><em>Reports — nineteen-section forensic layout with source graduation and multi-format export.</em></p>
+    </td>
+    <td width="50%">
+      <img src="docs/assets/screenshot-privacy.png" alt="Privacy — DSAR endpoints and tombstone log" width="100%">
+      <p align="center"><em>Privacy Center — GDPR data-subject rights and cryptographic tombstones for verified erasure.</em></p>
+    </td>
+  </tr>
+</table>
+
+### Sample report — inspect the output without installing
+
+The [`docs/samples/example-report/`](docs/samples/example-report/) directory contains a real Argo report generated against `example.com` (RFC 2606 documentation domain):
+
+- [`example.com.md`](docs/samples/example-report/example.com.md) — narrative report (Markdown, ~19 KB)
+- [`example.com.json`](docs/samples/example-report/example.com.json) — structured findings (JSON, ~82 KB)
+- [`example.com.pdf`](docs/samples/example-report/example.com.pdf) — court-ready PDF (~15 KB)
+
+No API key was configured; the report uses only the 43 key-free connectors. See [`docs/samples/README.md`](docs/samples/README.md) for details.
 
 ---
 

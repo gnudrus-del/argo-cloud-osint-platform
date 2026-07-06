@@ -1,0 +1,2330 @@
+{
+  "target": "example.com",
+  "target_type": "domain",
+  "generated_at": "2026-07-06T13:29:26+00:00",
+  "safety_note": "Ricerca limitata a fonti pubbliche, con citazioni e senza aggirare autenticazioni, paywall, controlli tecnici o impostazioni di privacy.",
+  "queries": [
+    "example.com",
+    "\"example.com\"",
+    "site:example.com",
+    "example.com security.txt",
+    "example.com privacy policy",
+    "example.com filetype:pdf",
+    "\"example.com\"",
+    "site:example.com",
+    "site:example.com filetype:pdf",
+    "site:example.com filetype:xls OR filetype:xlsx",
+    "site:example.com intitle:index.of",
+    "site:example.com inurl:admin OR inurl:login",
+    "site:example.com intext:\"api_key\" OR intext:\"token\" OR intext:\"secret\"",
+    "site:github.com \"example.com\"",
+    "site:crt.sh \"example.com\""
+  ],
+  "search_results": [
+    {
+      "title": "example.com - home",
+      "url": "https://example.com/",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - home",
+      "url": "https://www.example.com/",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - about",
+      "url": "https://example.com/about",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - about-us",
+      "url": "https://example.com/about-us",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - contact",
+      "url": "https://example.com/contact",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - privacy",
+      "url": "https://example.com/privacy",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - terms",
+      "url": "https://example.com/terms",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - careers",
+      "url": "https://example.com/careers",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - robots.txt",
+      "url": "https://example.com/robots.txt",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - sitemap.xml",
+      "url": "https://example.com/sitemap.xml",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "example.com - .well-known/security.txt",
+      "url": "https://example.com/.well-known/security.txt",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "Certificate Transparency per example.com",
+      "url": "https://crt.sh/?q=%25.example.com",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "URLScan per example.com",
+      "url": "https://urlscan.io/search/#domain:example.com",
+      "snippet": "Fonte seed automatica generata dal planner per arricchire la raccolta iniziale.",
+      "provider": "seed"
+    },
+    {
+      "title": "google dork: \"example.com\"",
+      "url": "https://www.google.com/search?q=%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "google_dork"
+    },
+    {
+      "title": "bing dork: \"example.com\"",
+      "url": "https://www.bing.com/search?q=%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "bing_dork"
+    },
+    {
+      "title": "duckduckgo dork: \"example.com\"",
+      "url": "https://duckduckgo.com/?q=%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "duckduckgo_dork"
+    },
+    {
+      "title": "yandex dork: \"example.com\"",
+      "url": "https://yandex.com/search/?text=%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "yandex_dork"
+    },
+    {
+      "title": "google dork: site:example.com",
+      "url": "https://www.google.com/search?q=site%3Aexample.com",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "google_dork"
+    },
+    {
+      "title": "bing dork: site:example.com",
+      "url": "https://www.bing.com/search?q=site%3Aexample.com",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "bing_dork"
+    },
+    {
+      "title": "duckduckgo dork: site:example.com",
+      "url": "https://duckduckgo.com/?q=site%3Aexample.com",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "duckduckgo_dork"
+    },
+    {
+      "title": "yandex dork: site:example.com",
+      "url": "https://yandex.com/search/?text=site%3Aexample.com",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "yandex_dork"
+    },
+    {
+      "title": "google dork: site:example.com filetype:pdf",
+      "url": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Apdf",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "google_dork"
+    },
+    {
+      "title": "bing dork: site:example.com filetype:pdf",
+      "url": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Apdf",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "bing_dork"
+    },
+    {
+      "title": "duckduckgo dork: site:example.com filetype:pdf",
+      "url": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Apdf",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "duckduckgo_dork"
+    },
+    {
+      "title": "yandex dork: site:example.com filetype:pdf",
+      "url": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Apdf",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "yandex_dork"
+    },
+    {
+      "title": "google dork: site:example.com filetype:xls OR filetype:xlsx",
+      "url": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "google_dork"
+    },
+    {
+      "title": "bing dork: site:example.com filetype:xls OR filetype:xlsx",
+      "url": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "bing_dork"
+    },
+    {
+      "title": "duckduckgo dork: site:example.com filetype:xls OR filetype:xlsx",
+      "url": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "duckduckgo_dork"
+    },
+    {
+      "title": "yandex dork: site:example.com filetype:xls OR filetype:xlsx",
+      "url": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "yandex_dork"
+    },
+    {
+      "title": "google dork: site:example.com intitle:index.of",
+      "url": "https://www.google.com/search?q=site%3Aexample.com+intitle%3Aindex.of",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "google_dork"
+    },
+    {
+      "title": "bing dork: site:example.com intitle:index.of",
+      "url": "https://www.bing.com/search?q=site%3Aexample.com+intitle%3Aindex.of",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "bing_dork"
+    },
+    {
+      "title": "duckduckgo dork: site:example.com intitle:index.of",
+      "url": "https://duckduckgo.com/?q=site%3Aexample.com+intitle%3Aindex.of",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "duckduckgo_dork"
+    },
+    {
+      "title": "yandex dork: site:example.com intitle:index.of",
+      "url": "https://yandex.com/search/?text=site%3Aexample.com+intitle%3Aindex.of",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "yandex_dork"
+    },
+    {
+      "title": "google dork: site:example.com inurl:admin OR inurl:login",
+      "url": "https://www.google.com/search?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "google_dork"
+    },
+    {
+      "title": "bing dork: site:example.com inurl:admin OR inurl:login",
+      "url": "https://www.bing.com/search?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "bing_dork"
+    },
+    {
+      "title": "duckduckgo dork: site:example.com inurl:admin OR inurl:login",
+      "url": "https://duckduckgo.com/?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "duckduckgo_dork"
+    },
+    {
+      "title": "yandex dork: site:example.com inurl:admin OR inurl:login",
+      "url": "https://yandex.com/search/?text=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "yandex_dork"
+    },
+    {
+      "title": "google dork: site:example.com intext:\"api_key\" OR intext:\"token\" OR intext:\"secret\"",
+      "url": "https://www.google.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "google_dork"
+    },
+    {
+      "title": "bing dork: site:example.com intext:\"api_key\" OR intext:\"token\" OR intext:\"secret\"",
+      "url": "https://www.bing.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "bing_dork"
+    },
+    {
+      "title": "duckduckgo dork: site:example.com intext:\"api_key\" OR intext:\"token\" OR intext:\"secret\"",
+      "url": "https://duckduckgo.com/?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "duckduckgo_dork"
+    },
+    {
+      "title": "yandex dork: site:example.com intext:\"api_key\" OR intext:\"token\" OR intext:\"secret\"",
+      "url": "https://yandex.com/search/?text=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "yandex_dork"
+    },
+    {
+      "title": "google dork: site:github.com \"example.com\"",
+      "url": "https://www.google.com/search?q=site%3Agithub.com+%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "google_dork"
+    },
+    {
+      "title": "bing dork: site:github.com \"example.com\"",
+      "url": "https://www.bing.com/search?q=site%3Agithub.com+%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "bing_dork"
+    },
+    {
+      "title": "duckduckgo dork: site:github.com \"example.com\"",
+      "url": "https://duckduckgo.com/?q=site%3Agithub.com+%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "duckduckgo_dork"
+    },
+    {
+      "title": "yandex dork: site:github.com \"example.com\"",
+      "url": "https://yandex.com/search/?text=site%3Agithub.com+%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "yandex_dork"
+    },
+    {
+      "title": "google dork: site:crt.sh \"example.com\"",
+      "url": "https://www.google.com/search?q=site%3Acrt.sh+%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "google_dork"
+    },
+    {
+      "title": "bing dork: site:crt.sh \"example.com\"",
+      "url": "https://www.bing.com/search?q=site%3Acrt.sh+%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "bing_dork"
+    },
+    {
+      "title": "duckduckgo dork: site:crt.sh \"example.com\"",
+      "url": "https://duckduckgo.com/?q=site%3Acrt.sh+%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "duckduckgo_dork"
+    },
+    {
+      "title": "yandex dork: site:crt.sh \"example.com\"",
+      "url": "https://yandex.com/search/?text=site%3Acrt.sh+%22example.com%22",
+      "snippet": "Dork generato automaticamente; aprire manualmente e verificare le fonti risultanti.",
+      "provider": "yandex_dork"
+    },
+    {
+      "title": "Shodan: example.com",
+      "url": "https://www.shodan.io/search?query=example.com",
+      "snippet": "Fonte servizio generata automaticamente; aprire manualmente o configurare API key per integrazione piu profonda.",
+      "provider": "shodan_link"
+    },
+    {
+      "title": "Censys Hosts: example.com",
+      "url": "https://search.censys.io/search?resource=hosts&q=example.com",
+      "snippet": "Fonte servizio generata automaticamente; aprire manualmente o configurare API key per integrazione piu profonda.",
+      "provider": "censys_link"
+    },
+    {
+      "title": "IntelligenceX: example.com",
+      "url": "https://intelx.io/?s=example.com",
+      "snippet": "Fonte servizio generata automaticamente; aprire manualmente o configurare API key per integrazione piu profonda.",
+      "provider": "intelx_link"
+    },
+    {
+      "title": "Wayback Machine: example.com",
+      "url": "https://web.archive.org/web/*/example.com",
+      "snippet": "Fonte servizio generata automaticamente; aprire manualmente o configurare API key per integrazione piu profonda.",
+      "provider": "wayback_link"
+    },
+    {
+      "title": "Hunter.io: example.com",
+      "url": "https://hunter.io/search/example.com",
+      "snippet": "Fonte servizio generata automaticamente; aprire manualmente o configurare API key per integrazione piu profonda.",
+      "provider": "hunter_link"
+    }
+  ],
+  "pages": [
+    {
+      "url": "https://example.com/",
+      "status": 200,
+      "title": "Example Domain",
+      "description": "",
+      "text": "Example Domain This domain is for use in documentation examples without needing permission. Avoid use in operations. Learn more",
+      "links": [
+        "https://iana.org/domains/example"
+      ],
+      "emails": [],
+      "error": ""
+    }
+  ],
+  "findings": [
+    {
+      "kind": "related_domain",
+      "value": "example.com",
+      "confidence": 0.55,
+      "evidence": [
+        {
+          "url": "https://example.com/",
+          "title": "",
+          "quote": ""
+        }
+      ],
+      "notes": "Dominio o sottodominio rilevato da fonti pubbliche.",
+      "source_reliability": "B",
+      "info_credibility": 2,
+      "provenance": null,
+      "severity": "",
+      "attck_ttps": [],
+      "remediation": "",
+      "why_linked": [
+        "valore identico al target «example.com» (match esatto)",
+        "grado Admiralty B2 (verificato)"
+      ],
+      "gaps": [
+        "manca corroborazione: DNS check live + WHOIS recente",
+        "provenance assente: il risultato non è riproducibile (tool/timestamp/case_id ignoti)"
+      ]
+    },
+    {
+      "kind": "web_presence",
+      "value": "example.com",
+      "confidence": 0.55,
+      "evidence": [
+        {
+          "url": "https://example.com/",
+          "title": "Example Domain",
+          "quote": ""
+        }
+      ],
+      "notes": "1 evidenze raccolte su questo host.",
+      "source_reliability": "B",
+      "info_credibility": 2,
+      "provenance": null,
+      "severity": "",
+      "attck_ttps": [],
+      "remediation": "",
+      "why_linked": [
+        "valore identico al target «example.com» (match esatto)",
+        "grado Admiralty B2 (verificato)"
+      ],
+      "gaps": [
+        "manca corroborazione: fingerprint HTTP attuale (httpx/Wayback) per verifica esistenza",
+        "provenance assente: il risultato non è riproducibile (tool/timestamp/case_id ignoti)"
+      ]
+    },
+    {
+      "kind": "agent_web_coverage",
+      "value": "1 pagine lette, 0 non disponibili",
+      "confidence": 0.8,
+      "evidence": [
+        {
+          "url": "https://example.com/",
+          "title": "Example Domain",
+          "quote": ""
+        }
+      ],
+      "notes": "Copertura web basata su fonti pubbliche e URL seed/API.",
+      "source_reliability": "B",
+      "info_credibility": 2,
+      "provenance": null,
+      "severity": "",
+      "attck_ttps": [],
+      "remediation": "",
+      "why_linked": [
+        "grado Admiralty B2 (verificato)"
+      ],
+      "gaps": [
+        "provenance assente: il risultato non è riproducibile (tool/timestamp/case_id ignoti)"
+      ]
+    },
+    {
+      "kind": "humint_interview_plan",
+      "value": "consent_based_open_questions",
+      "confidence": 0.8,
+      "evidence": [],
+      "notes": "Usare per interviste consensuali o analisi di fonti pubbliche, non per elicitazione ingannevole.",
+      "source_reliability": "F",
+      "info_credibility": 6,
+      "provenance": null,
+      "severity": "",
+      "attck_ttps": [],
+      "remediation": "",
+      "why_linked": [
+        "grado Admiralty F6 (non_disponibile)"
+      ],
+      "gaps": [
+        "nessuna fonte verificata: serve un riscontro indipendente prima di trattarlo come fatto",
+        "provenance assente: il risultato non è riproducibile (tool/timestamp/case_id ignoti)",
+        "nessun link-evidenza cliccabile: aggiungi almeno una URL di supporto"
+      ]
+    }
+  ],
+  "agent_results": [
+    {
+      "name": "planner",
+      "status": "ok",
+      "summary": "Piano investigativo generato con guardrail difensivi.",
+      "findings": [],
+      "notes": [
+        "web: raccogliere fonti pubbliche citabili",
+        "correlation: separare evidenze osservate da inferenze",
+        "review: verificare omonimie, attribuzione e attualita",
+        "network: enumerare solo asset propri o autorizzati"
+      ]
+    },
+    {
+      "name": "web",
+      "status": "ok",
+      "summary": "Copertura web sintetizzata.",
+      "findings": [
+        {
+          "kind": "agent_web_coverage",
+          "value": "1 pagine lette, 0 non disponibili",
+          "confidence": 0.8,
+          "evidence": [
+            {
+              "url": "https://example.com/",
+              "title": "Example Domain",
+              "quote": ""
+            }
+          ],
+          "notes": "Copertura web basata su fonti pubbliche e URL seed/API.",
+          "source_reliability": "B",
+          "info_credibility": 2,
+          "provenance": null,
+          "severity": "",
+          "attck_ttps": [],
+          "remediation": "",
+          "why_linked": [
+            "grado Admiralty B2 (verificato)"
+          ],
+          "gaps": [
+            "provenance assente: il risultato non è riproducibile (tool/timestamp/case_id ignoti)"
+          ]
+        }
+      ],
+      "notes": []
+    },
+    {
+      "name": "external_tools",
+      "status": "skipped",
+      "summary": "Integrazioni esterne eseguite o annotate secondo policy.",
+      "findings": [],
+      "notes": [
+        "Nessun tool esterno selezionato. Usa --external-tool con tool installati localmente."
+      ]
+    },
+    {
+      "name": "opsec",
+      "status": "ok",
+      "summary": "0 segnali OPSEC pubblici rilevati.",
+      "findings": [],
+      "notes": [
+        "OPSEC: privilegiare remediation difensiva, rotazione segreti e riduzione esposizione.",
+        "Non eseguire download o accessi a risorse che non sono chiaramente pubbliche e autorizzate."
+      ]
+    },
+    {
+      "name": "crypto",
+      "status": "ok",
+      "summary": "0 address crypto candidati rilevati.",
+      "findings": [],
+      "notes": []
+    },
+    {
+      "name": "media",
+      "status": "ok",
+      "summary": "0 evidenze media/metadati.",
+      "findings": [],
+      "notes": [
+        "Nessun file media locale o riferimento media pubblico analizzato."
+      ]
+    },
+    {
+      "name": "geo",
+      "status": "ok",
+      "summary": "0 segnali geografici pubblici rilevati.",
+      "findings": [],
+      "notes": []
+    },
+    {
+      "name": "socmint",
+      "status": "ok",
+      "summary": "0 riferimenti social pubblici.",
+      "findings": [],
+      "notes": [
+        "SOCMINT limitata a contenuti pubblici, citabili e verificabili.",
+        "Non raccogliere follower, contatti privati, dati di minori o contenuti dietro login."
+      ]
+    },
+    {
+      "name": "phone",
+      "status": "skipped",
+      "summary": "Target non telefonico.",
+      "findings": [],
+      "notes": []
+    },
+    {
+      "name": "humint",
+      "status": "ok",
+      "summary": "Piano HUMINT etico generato.",
+      "findings": [
+        {
+          "kind": "humint_interview_plan",
+          "value": "consent_based_open_questions",
+          "confidence": 0.8,
+          "evidence": [],
+          "notes": "Usare per interviste consensuali o analisi di fonti pubbliche, non per elicitazione ingannevole.",
+          "source_reliability": "F",
+          "info_credibility": 6,
+          "provenance": null,
+          "severity": "",
+          "attck_ttps": [],
+          "remediation": "",
+          "why_linked": [
+            "grado Admiralty F6 (non_disponibile)"
+          ],
+          "gaps": [
+            "nessuna fonte verificata: serve un riscontro indipendente prima di trattarlo come fatto",
+            "provenance assente: il risultato non è riproducibile (tool/timestamp/case_id ignoti)",
+            "nessun link-evidenza cliccabile: aggiungi almeno una URL di supporto"
+          ]
+        }
+      ],
+      "notes": [
+        "HUMINT supportato solo come preparazione etica: obiettivo, consenso, domande aperte, verifica incrociata.",
+        "Niente pretesti, pressione psicologica, impersonificazione o raccolta di dati personali non necessari.",
+        "Separare dichiarazioni dirette, inferenze dell'analista e fonti documentali."
+      ]
+    },
+    {
+      "name": "reverse_account",
+      "status": "skipped",
+      "summary": "Target non email/telefono.",
+      "findings": [],
+      "notes": []
+    },
+    {
+      "name": "red_team",
+      "status": "skipped",
+      "summary": "Red team richiede --confirm-authorization e target di propria competenza.",
+      "findings": [],
+      "notes": []
+    }
+  ],
+  "skipped_urls": [],
+  "entities": [
+    {
+      "id": "domain:24d36de3fea97259",
+      "type": "domain",
+      "value": "bing.com",
+      "display_value": "bing.com",
+      "confidence": 0.5,
+      "sources": [
+        "https://www.bing.com/search?q=%22example.com%22",
+        "https://www.bing.com/search?q=site%3Aexample.com",
+        "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Apdf",
+        "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx",
+        "https://www.bing.com/search?q=site%3Aexample.com+intitle%3Aindex.of",
+        "https://www.bing.com/search?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin",
+        "https://www.bing.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22",
+        "https://www.bing.com/search?q=site%3Agithub.com+%22example.com%22",
+        "https://www.bing.com/search?q=site%3Acrt.sh+%22example.com%22"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:9eea8e3068c723be",
+      "type": "domain",
+      "value": "crt.sh",
+      "display_value": "crt.sh",
+      "confidence": 0.5,
+      "sources": [
+        "https://crt.sh/?q=%25.example.com"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:b2de5e5f237cde14",
+      "type": "domain",
+      "value": "duckduckgo.com",
+      "display_value": "duckduckgo.com",
+      "confidence": 0.5,
+      "sources": [
+        "https://duckduckgo.com/?q=%22example.com%22",
+        "https://duckduckgo.com/?q=site%3Aexample.com",
+        "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Apdf",
+        "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx",
+        "https://duckduckgo.com/?q=site%3Aexample.com+intitle%3Aindex.of",
+        "https://duckduckgo.com/?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin",
+        "https://duckduckgo.com/?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22",
+        "https://duckduckgo.com/?q=site%3Agithub.com+%22example.com%22",
+        "https://duckduckgo.com/?q=site%3Acrt.sh+%22example.com%22"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:ed152b32b035d8e8",
+      "type": "domain",
+      "value": "example.com",
+      "display_value": "example.com",
+      "confidence": 0.9,
+      "sources": [
+        "target://input",
+        "https://example.com/",
+        "https://www.example.com/",
+        "https://example.com/about",
+        "https://example.com/about-us",
+        "https://example.com/contact",
+        "https://example.com/privacy",
+        "https://example.com/terms",
+        "https://example.com/careers",
+        "https://example.com/robots.txt",
+        "https://example.com/sitemap.xml",
+        "https://example.com/.well-known/security.txt"
+      ],
+      "attributes": {
+        "role": "target"
+      },
+      "source_reliability": "B",
+      "info_credibility": 2
+    },
+    {
+      "id": "domain:7aab66fdf05b36bd",
+      "type": "domain",
+      "value": "google.com",
+      "display_value": "google.com",
+      "confidence": 0.5,
+      "sources": [
+        "https://www.google.com/search?q=%22example.com%22",
+        "https://www.google.com/search?q=site%3Aexample.com",
+        "https://www.google.com/search?q=site%3Aexample.com+filetype%3Apdf",
+        "https://www.google.com/search?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx",
+        "https://www.google.com/search?q=site%3Aexample.com+intitle%3Aindex.of",
+        "https://www.google.com/search?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin",
+        "https://www.google.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22",
+        "https://www.google.com/search?q=site%3Agithub.com+%22example.com%22",
+        "https://www.google.com/search?q=site%3Acrt.sh+%22example.com%22"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:c83a028f65011bca",
+      "type": "domain",
+      "value": "hunter.io",
+      "display_value": "hunter.io",
+      "confidence": 0.5,
+      "sources": [
+        "https://hunter.io/search/example.com"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:ed55381977e86229",
+      "type": "domain",
+      "value": "iana.org",
+      "display_value": "iana.org",
+      "confidence": 0.5,
+      "sources": [
+        "https://iana.org/domains/example"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:b2b71c7fc6265ea2",
+      "type": "domain",
+      "value": "intelx.io",
+      "display_value": "intelx.io",
+      "confidence": 0.5,
+      "sources": [
+        "https://intelx.io/?s=example.com"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:f41902c0ef379b02",
+      "type": "domain",
+      "value": "search.censys.io",
+      "display_value": "search.censys.io",
+      "confidence": 0.5,
+      "sources": [
+        "https://search.censys.io/search?resource=hosts&q=example.com"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:f5cb8edd667fd24f",
+      "type": "domain",
+      "value": "shodan.io",
+      "display_value": "shodan.io",
+      "confidence": 0.5,
+      "sources": [
+        "https://www.shodan.io/search?query=example.com"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:690ae95054c03cae",
+      "type": "domain",
+      "value": "urlscan.io",
+      "display_value": "urlscan.io",
+      "confidence": 0.5,
+      "sources": [
+        "https://urlscan.io/search/#domain:example.com"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:68724d22b04e53ce",
+      "type": "domain",
+      "value": "web.archive.org",
+      "display_value": "web.archive.org",
+      "confidence": 0.5,
+      "sources": [
+        "https://web.archive.org/web/*/example.com"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "domain:fd4f5ad9122c2bbb",
+      "type": "domain",
+      "value": "yandex.com",
+      "display_value": "yandex.com",
+      "confidence": 0.5,
+      "sources": [
+        "https://yandex.com/search/?text=%22example.com%22",
+        "https://yandex.com/search/?text=site%3Aexample.com",
+        "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Apdf",
+        "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx",
+        "https://yandex.com/search/?text=site%3Aexample.com+intitle%3Aindex.of",
+        "https://yandex.com/search/?text=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin",
+        "https://yandex.com/search/?text=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22",
+        "https://yandex.com/search/?text=site%3Agithub.com+%22example.com%22",
+        "https://yandex.com/search/?text=site%3Acrt.sh+%22example.com%22"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:1930648117df1159",
+      "type": "url",
+      "value": "https://crt.sh/?q=%25.example.com",
+      "display_value": "https://crt.sh/?q=%25.example.com",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:8c6a2ba6592e6832",
+      "type": "url",
+      "value": "https://duckduckgo.com/?q=%22example.com%22",
+      "display_value": "https://duckduckgo.com/?q=%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "duckduckgo_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:70ef0340b8b5d809",
+      "type": "url",
+      "value": "https://duckduckgo.com/?q=site%3Acrt.sh+%22example.com%22",
+      "display_value": "https://duckduckgo.com/?q=site%3Acrt.sh+%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "duckduckgo_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:e317c7107065d1a3",
+      "type": "url",
+      "value": "https://duckduckgo.com/?q=site%3Aexample.com",
+      "display_value": "https://duckduckgo.com/?q=site%3Aexample.com",
+      "confidence": 0.45,
+      "sources": [
+        "duckduckgo_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:0ab32c606ee55536",
+      "type": "url",
+      "value": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Apdf",
+      "display_value": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Apdf",
+      "confidence": 0.45,
+      "sources": [
+        "duckduckgo_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:9e674e6c856749ba",
+      "type": "url",
+      "value": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Axls+or+filetype%3Axlsx",
+      "display_value": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Axls+or+filetype%3Axlsx",
+      "confidence": 0.45,
+      "sources": [
+        "duckduckgo_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:96643d4d0f84648a",
+      "type": "url",
+      "value": "https://duckduckgo.com/?q=site%3Aexample.com+intext%3A%22api_key%22+or+intext%3A%22token%22+or+intext%3A%22secret%22",
+      "display_value": "https://duckduckgo.com/?q=site%3Aexample.com+intext%3A%22api_key%22+or+intext%3A%22token%22+or+intext%3A%22secret%22",
+      "confidence": 0.45,
+      "sources": [
+        "duckduckgo_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:4b3e0d1d09b10be9",
+      "type": "url",
+      "value": "https://duckduckgo.com/?q=site%3Aexample.com+intitle%3Aindex.of",
+      "display_value": "https://duckduckgo.com/?q=site%3Aexample.com+intitle%3Aindex.of",
+      "confidence": 0.45,
+      "sources": [
+        "duckduckgo_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:14cdca6280808790",
+      "type": "url",
+      "value": "https://duckduckgo.com/?q=site%3Aexample.com+inurl%3Aadmin+or+inurl%3Alogin",
+      "display_value": "https://duckduckgo.com/?q=site%3Aexample.com+inurl%3Aadmin+or+inurl%3Alogin",
+      "confidence": 0.45,
+      "sources": [
+        "duckduckgo_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:8b5f015cb34e5214",
+      "type": "url",
+      "value": "https://duckduckgo.com/?q=site%3Agithub.com+%22example.com%22",
+      "display_value": "https://duckduckgo.com/?q=site%3Agithub.com+%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "duckduckgo_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:248875e3afb28cac",
+      "type": "url",
+      "value": "https://example.com",
+      "display_value": "https://example.com",
+      "confidence": 0.45,
+      "sources": [
+        "seed",
+        "page"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:caa4bee6ab89b19c",
+      "type": "url",
+      "value": "https://example.com/.well-known/security.txt",
+      "display_value": "https://example.com/.well-known/security.txt",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:697355bd69d10d8e",
+      "type": "url",
+      "value": "https://example.com/about",
+      "display_value": "https://example.com/about",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:ea8898f93f6abbdc",
+      "type": "url",
+      "value": "https://example.com/about-us",
+      "display_value": "https://example.com/about-us",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:e052a050fa14d477",
+      "type": "url",
+      "value": "https://example.com/careers",
+      "display_value": "https://example.com/careers",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:697191077379afb7",
+      "type": "url",
+      "value": "https://example.com/contact",
+      "display_value": "https://example.com/contact",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:2f71648829696e0e",
+      "type": "url",
+      "value": "https://example.com/privacy",
+      "display_value": "https://example.com/privacy",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:25a9b6c354ecf5d9",
+      "type": "url",
+      "value": "https://example.com/robots.txt",
+      "display_value": "https://example.com/robots.txt",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:fabde6960f37c118",
+      "type": "url",
+      "value": "https://example.com/sitemap.xml",
+      "display_value": "https://example.com/sitemap.xml",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:5dff725c2fb48dcc",
+      "type": "url",
+      "value": "https://example.com/terms",
+      "display_value": "https://example.com/terms",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:b3b69a02beacb9e3",
+      "type": "url",
+      "value": "https://hunter.io/search/example.com",
+      "display_value": "https://hunter.io/search/example.com",
+      "confidence": 0.45,
+      "sources": [
+        "hunter_link"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:a48827853e99057e",
+      "type": "url",
+      "value": "https://iana.org/domains/example",
+      "display_value": "https://iana.org/domains/example",
+      "confidence": 0.45,
+      "sources": [
+        "page_link"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:b7ce69cccc5f4a96",
+      "type": "url",
+      "value": "https://intelx.io/?s=example.com",
+      "display_value": "https://intelx.io/?s=example.com",
+      "confidence": 0.45,
+      "sources": [
+        "intelx_link"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:3c5c21ccf7630ff1",
+      "type": "url",
+      "value": "https://search.censys.io/search?resource=hosts&q=example.com",
+      "display_value": "https://search.censys.io/search?resource=hosts&q=example.com",
+      "confidence": 0.45,
+      "sources": [
+        "censys_link"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:a0b828d75edc4cc5",
+      "type": "url",
+      "value": "https://urlscan.io/search",
+      "display_value": "https://urlscan.io/search",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:374dd50cac0378ca",
+      "type": "url",
+      "value": "https://web.archive.org/web/*/example.com",
+      "display_value": "https://web.archive.org/web/*/example.com",
+      "confidence": 0.45,
+      "sources": [
+        "wayback_link"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:fa5171707eb45a0b",
+      "type": "url",
+      "value": "https://www.bing.com/search?q=%22example.com%22",
+      "display_value": "https://www.bing.com/search?q=%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "bing_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:b0b7e943fa91a8b1",
+      "type": "url",
+      "value": "https://www.bing.com/search?q=site%3Acrt.sh+%22example.com%22",
+      "display_value": "https://www.bing.com/search?q=site%3Acrt.sh+%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "bing_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:fb456354bda22277",
+      "type": "url",
+      "value": "https://www.bing.com/search?q=site%3Aexample.com",
+      "display_value": "https://www.bing.com/search?q=site%3Aexample.com",
+      "confidence": 0.45,
+      "sources": [
+        "bing_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:3d6ce9a4ae647308",
+      "type": "url",
+      "value": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Apdf",
+      "display_value": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Apdf",
+      "confidence": 0.45,
+      "sources": [
+        "bing_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:2311d5d1fc4c400c",
+      "type": "url",
+      "value": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Axls+or+filetype%3Axlsx",
+      "display_value": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Axls+or+filetype%3Axlsx",
+      "confidence": 0.45,
+      "sources": [
+        "bing_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:28c87042997e9650",
+      "type": "url",
+      "value": "https://www.bing.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+or+intext%3A%22token%22+or+intext%3A%22secret%22",
+      "display_value": "https://www.bing.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+or+intext%3A%22token%22+or+intext%3A%22secret%22",
+      "confidence": 0.45,
+      "sources": [
+        "bing_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:8c12c6b6dc15d719",
+      "type": "url",
+      "value": "https://www.bing.com/search?q=site%3Aexample.com+intitle%3Aindex.of",
+      "display_value": "https://www.bing.com/search?q=site%3Aexample.com+intitle%3Aindex.of",
+      "confidence": 0.45,
+      "sources": [
+        "bing_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:f8edb708d9d3c6f1",
+      "type": "url",
+      "value": "https://www.bing.com/search?q=site%3Aexample.com+inurl%3Aadmin+or+inurl%3Alogin",
+      "display_value": "https://www.bing.com/search?q=site%3Aexample.com+inurl%3Aadmin+or+inurl%3Alogin",
+      "confidence": 0.45,
+      "sources": [
+        "bing_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:808d9da54659dbbe",
+      "type": "url",
+      "value": "https://www.bing.com/search?q=site%3Agithub.com+%22example.com%22",
+      "display_value": "https://www.bing.com/search?q=site%3Agithub.com+%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "bing_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:1758280e4d52c3b3",
+      "type": "url",
+      "value": "https://www.example.com",
+      "display_value": "https://www.example.com",
+      "confidence": 0.45,
+      "sources": [
+        "seed"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:f692143e44c9a25e",
+      "type": "url",
+      "value": "https://www.google.com/search?q=%22example.com%22",
+      "display_value": "https://www.google.com/search?q=%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "google_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:efd3ff7ee7831e51",
+      "type": "url",
+      "value": "https://www.google.com/search?q=site%3Acrt.sh+%22example.com%22",
+      "display_value": "https://www.google.com/search?q=site%3Acrt.sh+%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "google_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:150906adbb9d5cae",
+      "type": "url",
+      "value": "https://www.google.com/search?q=site%3Aexample.com",
+      "display_value": "https://www.google.com/search?q=site%3Aexample.com",
+      "confidence": 0.45,
+      "sources": [
+        "google_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:9e317770b28031ce",
+      "type": "url",
+      "value": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Apdf",
+      "display_value": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Apdf",
+      "confidence": 0.45,
+      "sources": [
+        "google_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:33a7630ce12bfc0b",
+      "type": "url",
+      "value": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Axls+or+filetype%3Axlsx",
+      "display_value": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Axls+or+filetype%3Axlsx",
+      "confidence": 0.45,
+      "sources": [
+        "google_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:38b13927bf4ccb68",
+      "type": "url",
+      "value": "https://www.google.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+or+intext%3A%22token%22+or+intext%3A%22secret%22",
+      "display_value": "https://www.google.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+or+intext%3A%22token%22+or+intext%3A%22secret%22",
+      "confidence": 0.45,
+      "sources": [
+        "google_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:eca6e6f44df84450",
+      "type": "url",
+      "value": "https://www.google.com/search?q=site%3Aexample.com+intitle%3Aindex.of",
+      "display_value": "https://www.google.com/search?q=site%3Aexample.com+intitle%3Aindex.of",
+      "confidence": 0.45,
+      "sources": [
+        "google_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:3033334b02cc43e2",
+      "type": "url",
+      "value": "https://www.google.com/search?q=site%3Aexample.com+inurl%3Aadmin+or+inurl%3Alogin",
+      "display_value": "https://www.google.com/search?q=site%3Aexample.com+inurl%3Aadmin+or+inurl%3Alogin",
+      "confidence": 0.45,
+      "sources": [
+        "google_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:2ec58df746ce8c8e",
+      "type": "url",
+      "value": "https://www.google.com/search?q=site%3Agithub.com+%22example.com%22",
+      "display_value": "https://www.google.com/search?q=site%3Agithub.com+%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "google_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:a27b488df6733ebe",
+      "type": "url",
+      "value": "https://www.shodan.io/search?query=example.com",
+      "display_value": "https://www.shodan.io/search?query=example.com",
+      "confidence": 0.45,
+      "sources": [
+        "shodan_link"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:b1e1805d2f5c8241",
+      "type": "url",
+      "value": "https://yandex.com/search/?text=%22example.com%22",
+      "display_value": "https://yandex.com/search/?text=%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "yandex_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:3b9f46af7536d78b",
+      "type": "url",
+      "value": "https://yandex.com/search/?text=site%3Acrt.sh+%22example.com%22",
+      "display_value": "https://yandex.com/search/?text=site%3Acrt.sh+%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "yandex_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:ce41172421fb217f",
+      "type": "url",
+      "value": "https://yandex.com/search/?text=site%3Aexample.com",
+      "display_value": "https://yandex.com/search/?text=site%3Aexample.com",
+      "confidence": 0.45,
+      "sources": [
+        "yandex_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:6647e42665f4ad94",
+      "type": "url",
+      "value": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Apdf",
+      "display_value": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Apdf",
+      "confidence": 0.45,
+      "sources": [
+        "yandex_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:e1bca53269b8c38a",
+      "type": "url",
+      "value": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Axls+or+filetype%3Axlsx",
+      "display_value": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Axls+or+filetype%3Axlsx",
+      "confidence": 0.45,
+      "sources": [
+        "yandex_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:eeab20be03cbc81c",
+      "type": "url",
+      "value": "https://yandex.com/search/?text=site%3Aexample.com+intext%3A%22api_key%22+or+intext%3A%22token%22+or+intext%3A%22secret%22",
+      "display_value": "https://yandex.com/search/?text=site%3Aexample.com+intext%3A%22api_key%22+or+intext%3A%22token%22+or+intext%3A%22secret%22",
+      "confidence": 0.45,
+      "sources": [
+        "yandex_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:7878059f32394f61",
+      "type": "url",
+      "value": "https://yandex.com/search/?text=site%3Aexample.com+intitle%3Aindex.of",
+      "display_value": "https://yandex.com/search/?text=site%3Aexample.com+intitle%3Aindex.of",
+      "confidence": 0.45,
+      "sources": [
+        "yandex_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:d5c89a87d13fec51",
+      "type": "url",
+      "value": "https://yandex.com/search/?text=site%3Aexample.com+inurl%3Aadmin+or+inurl%3Alogin",
+      "display_value": "https://yandex.com/search/?text=site%3Aexample.com+inurl%3Aadmin+or+inurl%3Alogin",
+      "confidence": 0.45,
+      "sources": [
+        "yandex_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    },
+    {
+      "id": "url:af35d879b6eef597",
+      "type": "url",
+      "value": "https://yandex.com/search/?text=site%3Agithub.com+%22example.com%22",
+      "display_value": "https://yandex.com/search/?text=site%3Agithub.com+%22example.com%22",
+      "confidence": 0.45,
+      "sources": [
+        "yandex_dork"
+      ],
+      "attributes": {},
+      "source_reliability": "F",
+      "info_credibility": 6
+    }
+  ],
+  "relationships": [
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:248875e3afb28cac",
+      "kind": "observed_page",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:0ab32c606ee55536",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Apdf"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:14cdca6280808790",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:150906adbb9d5cae",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:1758280e4d52c3b3",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.example.com/"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:1930648117df1159",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://crt.sh/?q=%25.example.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:2311d5d1fc4c400c",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:248875e3afb28cac",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:25a9b6c354ecf5d9",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/robots.txt"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:28c87042997e9650",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:2ec58df746ce8c8e",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.google.com/search?q=site%3Agithub.com+%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:2f71648829696e0e",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/privacy"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:3033334b02cc43e2",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:33a7630ce12bfc0b",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:374dd50cac0378ca",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://web.archive.org/web/*/example.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:38b13927bf4ccb68",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:3b9f46af7536d78b",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://yandex.com/search/?text=site%3Acrt.sh+%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:3c5c21ccf7630ff1",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://search.censys.io/search?resource=hosts&q=example.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:3d6ce9a4ae647308",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Apdf"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:4b3e0d1d09b10be9",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+intitle%3Aindex.of"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:5dff725c2fb48dcc",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/terms"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:6647e42665f4ad94",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Apdf"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:697191077379afb7",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/contact"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:697355bd69d10d8e",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/about"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:70ef0340b8b5d809",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Acrt.sh+%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:7878059f32394f61",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+intitle%3Aindex.of"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:808d9da54659dbbe",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.bing.com/search?q=site%3Agithub.com+%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:8b5f015cb34e5214",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Agithub.com+%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:8c12c6b6dc15d719",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+intitle%3Aindex.of"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:8c6a2ba6592e6832",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://duckduckgo.com/?q=%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:96643d4d0f84648a",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:9e317770b28031ce",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Apdf"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:9e674e6c856749ba",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:a0b828d75edc4cc5",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://urlscan.io/search/#domain:example.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:a27b488df6733ebe",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.shodan.io/search?query=example.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:af35d879b6eef597",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://yandex.com/search/?text=site%3Agithub.com+%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:b0b7e943fa91a8b1",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.bing.com/search?q=site%3Acrt.sh+%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:b1e1805d2f5c8241",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://yandex.com/search/?text=%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:b3b69a02beacb9e3",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://hunter.io/search/example.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:b7ce69cccc5f4a96",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://intelx.io/?s=example.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:caa4bee6ab89b19c",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/.well-known/security.txt"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:ce41172421fb217f",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:d5c89a87d13fec51",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:e052a050fa14d477",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/careers"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:e1bca53269b8c38a",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:e317c7107065d1a3",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:ea8898f93f6abbdc",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/about-us"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:eca6e6f44df84450",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+intitle%3Aindex.of"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:eeab20be03cbc81c",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:efd3ff7ee7831e51",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.google.com/search?q=site%3Acrt.sh+%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:f692143e44c9a25e",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.google.com/search?q=%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:f8edb708d9d3c6f1",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:fa5171707eb45a0b",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.bing.com/search?q=%22example.com%22"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:fabde6960f37c118",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/sitemap.xml"
+    },
+    {
+      "source": "domain:ed152b32b035d8e8",
+      "target": "url:fb456354bda22277",
+      "kind": "searched_or_seeded",
+      "confidence": 0.35,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com"
+    },
+    {
+      "source": "url:0ab32c606ee55536",
+      "target": "domain:b2de5e5f237cde14",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Apdf"
+    },
+    {
+      "source": "url:14cdca6280808790",
+      "target": "domain:b2de5e5f237cde14",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin"
+    },
+    {
+      "source": "url:150906adbb9d5cae",
+      "target": "domain:7aab66fdf05b36bd",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com"
+    },
+    {
+      "source": "url:1758280e4d52c3b3",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.example.com/"
+    },
+    {
+      "source": "url:1930648117df1159",
+      "target": "domain:9eea8e3068c723be",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://crt.sh/?q=%25.example.com"
+    },
+    {
+      "source": "url:2311d5d1fc4c400c",
+      "target": "domain:24d36de3fea97259",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx"
+    },
+    {
+      "source": "url:248875e3afb28cac",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/"
+    },
+    {
+      "source": "url:248875e3afb28cac",
+      "target": "url:a48827853e99057e",
+      "kind": "links_to",
+      "confidence": 0.35,
+      "evidence_url": "https://example.com/"
+    },
+    {
+      "source": "url:25a9b6c354ecf5d9",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/robots.txt"
+    },
+    {
+      "source": "url:28c87042997e9650",
+      "target": "domain:24d36de3fea97259",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22"
+    },
+    {
+      "source": "url:2ec58df746ce8c8e",
+      "target": "domain:7aab66fdf05b36bd",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.google.com/search?q=site%3Agithub.com+%22example.com%22"
+    },
+    {
+      "source": "url:2f71648829696e0e",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/privacy"
+    },
+    {
+      "source": "url:3033334b02cc43e2",
+      "target": "domain:7aab66fdf05b36bd",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin"
+    },
+    {
+      "source": "url:33a7630ce12bfc0b",
+      "target": "domain:7aab66fdf05b36bd",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx"
+    },
+    {
+      "source": "url:374dd50cac0378ca",
+      "target": "domain:68724d22b04e53ce",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://web.archive.org/web/*/example.com"
+    },
+    {
+      "source": "url:38b13927bf4ccb68",
+      "target": "domain:7aab66fdf05b36bd",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22"
+    },
+    {
+      "source": "url:3b9f46af7536d78b",
+      "target": "domain:fd4f5ad9122c2bbb",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://yandex.com/search/?text=site%3Acrt.sh+%22example.com%22"
+    },
+    {
+      "source": "url:3c5c21ccf7630ff1",
+      "target": "domain:f41902c0ef379b02",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://search.censys.io/search?resource=hosts&q=example.com"
+    },
+    {
+      "source": "url:3d6ce9a4ae647308",
+      "target": "domain:24d36de3fea97259",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+filetype%3Apdf"
+    },
+    {
+      "source": "url:4b3e0d1d09b10be9",
+      "target": "domain:b2de5e5f237cde14",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+intitle%3Aindex.of"
+    },
+    {
+      "source": "url:5dff725c2fb48dcc",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/terms"
+    },
+    {
+      "source": "url:6647e42665f4ad94",
+      "target": "domain:fd4f5ad9122c2bbb",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Apdf"
+    },
+    {
+      "source": "url:697191077379afb7",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/contact"
+    },
+    {
+      "source": "url:697355bd69d10d8e",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/about"
+    },
+    {
+      "source": "url:70ef0340b8b5d809",
+      "target": "domain:b2de5e5f237cde14",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Acrt.sh+%22example.com%22"
+    },
+    {
+      "source": "url:7878059f32394f61",
+      "target": "domain:fd4f5ad9122c2bbb",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+intitle%3Aindex.of"
+    },
+    {
+      "source": "url:808d9da54659dbbe",
+      "target": "domain:24d36de3fea97259",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.bing.com/search?q=site%3Agithub.com+%22example.com%22"
+    },
+    {
+      "source": "url:8b5f015cb34e5214",
+      "target": "domain:b2de5e5f237cde14",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Agithub.com+%22example.com%22"
+    },
+    {
+      "source": "url:8c12c6b6dc15d719",
+      "target": "domain:24d36de3fea97259",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+intitle%3Aindex.of"
+    },
+    {
+      "source": "url:8c6a2ba6592e6832",
+      "target": "domain:b2de5e5f237cde14",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://duckduckgo.com/?q=%22example.com%22"
+    },
+    {
+      "source": "url:96643d4d0f84648a",
+      "target": "domain:b2de5e5f237cde14",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22"
+    },
+    {
+      "source": "url:9e317770b28031ce",
+      "target": "domain:7aab66fdf05b36bd",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+filetype%3Apdf"
+    },
+    {
+      "source": "url:9e674e6c856749ba",
+      "target": "domain:b2de5e5f237cde14",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx"
+    },
+    {
+      "source": "url:a0b828d75edc4cc5",
+      "target": "domain:690ae95054c03cae",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://urlscan.io/search/#domain:example.com"
+    },
+    {
+      "source": "url:a27b488df6733ebe",
+      "target": "domain:f5cb8edd667fd24f",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.shodan.io/search?query=example.com"
+    },
+    {
+      "source": "url:a48827853e99057e",
+      "target": "domain:ed55381977e86229",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://iana.org/domains/example"
+    },
+    {
+      "source": "url:af35d879b6eef597",
+      "target": "domain:fd4f5ad9122c2bbb",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://yandex.com/search/?text=site%3Agithub.com+%22example.com%22"
+    },
+    {
+      "source": "url:b0b7e943fa91a8b1",
+      "target": "domain:24d36de3fea97259",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.bing.com/search?q=site%3Acrt.sh+%22example.com%22"
+    },
+    {
+      "source": "url:b1e1805d2f5c8241",
+      "target": "domain:fd4f5ad9122c2bbb",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://yandex.com/search/?text=%22example.com%22"
+    },
+    {
+      "source": "url:b3b69a02beacb9e3",
+      "target": "domain:c83a028f65011bca",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://hunter.io/search/example.com"
+    },
+    {
+      "source": "url:b7ce69cccc5f4a96",
+      "target": "domain:b2b71c7fc6265ea2",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://intelx.io/?s=example.com"
+    },
+    {
+      "source": "url:caa4bee6ab89b19c",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/.well-known/security.txt"
+    },
+    {
+      "source": "url:ce41172421fb217f",
+      "target": "domain:fd4f5ad9122c2bbb",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com"
+    },
+    {
+      "source": "url:d5c89a87d13fec51",
+      "target": "domain:fd4f5ad9122c2bbb",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin"
+    },
+    {
+      "source": "url:e052a050fa14d477",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/careers"
+    },
+    {
+      "source": "url:e1bca53269b8c38a",
+      "target": "domain:fd4f5ad9122c2bbb",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+filetype%3Axls+OR+filetype%3Axlsx"
+    },
+    {
+      "source": "url:e317c7107065d1a3",
+      "target": "domain:b2de5e5f237cde14",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://duckduckgo.com/?q=site%3Aexample.com"
+    },
+    {
+      "source": "url:ea8898f93f6abbdc",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/about-us"
+    },
+    {
+      "source": "url:eca6e6f44df84450",
+      "target": "domain:7aab66fdf05b36bd",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.google.com/search?q=site%3Aexample.com+intitle%3Aindex.of"
+    },
+    {
+      "source": "url:eeab20be03cbc81c",
+      "target": "domain:fd4f5ad9122c2bbb",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://yandex.com/search/?text=site%3Aexample.com+intext%3A%22api_key%22+OR+intext%3A%22token%22+OR+intext%3A%22secret%22"
+    },
+    {
+      "source": "url:efd3ff7ee7831e51",
+      "target": "domain:7aab66fdf05b36bd",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.google.com/search?q=site%3Acrt.sh+%22example.com%22"
+    },
+    {
+      "source": "url:f692143e44c9a25e",
+      "target": "domain:7aab66fdf05b36bd",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.google.com/search?q=%22example.com%22"
+    },
+    {
+      "source": "url:f8edb708d9d3c6f1",
+      "target": "domain:24d36de3fea97259",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com+inurl%3Aadmin+OR+inurl%3Alogin"
+    },
+    {
+      "source": "url:fa5171707eb45a0b",
+      "target": "domain:24d36de3fea97259",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.bing.com/search?q=%22example.com%22"
+    },
+    {
+      "source": "url:fabde6960f37c118",
+      "target": "domain:ed152b32b035d8e8",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://example.com/sitemap.xml"
+    },
+    {
+      "source": "url:fb456354bda22277",
+      "target": "domain:24d36de3fea97259",
+      "kind": "hosted_on",
+      "confidence": 0.5,
+      "evidence_url": "https://www.bing.com/search?q=site%3Aexample.com"
+    }
+  ]
+}
