@@ -127,23 +127,229 @@ More: [`docs/EXAMPLES.md`](docs/EXAMPLES.md).
 
 ## Architecture at a glance
 
+Argo is a three-layer pipeline: **input** (CLI or web UI) → **orchestrator** (with policy, audit, storage) → **connectors** (58 native sources, key-free or BYOK) → **exports**. Every finding is sourced, timestamped, hash-linked into the audit chain, and gated by the case's Rules of Engagement.
+
 ```mermaid
-flowchart LR
-    CLI[CLI: argo-osint] --> ORCH
-    WEB[Web UI :8000] --> ORCH[Orchestrator]
-    ORCH --> REG[Connector Registry]
-    REG --> C1[crt.sh]
-    REG --> C2[RDAP / DNS / TLS]
-    REG --> C3[Shodan · VT · HIBP · ...]
-    REG --> C4[holehe / maigret / theHarvester]
-    REG --> Cn[+ 50 more]
-    ORCH --> STORE[(SQLite / Postgres)]
-    ORCH --> AUDIT[(SHA-256 audit chain)]
-    STORE --> EXPORT[Exports: MD / JSON / PDF / STIX 2.1 / MISP]
-    EXPORT --> REPORT[Analyst report]
+flowchart TB
+    subgraph INPUT["Input Layer"]
+        CLI["CLI<br/>argo-osint"]
+        WEB["Web UI<br/>:8000"]
+        API["REST API<br/>/api/*"]
+    end
+
+    subgraph CORE["Orchestrator + Policy + Audit"]
+        ORCH["Orchestrator<br/>(rate limit · cache · retry)"]
+        POLICY["RoE + Case Scope<br/>legal-basis gating"]
+        AUDIT[("SHA-256<br/>Audit Chain")]
+        SSRF["_safe_http<br/>(SSRF guard,<br/>metadata block)"]
+    end
+
+    subgraph STORE["Storage"]
+        SQLITE[("SQLite<br/>default")]
+        PG[("Postgres<br/>optional")]
+        NEO[("Neo4j<br/>graph, opt.")]
+        OS[("OpenSearch<br/>full-text, opt.")]
+    end
+
+    subgraph REG["Connector Registry — 58 native sources"]
+        direction TB
+        KFREE["43 key-free connectors"]
+        BYOK["15 BYOK connectors"]
+    end
+
+    subgraph EXPORT["Export Layer"]
+        MD["Markdown"]
+        JSON["JSON"]
+        PDF["PDF<br/>reportlab"]
+        STIX["STIX 2.1<br/>bundle"]
+        MISPX["MISP<br/>event 2.4"]
+    end
+
+    CLI --> ORCH
+    WEB --> ORCH
+    API --> ORCH
+    ORCH --> POLICY
+    POLICY -->|"authorized"| REG
+    POLICY -.->|"denied"| AUDIT
+    REG --> SSRF
+    SSRF --> INTERNET(("Public<br/>sources"))
+    REG --> ORCH
+    ORCH --> AUDIT
+    ORCH --> SQLITE
+    ORCH --> PG
+    ORCH --> NEO
+    ORCH --> OS
+    SQLITE --> EXPORT
+    PG --> EXPORT
+    EXPORT --> REPORT["Analyst<br/>report"]
+
+    classDef inputStyle fill:#1a2b4a,stroke:#4facfe,color:#fff
+    classDef coreStyle fill:#3a2a1a,stroke:#f5b740,color:#fff
+    classDef storeStyle fill:#2a3a1a,stroke:#7fc78f,color:#fff
+    classDef regStyle fill:#3a1a3a,stroke:#b06ab3,color:#fff
+    classDef exportStyle fill:#4a2a1a,stroke:#f5b740,color:#fff
+
+    class CLI,WEB,API inputStyle
+    class ORCH,POLICY,AUDIT,SSRF coreStyle
+    class SQLITE,PG,NEO,OS storeStyle
+    class KFREE,BYOK regStyle
+    class MD,JSON,PDF,STIX,MISPX,REPORT exportStyle
 ```
 
-Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+### The 43 key-free connectors
+
+Work out of the box, no signup, no API key. Grouped by capability.
+
+**Domain & DNS intelligence (7)**
+
+| Connector | What it does |
+| --- | --- |
+| `crt_sh` | Certificate Transparency log lookup — subdomains via TLS certs |
+| `rdap` | RFC 7482 registry query — domain/IP registration data |
+| `dns_query` | A / AAAA / MX / NS / TXT / CNAME / SRV / CAA |
+| `tls_cert` | Live TLS handshake, cert chain, SAN, issuer, validity |
+| `wayback` | Wayback Machine CDX — historical URL archive |
+| `subdomain_enum` | Native subdomain enumeration (crt.sh + bruteforce + DNS) |
+| `dnstwist_native` | Typosquat / phishing domain generator + resolver |
+
+**Web fingerprint & content (5)**
+
+| Connector | What it does |
+| --- | --- |
+| `web_fingerprint` | HTTP headers, techs, favicon hash, server banner |
+| `common_crawl` | Common Crawl index lookup (URLs by domain) |
+| `content_discovery` | Native gobuster-lite (in-scope only) |
+| `url_harvest` | Extract external links, contacts, secrets from a page |
+| `secret_scan` | Public-repo secret scanning (regex + entropy) |
+
+**Threat intelligence — no-key (4)**
+
+| Connector | What it does |
+| --- | --- |
+| `phishtank` | PhishTank feed for known phishing URLs |
+| `openphish` | OpenPhish feed for phishing URLs |
+| `threatfox` | abuse.ch ThreatFox IoC feed |
+| `shodan_internetdb` | Shodan InternetDB (free tier IP intelligence) |
+
+**Geo & OSINT open data (3)**
+
+| Connector | What it does |
+| --- | --- |
+| `nominatim` | OpenStreetMap geocoding (Nominatim) |
+| `overpass` | OpenStreetMap Overpass API (POI, features) |
+| `gdelt` | GDELT global event & tone feed |
+
+**Email OSINT — no-key (4)**
+
+| Connector | What it does |
+| --- | --- |
+| `holehe` | Site enumeration: on which sites the email is registered |
+| `holehe_native` | Native re-implementation of holehe (subset, no deps) |
+| `gravatar` | Gravatar profile / avatar lookup |
+| `ignorant` | Phone number → account existence on major services |
+
+**Username OSINT — no-key (2)**
+
+| Connector | What it does |
+| --- | --- |
+| `sherlock_lite` | Fast subset of Sherlock (top ~100 sites) |
+| `maigret` | Full Maigret (~3000 sites), HTML report, PDF option |
+
+**Domain-wide harvesting (1)**
+
+| Connector | What it does |
+| --- | --- |
+| `theharvester` | theHarvester: emails + hostnames from a domain |
+
+**Corporate registry — no-key (1)**
+
+| Connector | What it does |
+| --- | --- |
+| `sec_edgar` | SEC EDGAR filings for US public companies |
+
+**Network intelligence — no-key (2)**
+
+| Connector | What it does |
+| --- | --- |
+| `asn_lookup` | ASN → prefixes, org, allocation |
+| `port_scan` | In-scope, audited native TCP port scan |
+
+**Phone OSINT (2)**
+
+| Connector | What it does |
+| --- | --- |
+| `phone_meta` | Carrier, region, line type (phonenumbers lib) |
+| `phone_footprint` | Reverse lookup: number → account exposure hints |
+
+**Social reverse (5)**
+
+| Connector | What it does |
+| --- | --- |
+| `ghunt` | Google account → Gmail / activity metadata (BYOK cookies) |
+| `toutatis` | Instagram username → obfuscated email/phone (BYOK sessionid) |
+| `socid_extractor` | Extract social IDs & metadata from a profile URL |
+| `linkedin2username` | LinkedIn company → employee usernames (BYOK credentials) |
+| `telegram_checker` | Telegram phone → account existence (BYOK API id/hash) |
+
+**Darkweb (1)**
+
+| Connector | What it does |
+| --- | --- |
+| `darkweb_scan` | Ahmia index scan for .onion mentions (no crawl) |
+
+**Aggregators (2)**
+
+| Connector | What it does |
+| --- | --- |
+| `legit_scorer` | Native SION-like aggregator: combines other connectors into a single trust score |
+| `flowsint` | Optional bridge to a running FlowSINT stack (disabled by default) |
+
+**Bridges (1)**
+
+| Connector | What it does |
+| --- | --- |
+| `misp_client` | Bidirectional bridge to your own MISP instance |
+
+**Blockchain (light) — no-key** — see BYOK for full-featured providers.
+
+### The 15 BYOK connectors
+
+Fill only what you have; missing keys are silently skipped (`missing_key` status).
+
+| Connector | Provider | Env var | Purpose |
+| --- | --- | --- | --- |
+| `shodan` | Shodan | `SHODAN_API_KEY` | Passive host/service intelligence |
+| `virustotal` | VirusTotal | `VIRUSTOTAL_API_KEY` | File/URL/domain/IP reputation |
+| `hibp` | Have I Been Pwned | `HIBP_API_KEY` | Breach exposure lookup |
+| `hunter` | Hunter.io | `HUNTER_API_KEY` | Email finder / verifier |
+| `securitytrails` | SecurityTrails | `SECURITYTRAILS_API_KEY` | Historical DNS |
+| `greynoise` | GreyNoise | `GREYNOISE_API_KEY` | Internet background noise labels |
+| `otx` | AlienVault OTX | `OTX_API_KEY` | Threat pulses |
+| `emailrep` | EmailRep.io | `EMAILREP_API_KEY` | Email reputation |
+| `ipinfo` | IPinfo | `IPINFO_API_KEY` | IP geolocation + ASN |
+| `etherscan` | Etherscan | `ETHERSCAN_API_KEY` | Ethereum blockchain queries |
+| `opencorporates` | OpenCorporates | `OPENCORPORATES_API_KEY` | Global company registry |
+| `companies_house` | Companies House | `COMPANIES_HOUSE_API_KEY` | UK company registry |
+| `brave_search_api` | Brave Search | `BRAVE_SEARCH_API_KEY` | Web search API |
+| `google_pse` | Google PSE | `GOOGLE_PSE_API_KEY` | Programmable search engine |
+| `influencers_club` | Influencers Club | `INFLUENCERS_CLUB_API_KEY` | Username → verified email |
+| `abuseipdb` | AbuseIPDB | `ABUSEIPDB_API_KEY` | Reported abusive IPs |
+| `github_search` | GitHub Search | `GITHUB_TOKEN` | Code / secret search across GitHub |
+| `leakix` | LeakIX | `LEAKIX_API_KEY` | Leak & exposure intelligence |
+
+> The count is 15 "canonical" BYOK providers — some optional/tenant-owned bridges (MISP, FlowSINT) are counted separately and do not require an API key from Argo's side, only credentials to your own instance.
+
+### Data flow — one investigation, end to end
+
+1. **Case creation** — analyst opens a case in the web UI or via `--case-id` on the CLI. Rules of Engagement + legal basis are recorded. `case_created` event → audit chain.
+2. **Query dispatch** — orchestrator matches the target type (`domain`, `ip`, `email`, `handle`, `phone`, `wallet`, `company`) against every connector's `input_types` and `action_class`, filters by RoE.
+3. **Rate & policy** — each connector enforces its own per-minute / per-day / burst cap; `_safe_http` blocks SSRF, cloud metadata (`169.254.169.254`), and RFC1918 targets.
+4. **Fetch → Findings** — every connector returns `Finding` objects with evidence URLs, confidence, source reliability, and `why_linked` rationale. `finding_added` event → audit chain.
+5. **Storage** — findings land in SQLite / Postgres; graph shape optionally synced to Neo4j; text index optionally to OpenSearch.
+6. **Export** — Markdown / JSON / PDF for humans; STIX 2.1 bundle + MISP event for TIP integration. `report_generated` event → audit chain.
+7. **DSAR (optional)** — subject rights: `privacy_requests` + `dsar_tombstones` tables record deletion/export with cryptographic proof-of-erasure.
+
+Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/CONNECTORS.md`](docs/CONNECTORS.md) · [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ---
 
