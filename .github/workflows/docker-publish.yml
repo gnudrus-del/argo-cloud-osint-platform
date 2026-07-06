@@ -12,6 +12,8 @@ on:
 permissions:
   contents: read
   packages: write
+  attestations: write
+  id-token: write
 
 jobs:
   publish:
@@ -29,7 +31,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine tags
+      - name: Determine image name + tags
         id: tags
         run: |
           IMAGE="ghcr.io/${{ github.repository }}"
@@ -42,10 +44,14 @@ jobs:
             VERSION="edge"
           fi
           VERSION_NO_V="${VERSION#v}"
-          echo "tags=$IMAGE:$VERSION_NO_V,$IMAGE:latest" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION_NO_V" >> "$GITHUB_OUTPUT"
+          {
+            echo "image=$IMAGE"
+            echo "tags=$IMAGE:$VERSION_NO_V,$IMAGE:latest"
+            echo "version=$VERSION_NO_V"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -58,3 +64,17 @@ jobs:
             org.opencontainers.image.licenses=Apache-2.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # ─── Sigstore attestation (SLSA v1 build provenance) ──────────────────
+      # After push, the runner asks Sigstore's Fulcio to co-sign a statement
+      # binding the image digest to *this* workflow run. Anyone can later
+      # verify with:
+      #     gh attestation verify \
+      #         oci://ghcr.io/gnudrus-del/argo-cloud-osint-platform:0.1.0 \
+      #         --repo gnudrus-del/argo-cloud-osint-platform
+      - name: Attest image (Sigstore build provenance)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.tags.outputs.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
