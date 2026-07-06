@@ -1,3 +1,0 @@
-[console_scripts]
-argo-osint = osint_bot.cli:main
-osint-bot = osint_bot.cli:main

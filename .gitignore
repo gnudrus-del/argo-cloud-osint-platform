@@ -17,3 +17,9 @@ deploy_artifacts/
 .env
 *.env
 secrets.env
+
+# Python build artifacts (rigenerati con `python -m build`)
+dist/
+build/
+*.egg-info/
+.eggs/
