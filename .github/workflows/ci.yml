@@ -97,42 +97,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check for npm lockfile
-        id: lockfile
-        run: |
-          if [ -f web-next/package-lock.json ]; then
-            echo "present=true"  >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::web-next/package-lock.json missing; will skip cache and use 'npm install'. Commit a lockfile to enable cache + 'npm ci'."
-          fi
-
-      # Two setup-node variants: when a lockfile exists we cache; when it does
-      # not, we cannot cache (setup-node@v4 errors if cache-dependency-path is
-      # missing). Both produce Node 22 (Node 20 is deprecated on runners).
-      - name: Setup Node (with cache)
-        if: steps.lockfile.outputs.present == 'true'
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: web-next/package-lock.json
 
-      - name: Setup Node (no cache)
-        if: steps.lockfile.outputs.present == 'false'
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install (npm ci)
-        if: steps.lockfile.outputs.present == 'true'
+      - name: Install
         working-directory: web-next
         run: npm ci --no-audit --no-fund
-
-      - name: Install (npm install, no lockfile)
-        if: steps.lockfile.outputs.present == 'false'
-        working-directory: web-next
-        run: npm install --no-audit --no-fund
 
       - name: Typecheck
         working-directory: web-next
