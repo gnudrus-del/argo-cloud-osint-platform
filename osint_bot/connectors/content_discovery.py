@@ -15,8 +15,8 @@ from __future__ import annotations
 import concurrent.futures as _cf
 import urllib.error
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_ACTIVE_GATED,
     BaseConnector,
@@ -77,18 +77,14 @@ def _base_url(target: str) -> str:
 
 def _probe(base: str, path: str, timeout: int, baseline_len: int) -> dict | None:
     url = f"{base}/{path}"
-    req = urllib.request.Request(url, method="GET", headers={
-        "User-Agent": "Mozilla/5.0 (compatible; ArgoOSINT/1.0)",
-        "Accept": "*/*",
-    })
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            status = resp.status
-            body = resp.read(4096)
+        status, body, _ = _safe_http.open_url(url, timeout=timeout)
+        body = body[:4096]
     except urllib.error.HTTPError as e:
         status = e.code
         body = b""
     except Exception:
+        # Includes _safe_http.SSRFBlocked (internal target) → skip.
         return None
     if status in (404, 410):
         return None
@@ -101,11 +97,10 @@ def _probe(base: str, path: str, timeout: int, baseline_len: int) -> dict | None
 def _baseline_404_len(base: str, timeout: int) -> int:
     """Lunghezza del body per un path sicuramente inesistente (soft-404 detection)."""
     url = f"{base}/argo-nonexistent-{'z' * 12}"
-    req = urllib.request.Request(url, headers={"User-Agent": "ArgoOSINT/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            if resp.status == 200:
-                return len(resp.read(4096))
+        status, body, _ = _safe_http.open_url(url, timeout=timeout)
+        if status == 200:
+            return len(body[:4096])
     except Exception:
         pass
     return 0

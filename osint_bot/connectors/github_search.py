@@ -1,10 +1,9 @@
 """Connector: GitHub Code Search — secret/credential exposure in public repos."""
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -41,17 +40,15 @@ _DORKS: list[tuple[str, str, str, list[str]]] = [
 
 def _gh_search(query: str, key: str, timeout: int) -> dict | None:
     encoded = urllib.parse.quote(query)
-    req = urllib.request.Request(
-        f"{_API}?q={encoded}&per_page=10",
-        headers={
-            "Authorization": f"token {key}",
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "Argo-OSINT/1.0",
-        },
-    )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode("utf-8", errors="replace"))
+        return _safe_http.get_json(
+            f"{_API}?q={encoded}&per_page=10",
+            headers={
+                "Authorization": f"token {key}",
+                "Accept": "application/vnd.github.v3+json",
+            },
+            timeout=timeout,
+        )
     except Exception:
         return None
 

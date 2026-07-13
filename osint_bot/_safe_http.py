@@ -43,6 +43,7 @@ from __future__ import annotations
 import ipaddress
 import json as _json
 import socket
+import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -144,10 +145,20 @@ class _GuardedRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def _build_opener(allow_private: bool) -> urllib.request.OpenerDirector:
+def _build_opener(allow_private: bool,
+                  insecure_tls: bool = False) -> urllib.request.OpenerDirector:
     handler = _GuardedRedirectHandler()
     handler.allow_private = allow_private
-    return urllib.request.build_opener(handler)
+    handlers: list = [handler]
+    if insecure_tls:
+        # Only used for operator-configured internal endpoints with a
+        # self-signed certificate (e.g. a private MISP instance). The
+        # SSRF guard + allow_private still gate the destination.
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        handlers.append(urllib.request.HTTPSHandler(context=ctx))
+    return urllib.request.build_opener(*handlers)
 
 
 def _merge_headers(headers: dict[str, str] | None) -> dict[str, str]:
@@ -165,6 +176,7 @@ def open_url(
     method: str | None = None,
     timeout: int = DEFAULT_TIMEOUT,
     allow_private: bool = False,
+    insecure_tls: bool = False,
 ) -> tuple[int, bytes, dict[str, str]]:
     """Esegue una richiesta HTTP(S) sanzionata e ritorna ``(status, body, headers)``.
 
@@ -172,12 +184,17 @@ def open_url(
     ``SSRFBlocked`` se un target è interno, ``urllib.error.URLError`` /
     ``HTTPError`` per gli errori di rete/HTTP (il chiamante li cattura come
     fa già oggi con ``except Exception``).
+
+    ``allow_private`` sblocca loopback + RFC1918 (per endpoint interni
+    configurati dall'operatore, es. un MISP privato). ``insecure_tls``
+    disabilita la verifica del certificato — usare SOLO per quegli stessi
+    endpoint interni con certificato self-signed.
     """
     guard_ssrf(url, allow_private=allow_private)
     req = urllib.request.Request(
         url, data=data, headers=_merge_headers(headers), method=method
     )
-    opener = _build_opener(allow_private)
+    opener = _build_opener(allow_private, insecure_tls=insecure_tls)
     with opener.open(req, timeout=timeout) as resp:
         body = resp.read(MAX_RESPONSE_BYTES + 1)
         if len(body) > MAX_RESPONSE_BYTES:

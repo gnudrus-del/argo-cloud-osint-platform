@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import time
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -43,12 +43,7 @@ def _load_feed(timeout: int) -> frozenset[str]:
     if time.time() - _CACHE["at"] < 3600 and _CACHE["set"]:
         return _CACHE["set"]
     try:
-        req = urllib.request.Request(
-            "https://openphish.com/feed.txt",
-            headers={"User-Agent": "Argo-OSINT/1.0"},
-        )
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            text = resp.read().decode("utf-8", errors="replace")
+        text = _safe_http.get_text("https://openphish.com/feed.txt", timeout=timeout)
         urls = frozenset(line.strip().lower() for line in text.splitlines() if line.strip())
         _CACHE["at"] = time.time()
         _CACHE["set"] = urls

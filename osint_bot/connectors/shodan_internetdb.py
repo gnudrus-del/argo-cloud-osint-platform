@@ -9,9 +9,7 @@ Input: ``ip``.
 from __future__ import annotations
 
 import ipaddress
-import json
 import urllib.error
-import urllib.request
 
 from .. import _safe_http
 from ..connector import (
@@ -40,13 +38,8 @@ _SPEC = ConnectorSpec(
 
 def _fetch_internetdb(ip: str, timeout: int) -> dict | None:
     url = f"https://internetdb.shodan.io/{ip}"
-    req = urllib.request.Request(url, headers={
-        "Accept": "application/json",
-        "User-Agent": "argo-osint/1.0",
-    })
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
+        return _safe_http.get_json(url, timeout=timeout)
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return {}  # IP non in InternetDB: risultato valido vuoto

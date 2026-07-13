@@ -14,9 +14,8 @@ from __future__ import annotations
 
 import json
 import urllib.error
-import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -47,16 +46,17 @@ _ENDPOINT = "https://api.influencers.club/v1/instagram/find-email"
 
 def _post_json(url: str, payload: dict, api_key: str, timeout: int) -> tuple[int, dict | None]:
     body = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=body, headers={
+    headers = {
         "Authorization": f"Bearer {api_key}",
         "X-API-Key": api_key,               # backup: alcune versioni accettano X-API-Key
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "User-Agent": "argo-osint/1.0",
-    })
+    }
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.status, json.loads(resp.read().decode("utf-8", errors="replace"))
+        status, raw, _ = _safe_http.open_url(
+            url, data=body, headers=headers, method="POST", timeout=timeout
+        )
+        return status, json.loads(raw.decode("utf-8", errors="replace"))
     except urllib.error.HTTPError as e:
         try:
             data = json.loads(e.read().decode("utf-8", errors="replace"))

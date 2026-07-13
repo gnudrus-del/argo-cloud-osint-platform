@@ -27,11 +27,22 @@ Argo defends against the following classes of threats:
 
 ### 3. Injection / SSRF
 
-- All outbound HTTP goes through a **`_safe_http`** wrapper that blocks:
-  - `169.254.169.254` (cloud instance metadata)
-  - RFC1918 (private ranges) unless explicitly opted-in via env var
-  - non-`http`/`https` schemes
-- User-controlled URLs are validated before use.
+- **Every** connector's outbound HTTP goes through the **`_safe_http`** gateway.
+  This is enforced in CI by `scripts/enforce_safe_http.py`, which fails the
+  build if any connector imports `urllib.request` / `httpx` / `requests` /
+  `aiohttp` directly (the grandfathered-exceptions set is empty — the
+  migration is complete).
+- `_safe_http` blocks, on the initial URL **and on every redirect hop**:
+  - link-local `169.254.0.0/16` + `fe80::/10` (cloud instance metadata) —
+    blocked unconditionally, never reachable even with `allow_private`;
+  - loopback + RFC1918 private ranges — blocked unless the caller passes
+    `allow_private=True` (used only for operator-configured internal
+    endpoints such as a private MISP or a local FlowSINT bridge);
+  - non-`http`/`https` schemes;
+  - responses larger than 25 MiB (memory-exhaustion guard).
+- Redirect-based SSRF (a public endpoint answering `302 Location:
+  http://169.254.169.254/`) is defeated: the redirect handler re-validates
+  each target before following it.
 
 ### 4. Auth abuse
 

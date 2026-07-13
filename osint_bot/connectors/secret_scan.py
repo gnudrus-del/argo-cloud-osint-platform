@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import re
 import urllib.error
-import urllib.request
 
 from ..connector import (
     ACTION_PASSIVE,
@@ -69,21 +68,18 @@ def _to_url(target: str) -> str:
 
 
 def _fetch(url: str, timeout: int) -> tuple[str, bytes]:
-    from .._safe_http import SSRFBlocked, guard_ssrf
+    from .. import _safe_http
     try:
-        guard_ssrf(url)
-    except SSRFBlocked:
-        return url, b""  # bloccato: ritorna vuoto senza fetchare
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; ArgoOSINT/1.0)"})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return url, resp.read(_MAX_BYTES)
+        _, body, _ = _safe_http.open_url(url, timeout=timeout)
+        return url, body[:_MAX_BYTES]
     except urllib.error.HTTPError as e:
+        # A 4xx/5xx page can still contain leaked secrets in its body.
         try:
             return url, e.read(_MAX_BYTES)
         except Exception:
             return url, b""
     except Exception:
+        # Includes _safe_http.SSRFBlocked (internal target) → return empty.
         return url, b""
 
 

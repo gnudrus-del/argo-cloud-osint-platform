@@ -9,10 +9,7 @@ Input: ``ip`` | ``domain`` | ``url`` | ``file_hash``.
 """
 from __future__ import annotations
 
-import json
-import urllib.error
-import urllib.request
-
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -40,15 +37,12 @@ _ENDPOINT = "https://threatfox-api.abuse.ch/api/v1/"
 
 
 def _search(ioc: str, timeout: int) -> dict | None:
-    body = json.dumps({"query": "search_ioc", "search_term": ioc}).encode("utf-8")
-    req = urllib.request.Request(_ENDPOINT, data=body, headers={
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "argo-osint/1.0",
-    })
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
+        return _safe_http.post_json(
+            _ENDPOINT,
+            {"query": "search_ioc", "search_term": ioc},
+            timeout=timeout,
+        )
     except Exception:
         return None
 

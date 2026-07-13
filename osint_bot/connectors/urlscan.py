@@ -1,10 +1,9 @@
 """Connector: URLScan.io — passive URL/domain intelligence."""
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -29,13 +28,11 @@ _SEARCH = "https://urlscan.io/api/v1/search/"
 
 def _search(query: str, timeout: int, key: str = "") -> dict | None:
     url = f"{_SEARCH}?q={urllib.parse.quote(query)}&size=20"
-    headers = {"Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"}
+    headers = {}
     if key:
         headers["API-Key"] = key
-    req = urllib.request.Request(url, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode("utf-8", errors="replace"))
+        return _safe_http.get_json(url, headers=headers, timeout=timeout)
     except Exception:
         return None
 

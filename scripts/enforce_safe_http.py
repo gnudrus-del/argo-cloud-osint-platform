@@ -43,41 +43,13 @@ ALLOWLIST_PATHS = {
     "osint_bot/_safe_http.py",
 }
 
-# Historical debt: connectors that predate the rule. They are tracked
-# for migration in issue #H2. This list is expected to SHRINK over
-# time; a CI check separately verifies that no *new* file lands in
-# GRANDFATHERED (the shrink-only invariant is enforced by the fact
-# that a random new violator would fail this check because it is
-# neither in ALLOWLIST_PATHS nor in GRANDFATHERED).
-#
-# Do NOT add entries to this set. Migrate the connector to
-# _safe_http.guard_ssrf(...) + _safe_http.get_json(...) instead.
-GRANDFATHERED: set[str] = {
-    "osint_bot/connectors/common_crawl.py",
-    "osint_bot/connectors/content_discovery.py",
-    "osint_bot/connectors/darkweb_scan.py",
-    "osint_bot/connectors/etherscan.py",
-    "osint_bot/connectors/flowsint.py",
-    "osint_bot/connectors/github_search.py",
-    "osint_bot/connectors/google_pse.py",
-    "osint_bot/connectors/gravatar.py",
-    "osint_bot/connectors/hibp.py",
-    "osint_bot/connectors/influencers_club.py",
-    "osint_bot/connectors/leakix.py",
-    "osint_bot/connectors/misp_client.py",
-    "osint_bot/connectors/openphish.py",
-    "osint_bot/connectors/overpass.py",
-    "osint_bot/connectors/secret_scan.py",
-    "osint_bot/connectors/sherlock_lite.py",
-    "osint_bot/connectors/shodan_internetdb.py",
-    "osint_bot/connectors/socid_extractor.py",
-    "osint_bot/connectors/subdomain_enum.py",
-    "osint_bot/connectors/threatfox.py",
-    "osint_bot/connectors/urlscan.py",
-    "osint_bot/connectors/virustotal.py",
-    "osint_bot/connectors/wayback.py",
-    "osint_bot/connectors/web_fingerprint.py",
-}
+# EMPTY — the migration is complete. Every connector now routes outbound
+# HTTP through _safe_http (which applies guard_ssrf on the initial URL and
+# on every redirect). This set MUST stay empty: a new entry would mean a
+# connector regressed to a direct urllib/httpx/requests/aiohttp call and
+# bypassed the SSRF gateway. Fix the connector instead of adding it here —
+# use _safe_http.get_json(...) / get_text(...) / post_json(...) / open_url(...).
+GRANDFATHERED: set[str] = set()
 
 
 def _iter_python_files(root: pathlib.Path):

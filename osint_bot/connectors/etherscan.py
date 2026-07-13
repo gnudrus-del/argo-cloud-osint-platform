@@ -6,10 +6,9 @@ Action class: passive. Input: ``wallet`` (Ethereum address, 0x...).
 """
 from __future__ import annotations
 
-import json
 import re
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -56,8 +55,7 @@ class EtherscanConnector(BaseConnector):
             url = (f"https://api.etherscan.io/api?module={module}&action={action}"
                    f"&address={target}&tag=latest&apikey={context.api_key}&offset=1&page=1")
             try:
-                with urllib.request.urlopen(url, timeout=context.timeout) as resp:
-                    data = json.loads(resp.read().decode("utf-8", errors="replace"))
+                data = _safe_http.get_json(url, timeout=context.timeout)
             except Exception as exc:
                 return ConnectorResult(connector=self.spec.name, status="error",
                                        error=f"Etherscan: {exc}")

@@ -11,9 +11,6 @@ from __future__ import annotations
 
 import json
 import re
-import urllib.error
-import urllib.parse
-import urllib.request
 
 from .. import _safe_http
 from ..connector import (
@@ -69,14 +66,9 @@ def _query(lat: float, lon: float, radius: int, timeout: int) -> dict | None:
         f");"
         f"out center {_MAX_FEATURES};"
     )
-    data = urllib.parse.urlencode({"data": ql}).encode("ascii")
-    req = urllib.request.Request(_ENDPOINT, data=data, headers={
-        "User-Agent": "argo-osint/1.0",
-        "Accept": "application/json",
-    })
     try:
-        with urllib.request.urlopen(req, timeout=timeout + 5) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
+        _, raw = _safe_http.post_form(_ENDPOINT, {"data": ql}, timeout=timeout + 5)
+        return json.loads(raw.decode("utf-8", errors="replace"))
     except Exception:
         return None
 

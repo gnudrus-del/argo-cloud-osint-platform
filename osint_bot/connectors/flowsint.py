@@ -30,9 +30,8 @@ from __future__ import annotations
 
 import json
 import os
-import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -85,17 +84,16 @@ def _derive_public_url(base_url: str) -> str:
 def _get_token(base_url: str, username: str, password: str,
                timeout: int) -> str | None:
     """FastAPI Users: OAuth2 password flow su ``/api/auth/token``."""
-    data = urllib.parse.urlencode({
-        "username": username, "password": password,
-    }).encode("ascii")
-    req = urllib.request.Request(
-        f"{base_url}/api/auth/token", data=data,
-        headers={"Content-Type": "application/x-www-form-urlencoded",
-                 "Accept": "application/json"},
-    )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = json.loads(resp.read().decode("utf-8", errors="replace"))
+        # FlowSINT is an operator-configured bridge (default 127.0.0.1:5001):
+        # allow_private lets it reach the local/LAN instance.
+        _, raw = _safe_http.post_form(
+            f"{base_url}/api/auth/token",
+            {"username": username, "password": password},
+            timeout=timeout,
+            allow_private=True,
+        )
+        body = json.loads(raw.decode("utf-8", errors="replace"))
         return body.get("access_token")
     except Exception:
         return None
@@ -104,31 +102,26 @@ def _get_token(base_url: str, username: str, password: str,
 def _create_investigation(base_url: str, token: str,
                           name: str, description: str,
                           timeout: int) -> dict | None:
-    body = json.dumps({"name": name[:200], "description": description[:1000]}).encode("utf-8")
-    req = urllib.request.Request(
-        f"{base_url}/api/investigations/create",
-        data=body,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-    )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
+        return _safe_http.post_json(
+            f"{base_url}/api/investigations/create",
+            {"name": name[:200], "description": description[:1000]},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=timeout,
+            allow_private=True,
+        )
     except Exception:
         return None
 
 
 def _list_enrichers(base_url: str, token: str, timeout: int) -> list[str]:
-    req = urllib.request.Request(
-        f"{base_url}/api/enrichers",
-        headers={"Authorization": f"Bearer {token}"},
-    )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        data = _safe_http.get_json(
+            f"{base_url}/api/enrichers",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=timeout,
+            allow_private=True,
+        )
         lst = data if isinstance(data, list) else (data.get("enrichers") or [])
         return [x["name"] if isinstance(x, dict) else str(x) for x in lst]
     except Exception:
@@ -228,8 +221,8 @@ class FlowSINTConnector(BaseConnector):
         if not cfg["base_url"]:
             return False
         try:
-            urllib.request.urlopen(f"{cfg['base_url']}/health",
-                                   timeout=3).close()
+            _safe_http.get_bytes(f"{cfg['base_url']}/health",
+                                 timeout=3, allow_private=True)
             return True
         except Exception:
             return False

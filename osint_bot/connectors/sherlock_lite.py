@@ -19,8 +19,8 @@ from __future__ import annotations
 import concurrent.futures as _cf
 import urllib.error
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -76,14 +76,13 @@ _MAX_BODY = 200_000  # abbastanza per contenere il marker di assenza
 def _probe(site: tuple[str, str, str, str], username: str, timeout: int) -> dict | None:
     name, tmpl, method, marker = site
     url = tmpl.replace("{u}", urllib.parse.quote(username, safe=""))
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 (compatible; ArgoOSINT/1.0)",
-        "Accept": "text/html,application/json",
-    })
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            status = resp.status
-            body = resp.read(_MAX_BODY) if method == "marker" else b""
+        status, raw, _ = _safe_http.open_url(
+            url,
+            headers={"Accept": "text/html,application/json"},
+            timeout=timeout,
+        )
+        body = raw[:_MAX_BODY] if method == "marker" else b""
     except urllib.error.HTTPError as e:
         # 404/410 con method "404" = assente (esito affidabile).
         return {"site": name, "url": url, "status": e.code, "hit": False}

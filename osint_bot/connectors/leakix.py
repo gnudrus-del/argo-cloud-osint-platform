@@ -1,10 +1,7 @@
 """Connector: LeakIX — leaked service and vulnerability database."""
 from __future__ import annotations
 
-import json
-import urllib.parse
-import urllib.request
-
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -28,17 +25,12 @@ _BASE = "https://leakix.net"
 
 
 def _lx_get(path: str, key: str, timeout: int) -> dict | None:
-    req = urllib.request.Request(
-        f"{_BASE}{path}",
-        headers={
-            "api-key": key,
-            "Accept": "application/json",
-            "User-Agent": "Argo-OSINT/1.0",
-        },
-    )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode("utf-8", errors="replace"))
+        return _safe_http.get_json(
+            f"{_BASE}{path}",
+            headers={"api-key": key},
+            timeout=timeout,
+        )
     except Exception:
         return None
 

@@ -9,10 +9,8 @@ Input: ``email``. Action class: passive.
 from __future__ import annotations
 
 import hashlib
-import json
-import urllib.error
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -43,21 +41,12 @@ def _md5_email(email: str) -> str:
 
 def _fetch_profile(md5: str, timeout: int) -> dict | None:
     url = f"https://www.gravatar.com/{md5}.json"
-    req = urllib.request.Request(url, headers={
-        "Accept": "application/json",
-        "User-Agent": "argo-osint/1.0",
-    })
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8", errors="replace")
-        data = json.loads(body)
+        data = _safe_http.get_json(url, timeout=timeout)
         entries = data.get("entry") or []
         return entries[0] if entries else None
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        return None
     except Exception:
+        # 404 (no public profile) surfaces here too — treated as "no profile".
         return None
 
 
@@ -125,9 +114,7 @@ class GravatarConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            req = urllib.request.Request("https://www.gravatar.com/",
-                                         headers={"User-Agent": "argo-osint/1.0"})
-            with urllib.request.urlopen(req, timeout=3) as resp:
-                return resp.status < 500
+            status, _, _ = _safe_http.open_url("https://www.gravatar.com/", timeout=3)
+            return status < 500
         except Exception:
             return False

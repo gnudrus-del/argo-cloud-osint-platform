@@ -9,9 +9,7 @@ Input: ``domain`` (usa ``*.domain/*`` per includere sottodomini).
 from __future__ import annotations
 
 import json
-import urllib.error
 import urllib.parse
-import urllib.request
 
 from .. import _safe_http
 from ..connector import (
@@ -44,10 +42,8 @@ _CDX_LIMIT = 100  # cap richiesta all'API
 def _list_indexes(timeout: int) -> list[str]:
     """Elenca gli ID degli indici Common Crawl in ordine di recenza."""
     try:
-        req = urllib.request.Request("http://index.commoncrawl.org/collinfo.json",
-                                     headers={"User-Agent": "argo-osint/1.0"})
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        data = _safe_http.get_json("http://index.commoncrawl.org/collinfo.json",
+                                   timeout=timeout)
         return [c["id"] for c in data if isinstance(c, dict) and "id" in c]
     except Exception:
         return []
@@ -62,10 +58,8 @@ def _query_cdx(index_id: str, target: str, timeout: int) -> list[dict]:
         "limit": _CDX_LIMIT,
     })
     url = f"http://index.commoncrawl.org/{index_id}-index?{qs}"
-    req = urllib.request.Request(url, headers={"User-Agent": "argo-osint/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8", errors="replace")
+        body = _safe_http.get_text(url, timeout=timeout)
     except Exception:
         return []
     rows: list[dict] = []

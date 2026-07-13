@@ -11,11 +11,9 @@ Input: ``domain``.
 from __future__ import annotations
 
 import concurrent.futures as _cf
-import json
 import socket
-import urllib.error
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -53,12 +51,9 @@ _BRUTE_PREFIXES = [
 
 def _crtsh_subdomains(domain: str, timeout: int) -> set[str]:
     url = f"https://crt.sh/?q=%25.{urllib.parse.quote(domain)}&output=json"
-    req = urllib.request.Request(url, headers={"User-Agent": "argo-osint/1.0",
-                                               "Accept": "application/json"})
     out: set[str] = set()
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        data = _safe_http.get_json(url, timeout=timeout)
         for row in data:
             name = (row.get("name_value") or "").strip().lower()
             for entry in name.split("\n"):

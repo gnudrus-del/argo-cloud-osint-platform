@@ -1,10 +1,10 @@
 """Connector: Have I Been Pwned — breach intelligence (PII-gated)."""
 from __future__ import annotations
 
-import json
+import urllib.error
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PII_GATED,
     BaseConnector,
@@ -28,15 +28,18 @@ _BASE = "https://haveibeenpwned.com/api/v3"
 
 
 def _hibp_get(path: str, key: str, timeout: int) -> list | dict | None:
-    req = urllib.request.Request(
-        f"{_BASE}{path}",
-        headers={"hibp-api-key": key, "user-agent": "Argo-OSINT/1.0", "Accept": "application/json"},
-    )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            if r.status == 404:
-                return []
-            return json.loads(r.read().decode("utf-8", errors="replace"))
+        return _safe_http.get_json(
+            f"{_BASE}{path}",
+            headers={"hibp-api-key": key},
+            timeout=timeout,
+        )
+    except urllib.error.HTTPError as e:
+        # HIBP answers 404 when the account/domain is not in any breach —
+        # a valid "no breaches" result, not an error.
+        if e.code == 404:
+            return []
+        return None
     except Exception:
         return None
 

@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import re
 import urllib.error
-import urllib.request
 
 from ..connector import (
     ACTION_PASSIVE,
@@ -72,29 +71,24 @@ def _to_url(target: str) -> str:
 
 
 def _fetch(url: str, timeout: int) -> tuple[dict, bytes] | None:
-    from .._safe_http import SSRFBlocked, guard_ssrf
+    from .. import _safe_http
     try:
-        guard_ssrf(url)
-    except SSRFBlocked:
-        return None
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 (compatible; ArgoOSINT/1.0)",
-        "Accept": "text/html,application/xhtml+xml",
-    })
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            headers = {k: v for k, v in resp.getheaders()}
-            body = resp.read(_MAX_BODY)
-        return headers, body
+        _, body, headers = _safe_http.open_url(
+            url,
+            headers={"Accept": "text/html,application/xhtml+xml"},
+            timeout=timeout,
+        )
+        return headers, body[:_MAX_BODY]
     except urllib.error.HTTPError as e:
         # Anche 4xx/5xx portano info utili (server header, cookie di errore).
-        headers = {k: v for k, v in e.headers.items()} if e.headers else {}
+        headers = {k.lower(): v for k, v in e.headers.items()} if e.headers else {}
         try:
             body = e.read(_MAX_BODY)
         except Exception:
             body = b""
         return headers, body
     except Exception:
+        # Includes _safe_http.SSRFBlocked (internal target) → skip.
         return None
 
 

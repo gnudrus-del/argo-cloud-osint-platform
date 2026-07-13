@@ -15,10 +15,8 @@ from __future__ import annotations
 
 import json
 import os
-import ssl
-import urllib.error
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -54,20 +52,24 @@ def _config() -> dict:
 def _search_attributes(cfg: dict, value: str, timeout: int) -> dict | None:
     endpoint = f"{cfg['url']}/attributes/restSearch"
     body = json.dumps({"value": value, "limit": 50, "includeEventTags": True}).encode("utf-8")
-    req = urllib.request.Request(endpoint, data=body, headers={
-        "Authorization": cfg["key"],
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "User-Agent": "argo-osint/1.0",
-    })
-    ctx = None
-    if not cfg["verify"]:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
     try:
-        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
+        # MISP is an operator-configured, trusted, often-internal endpoint:
+        # allow_private lets it reach a LAN instance, insecure_tls honours the
+        # MISP_VERIFY=0 self-signed-cert option. The SSRF redirect guard still
+        # blocks cloud-metadata hops.
+        _, raw, _ = _safe_http.open_url(
+            endpoint,
+            data=body,
+            headers={
+                "Authorization": cfg["key"],
+                "Content-Type": "application/json",
+            },
+            method="POST",
+            timeout=timeout,
+            allow_private=True,
+            insecure_tls=not cfg["verify"],
+        )
+        return json.loads(raw.decode("utf-8", errors="replace"))
     except Exception:
         return None
 

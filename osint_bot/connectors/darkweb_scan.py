@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import re
 import urllib.parse
-import urllib.request
 
 from .. import _safe_http
 from ..connector import (
@@ -46,13 +45,10 @@ _ONION_RE = re.compile(r'([a-z2-7]{16,56}\.onion)', re.I)
 def _search_ahmia(query: str, timeout: int) -> list[dict]:
     """Interroga l'indice clear-web Ahmia (search) per una keyword."""
     url = f"https://ahmia.fi/search/?q={urllib.parse.quote(query)}"
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 (compatible; ArgoOSINT/1.0)",
-        "Accept": "text/html",
-    })
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            html = resp.read(500_000).decode("utf-8", errors="replace")
+        html = _safe_http.get_text(
+            url, headers={"Accept": "text/html"}, timeout=timeout
+        )[:500_000]
     except Exception:
         return []
     out: list[dict] = []

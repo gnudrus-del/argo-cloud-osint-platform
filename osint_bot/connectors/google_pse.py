@@ -5,10 +5,9 @@ Configurazione attesa nell'API key: ``apikey|cx`` (separato da pipe).
 """
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -45,8 +44,7 @@ class GooglePSEConnector(BaseConnector):
                + urllib.parse.urlencode({"key": api_key, "cx": cx,
                                          "q": context.target, "num": 10}))
         try:
-            with urllib.request.urlopen(url, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(url, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"Google PSE: {exc}")

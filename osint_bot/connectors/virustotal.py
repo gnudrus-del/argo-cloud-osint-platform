@@ -1,9 +1,7 @@
 """Connector: VirusTotal — threat intelligence."""
 from __future__ import annotations
 
-import json
-import urllib.request
-
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -27,10 +25,8 @@ _API = "https://www.virustotal.com/api/v3"
 
 
 def _vt_get(path: str, key: str, timeout: int) -> dict | None:
-    req = urllib.request.Request(f"{_API}{path}", headers={"x-apikey": key, "Accept": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode("utf-8", errors="replace"))
+        return _safe_http.get_json(f"{_API}{path}", headers={"x-apikey": key}, timeout=timeout)
     except Exception:
         return None
 

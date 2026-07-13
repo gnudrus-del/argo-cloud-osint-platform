@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -63,10 +63,8 @@ class WaybackConnector(BaseConnector):
             "filter": "statuscode:200",
         })
         url = f"{_CDX}?{params}"
-        req = urllib.request.Request(url, headers={"User-Agent": "Argo-OSINT/1.0"})
         try:
-            with urllib.request.urlopen(req, timeout=ctx.timeout) as r:
-                raw = r.read().decode("utf-8", errors="replace")
+            raw = _safe_http.get_text(url, timeout=ctx.timeout)
         except Exception as e:
             return ConnectorResult(connector=self.spec.name, status="error", error=str(e))
 

@@ -13,7 +13,6 @@ Input: ``url`` (profilo social). Es: https://www.instagram.com/<user>/
 from __future__ import annotations
 
 import urllib.error
-import urllib.request
 
 from ..connector import (
     ACTION_PASSIVE,
@@ -50,26 +49,26 @@ _LABELS = {
 
 
 def _fetch_html(url: str, timeout: int) -> str:
-    from .._safe_http import SSRFBlocked, guard_ssrf
+    from .. import _safe_http
     try:
-        guard_ssrf(url)
-    except SSRFBlocked:
-        return ""
-    req = urllib.request.Request(url, headers={
-        # UA mobile: molti scheme socid-extractor si basano sul markup mobile.
-        "User-Agent": ("Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) "
-                       "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"),
-        "Accept": "text/html,application/json",
-    })
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read(_MAX_BODY).decode("utf-8", errors="replace")
+        _, body, _ = _safe_http.open_url(
+            url,
+            headers={
+                # UA mobile: molti scheme socid-extractor si basano sul markup mobile.
+                "User-Agent": ("Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) "
+                               "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"),
+                "Accept": "text/html,application/json",
+            },
+            timeout=timeout,
+        )
+        return body[:_MAX_BODY].decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
         try:
             return e.read(_MAX_BODY).decode("utf-8", errors="replace")
         except Exception:
             return ""
     except Exception:
+        # Includes _safe_http.SSRFBlocked (internal target) → empty.
         return ""
 
 
