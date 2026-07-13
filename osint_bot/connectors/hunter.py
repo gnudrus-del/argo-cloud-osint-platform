@@ -1,10 +1,9 @@
 """Connector: Hunter.io — email discovery per dominio (PII-gated)."""
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PII_GATED,
     BaseConnector,
@@ -34,13 +33,8 @@ class HunterConnector(BaseConnector):
         t = ctx.target.strip()
         key = ctx.api_key
         params = urllib.parse.urlencode({"domain": t, "api_key": key, "limit": "20"})
-        req = urllib.request.Request(
-            f"{_BASE}/domain-search?{params}",
-            headers={"Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"},
-        )
         try:
-            with urllib.request.urlopen(req, timeout=ctx.timeout) as r:
-                data = json.loads(r.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(f"{_BASE}/domain-search?{params}", headers={"Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"}, timeout=ctx.timeout)
         except Exception as e:
             return ConnectorResult(connector=self.spec.name, status="error", error=str(e))
 

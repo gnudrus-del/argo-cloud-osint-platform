@@ -6,9 +6,7 @@ Action class: passive. Input: ``ip``, ``domain``, ``url``.
 """
 from __future__ import annotations
 
-import json
-import urllib.request
-
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -46,11 +44,9 @@ class OTXConnector(BaseConnector):
                                    error="OTX richiede API key.")
         sec = _section_for(context.target_type)
         url = f"https://otx.alienvault.com/api/v1/indicators/{sec}/{context.target}/general"
-        req = urllib.request.Request(url, headers={
-            "X-OTX-API-KEY": context.api_key, "Accept": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(url, headers={
+            "X-OTX-API-KEY": context.api_key, "Accept": "application/json"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"OTX: {exc}")

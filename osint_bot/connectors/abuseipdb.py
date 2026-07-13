@@ -1,10 +1,9 @@
 """Connector: AbuseIPDB — IP reputation database."""
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -34,13 +33,12 @@ class AbuseIPDBConnector(BaseConnector):
         ip = ctx.target.strip()
         key = ctx.api_key
         params = urllib.parse.urlencode({"ipAddress": ip, "maxAgeInDays": "90", "verbose": ""})
-        req = urllib.request.Request(
-            f"{_API}?{params}",
-            headers={"Key": key, "Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"},
-        )
         try:
-            with urllib.request.urlopen(req, timeout=ctx.timeout) as r:
-                data = json.loads(r.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(
+                f"{_API}?{params}",
+                headers={"Key": key},
+                timeout=ctx.timeout,
+            )
         except Exception as e:
             return ConnectorResult(connector=self.spec.name, status="error", error=str(e))
 

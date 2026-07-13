@@ -6,9 +6,7 @@ Action class: passive. Input: ``domain``.
 """
 from __future__ import annotations
 
-import json
-import urllib.request
-
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -41,11 +39,9 @@ class SecurityTrailsConnector(BaseConnector):
             return ConnectorResult(connector=self.spec.name, status="missing_key",
                                    error="SecurityTrails richiede API key (BYOK).")
         url = f"https://api.securitytrails.com/v1/domain/{context.target}/subdomains?children_only=false"
-        req = urllib.request.Request(url, headers={
-            "APIKEY": context.api_key, "Accept": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(url, headers={
+            "APIKEY": context.api_key, "Accept": "application/json"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"SecurityTrails: {exc}")

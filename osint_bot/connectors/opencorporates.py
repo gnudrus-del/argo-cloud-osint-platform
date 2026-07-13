@@ -6,10 +6,9 @@ Action class: passive. Input: ``company``, ``person`` (officer search).
 """
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -42,11 +41,9 @@ class OpenCorporatesConnector(BaseConnector):
         if context.api_key:
             params["api_token"] = context.api_key
         url = "https://api.opencorporates.com/v0.4/companies/search?" + urllib.parse.urlencode(params)
-        req = urllib.request.Request(url, headers={
-            "Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"})
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(url, headers={
+            "Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"OpenCorporates: {exc}")
@@ -71,7 +68,7 @@ class OpenCorporatesConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            urllib.request.urlopen(self.spec.health_check_url, timeout=5).close()
+            _safe_http.get_bytes(self.spec.health_check_url, timeout=5)
             return True
         except Exception:
             return False

@@ -8,9 +8,8 @@ Action class: passive. Input: ``url``, ``domain``.
 from __future__ import annotations
 
 import json
-import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -46,14 +45,13 @@ class PhishTankConnector(BaseConnector):
         if not target.startswith(("http://", "https://")):
             target = "http://" + target  # PhishTank store URL only
         url = "https://checkurl.phishtank.com/checkurl/"
-        data = urllib.parse.urlencode({
-            "url": target, "format": "json", "app_key": "argo-osint"
-        }).encode("ascii")
-        req = urllib.request.Request(url, data=data,
-                                     headers={"User-Agent": "Argo-OSINT/1.0"})
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                body = json.loads(resp.read().decode("utf-8", errors="replace"))
+            _, raw = _safe_http.post_form(
+                url,
+                {"url": target, "format": "json", "app_key": "argo-osint"},
+                timeout=context.timeout,
+            )
+            body = json.loads(raw.decode("utf-8", errors="replace"))
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"PhishTank: {exc}")
@@ -76,7 +74,7 @@ class PhishTankConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            urllib.request.urlopen("https://www.phishtank.com/", timeout=5).close()
+            _safe_http.get_bytes("https://www.phishtank.com/", timeout=5)
             return True
         except Exception:
             return False

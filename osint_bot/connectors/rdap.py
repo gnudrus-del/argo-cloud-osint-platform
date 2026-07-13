@@ -10,9 +10,7 @@ Output: ``whois_registrar``, ``whois_nameserver``, ``whois_status``,
 """
 from __future__ import annotations
 
-import json
-import urllib.request
-
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -46,10 +44,7 @@ def _get_rdap_base(tld: str) -> str | None:
     global _bootstrap_loaded
     if not _bootstrap_loaded:
         try:
-            req = urllib.request.Request(_IANA_BOOTSTRAP,
-                                         headers={"User-Agent": "Argo-OSINT/1.0"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+            data = _safe_http.get_json(_IANA_BOOTSTRAP, timeout=10)
             for entry in data.get("services", []):
                 tlds, urls = entry
                 for t in tlds:
@@ -62,12 +57,7 @@ def _get_rdap_base(tld: str) -> str | None:
 
 def _safe_get(req_url: str, timeout: int) -> dict | None:
     try:
-        req = urllib.request.Request(
-            req_url,
-            headers={"Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"},
-        )
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
+        return _safe_http.get_json(req_url, timeout=timeout)
     except Exception:
         return None
 

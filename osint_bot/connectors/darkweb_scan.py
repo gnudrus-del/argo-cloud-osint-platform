@@ -15,6 +15,7 @@ import re
 import urllib.parse
 import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_DARKWEB_GATED,
     BaseConnector,
@@ -102,7 +103,7 @@ class DarkwebScanConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            urllib.request.urlopen("https://ahmia.fi/", timeout=4).close()
+            _safe_http.get_bytes("https://ahmia.fi/", timeout=4)
             return True
         except Exception:
             return False

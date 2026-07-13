@@ -15,6 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -121,7 +122,7 @@ class OverpassConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            urllib.request.urlopen("https://overpass-api.de/api/status", timeout=4).close()
+            _safe_http.get_bytes("https://overpass-api.de/api/status", timeout=4)
             return True
         except Exception:
             return False

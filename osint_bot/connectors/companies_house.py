@@ -7,10 +7,9 @@ Action class: passive. Input: ``company``.
 from __future__ import annotations
 
 import base64
-import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -45,11 +44,9 @@ class CompaniesHouseConnector(BaseConnector):
         q = urllib.parse.quote(context.target.strip())
         url = f"https://api.company-information.service.gov.uk/search/companies?q={q}&items_per_page=5"
         auth = base64.b64encode(f"{context.api_key}:".encode("ascii")).decode("ascii")
-        req = urllib.request.Request(url, headers={
-            "Authorization": f"Basic {auth}", "Accept": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(url, headers={
+            "Authorization": f"Basic {auth}", "Accept": "application/json"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"Companies House: {exc}")

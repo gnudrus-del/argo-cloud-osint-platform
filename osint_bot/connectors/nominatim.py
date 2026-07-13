@@ -7,11 +7,9 @@ Action class: passive. Input: ``address`` (text query).
 """
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
-from .._ua import user_agent as _ua
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -52,13 +50,8 @@ class NominatimConnector(BaseConnector):
             + urllib.parse.urlencode({"q": q, "format": "json", "limit": 5,
                                       "addressdetails": 1})
         )
-        req = urllib.request.Request(url, headers={
-            "User-Agent": _ua(),
-            "Accept": "application/json",
-        })
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                results = json.loads(resp.read().decode("utf-8", errors="replace"))
+            results = _safe_http.get_json(url, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"Nominatim: {exc}")
@@ -83,7 +76,7 @@ class NominatimConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            urllib.request.urlopen(self.spec.health_check_url, timeout=5).close()
+            _safe_http.get_bytes(self.spec.health_check_url, timeout=5)
             return True
         except Exception:
             return False

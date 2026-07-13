@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from osint_bot.connector import (
     ACTION_PASSIVE,
@@ -82,14 +82,9 @@ SHODAN_FIXTURE = json.dumps({
 })
 
 
-def _mock_urlopen(fixture: str):
-    """Return a context manager whose read() yields *fixture* bytes."""
-    mock_resp = MagicMock()
-    mock_resp.read.return_value = fixture.encode("utf-8")
-    mock_resp.status = 200
-    mock_resp.__enter__ = lambda s: s
-    mock_resp.__exit__ = MagicMock(return_value=False)
-    return mock_resp
+def _mock_open_url(fixture: str):
+    """Return the (status, body, headers) tuple that _safe_http.open_url yields."""
+    return (200, fixture.encode("utf-8"), {})
 
 
 def _ctx(target: str = "example.com", target_type: str = "domain",
@@ -227,8 +222,7 @@ class MissingKeyTests(unittest.TestCase):
 
 class ProvenanceTests(unittest.TestCase):
     def test_provenance_stamped_on_findings_when_case_set(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(CRT_SH_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(CRT_SH_FIXTURE)):
             conn = CrtShConnector()
             ctx = _ctx()
             ctx.case_id = "case-test"
@@ -241,8 +235,7 @@ class ProvenanceTests(unittest.TestCase):
             self.assertEqual(finding.provenance.tool, "crt_sh")
 
     def test_no_provenance_when_no_case(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(CRT_SH_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(CRT_SH_FIXTURE)):
             conn = CrtShConnector()
             ctx = _ctx()
             ctx.case_id = ""
@@ -263,8 +256,7 @@ class CrtShTests(unittest.TestCase):
         self.assertIn("domain", CrtShConnector.spec.input_types)
 
     def test_extracts_subdomains_skips_wildcards(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(CRT_SH_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(CRT_SH_FIXTURE)):
             result = CrtShConnector().run(_ctx())
 
         self.assertEqual(result.status, "ok")
@@ -277,8 +269,7 @@ class CrtShTests(unittest.TestCase):
         self.assertNotIn("*.example.com", values)
 
     def test_all_findings_are_subdomain_ct_kind(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(CRT_SH_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(CRT_SH_FIXTURE)):
             result = CrtShConnector().run(_ctx())
 
         for f in result.findings:
@@ -290,15 +281,13 @@ class CrtShTests(unittest.TestCase):
             {"issuer_ca_id": 1, "name_value": "sub.example.com", "not_before": "2024-01-01"},
             {"issuer_ca_id": 2, "name_value": "sub.example.com", "not_before": "2024-06-01"},
         ])
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(fixture)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(fixture)):
             result = CrtShConnector().run(_ctx())
 
         self.assertEqual(len(result.findings), 1)
 
     def test_error_on_bad_response(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen('{"error": "not json list"}')
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url('{"error": "not json list"}')):
             result = CrtShConnector().run(_ctx())
 
         self.assertEqual(result.status, "error")
@@ -314,8 +303,7 @@ class RdapTests(unittest.TestCase):
         self.assertIn("domain", RdapConnector.spec.input_types)
 
     def test_extracts_registrar_nameservers_dates(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(RDAP_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(RDAP_FIXTURE)):
             result = RdapConnector().run(_ctx())
 
         self.assertEqual(result.status, "ok")
@@ -327,16 +315,14 @@ class RdapTests(unittest.TestCase):
         self.assertIn("whois_status", kinds)
 
     def test_registrar_name_is_correct(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(RDAP_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(RDAP_FIXTURE)):
             result = RdapConnector().run(_ctx())
 
         registrars = [f.value for f in result.findings if f.kind == "whois_registrar"]
         self.assertIn("Example Registrar Inc.", registrars)
 
     def test_two_nameservers_found(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(RDAP_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(RDAP_FIXTURE)):
             result = RdapConnector().run(_ctx())
 
         ns = [f.value for f in result.findings if f.kind == "whois_nameserver"]
@@ -354,8 +340,7 @@ class ShodanTests(unittest.TestCase):
         self.assertIn("domain", ShodanConnector.spec.input_types)
 
     def test_extracts_ports_cpes_vulns_hostname(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(SHODAN_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(SHODAN_FIXTURE)):
             with patch("socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
                 result = ShodanConnector().run(_ctx(api_key="TESTKEY"))
 
@@ -367,8 +352,7 @@ class ShodanTests(unittest.TestCase):
         self.assertIn("shodan_hostname", kinds)
 
     def test_port_values_correct(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(SHODAN_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(SHODAN_FIXTURE)):
             with patch("socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
                 result = ShodanConnector().run(_ctx(api_key="TESTKEY"))
 
@@ -377,8 +361,7 @@ class ShodanTests(unittest.TestCase):
         self.assertIn("93.184.216.34:443/tcp", ports)
 
     def test_cve_finding(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(SHODAN_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(SHODAN_FIXTURE)):
             with patch("socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
                 result = ShodanConnector().run(_ctx(api_key="TESTKEY"))
 
@@ -386,8 +369,7 @@ class ShodanTests(unittest.TestCase):
         self.assertIn("CVE-2021-41773", vulns)
 
     def test_ip_directly_without_dns_resolve(self):
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.return_value = _mock_urlopen(SHODAN_FIXTURE)
+        with patch("osint_bot._safe_http.open_url", return_value=_mock_open_url(SHODAN_FIXTURE)):
             result = ShodanConnector().run(_ctx(
                 target="93.184.216.34", target_type="ip", api_key="TESTKEY"
             ))

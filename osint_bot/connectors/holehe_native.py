@@ -12,11 +12,9 @@ Passivo. Input: ``email``.
 from __future__ import annotations
 
 import hashlib
-import json
 import socket
-import urllib.error
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -61,11 +59,8 @@ def _has_mx(domain: str, timeout: int) -> bool:
 def _gravatar(email: str, timeout: int) -> dict | None:
     md5 = hashlib.md5(email.strip().lower().encode("utf-8")).hexdigest()
     url = f"https://www.gravatar.com/{md5}.json"
-    req = urllib.request.Request(url, headers={"Accept": "application/json",
-                                               "User-Agent": "argo-osint/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        data = _safe_http.get_json(url, timeout=timeout)
         entries = data.get("entry") or []
         return entries[0] if entries else None
     except Exception:

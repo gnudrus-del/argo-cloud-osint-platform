@@ -6,9 +6,7 @@ Action class: passive. Input: ``ip``.
 """
 from __future__ import annotations
 
-import json
-import urllib.request
-
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -40,11 +38,9 @@ class IPinfoConnector(BaseConnector):
         url = f"https://ipinfo.io/{context.target}/json"
         if context.api_key:
             url += f"?token={context.api_key}"
-        req = urllib.request.Request(url, headers={
-            "Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"})
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(url, headers={
+            "Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"IPinfo: {exc}")
@@ -64,7 +60,7 @@ class IPinfoConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            urllib.request.urlopen(self.spec.health_check_url, timeout=5).close()
+            _safe_http.get_bytes(self.spec.health_check_url, timeout=5)
             return True
         except Exception:
             return False

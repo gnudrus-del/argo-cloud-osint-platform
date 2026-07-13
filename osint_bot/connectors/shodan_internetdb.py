@@ -13,6 +13,7 @@ import json
 import urllib.error
 import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -121,7 +122,7 @@ class ShodanInternetDBConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            urllib.request.urlopen("https://internetdb.shodan.io/8.8.8.8", timeout=4).close()
+            _safe_http.get_bytes("https://internetdb.shodan.io/8.8.8.8", timeout=4)
             return True
         except Exception:
             return False

@@ -4,11 +4,9 @@ Free, no key, but requires identifying User-Agent (SEC ToS).
 """
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
-from .._ua import user_agent as _ua
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -42,13 +40,8 @@ class SECEdgarConnector(BaseConnector):
             "https://efts.sec.gov/LATEST/search-index?"
             + urllib.parse.urlencode({"q": q, "hits": 5})
         )
-        req = urllib.request.Request(url, headers={
-            "User-Agent": _ua(),
-            "Accept": "application/json",
-        })
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(url, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"SEC EDGAR: {exc}")

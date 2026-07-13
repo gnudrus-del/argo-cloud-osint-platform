@@ -11,10 +11,9 @@ Output: ``shodan_open_port``, ``shodan_service``, ``shodan_cpe``, ``shodan_vuln`
 from __future__ import annotations
 
 import ipaddress
-import json
 import socket
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -46,13 +45,8 @@ _API_BASE = "https://api.shodan.io"
 
 def _api_get(path: str, api_key: str, timeout: int) -> dict | None:
     url = f"{_API_BASE}{path}?key={api_key}"
-    req = urllib.request.Request(
-        url,
-        headers={"Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"},
-    )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
+        return _safe_http.get_json(url, timeout=timeout)
     except Exception:
         return None
 

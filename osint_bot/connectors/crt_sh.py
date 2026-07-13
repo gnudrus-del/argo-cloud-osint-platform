@@ -8,10 +8,9 @@ Action class: passive.
 """
 from __future__ import annotations
 
-import json
 import re
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -45,16 +44,8 @@ class CrtShConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         target = context.target.lower().strip()
         url = f"https://crt.sh/?q=%25.{target}&output=json"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "Accept": "application/json",
-                "User-Agent": "Argo-OSINT/1.0 (passive CT lookup)",
-            },
-        )
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(url, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error", error=str(exc))
 
@@ -109,11 +100,9 @@ class CrtShConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            req = urllib.request.Request(
-                "https://crt.sh/?q=example.com&output=json",
-                headers={"User-Agent": "Argo-OSINT/1.0"},
+            status, _, _ = _safe_http.open_url(
+                "https://crt.sh/?q=example.com&output=json", timeout=5
             )
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                return resp.status == 200
+            return status == 200
         except Exception:
             return False

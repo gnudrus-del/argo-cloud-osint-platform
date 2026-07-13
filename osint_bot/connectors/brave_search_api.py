@@ -6,10 +6,9 @@ Action class: passive. Input: any text query.
 """
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -43,13 +42,11 @@ class BraveSearchAPIConnector(BaseConnector):
                                    error="Brave Search richiede API key (BYOK).")
         url = ("https://api.search.brave.com/res/v1/web/search?"
                + urllib.parse.urlencode({"q": context.target, "count": 10}))
-        req = urllib.request.Request(url, headers={
+        try:
+            data = _safe_http.get_json(url, headers={
             "X-Subscription-Token": context.api_key,
             "Accept": "application/json",
-        })
-        try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        }, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"Brave Search: {exc}")

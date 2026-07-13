@@ -10,11 +10,10 @@ Input: ``domain`` | ``url``.
 """
 from __future__ import annotations
 
-import json
 import re
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -59,10 +58,8 @@ def _wayback(domain: str, timeout: int) -> list[str]:
                "url": f"*.{domain}/*", "output": "json",
                "fl": "original", "collapse": "urlkey", "limit": 1000,
            }))
-    req = urllib.request.Request(url, headers={"User-Agent": "argo-osint/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        data = _safe_http.get_json(url, timeout=timeout)
         # prima riga = header ["original"]
         return [row[0] for row in data[1:] if row]
     except Exception:

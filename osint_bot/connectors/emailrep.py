@@ -7,10 +7,9 @@ Action class: passive (PII gated by caller). Input: ``email``.
 """
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PII_GATED,
     BaseConnector,
@@ -44,13 +43,11 @@ class EmailRepConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         email = urllib.parse.quote(context.target.strip(), safe="@")
         url = f"https://emailrep.io/{email}"
-        headers = {"Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"}
+        headers = {}
         if context.api_key:
             headers["Key"] = context.api_key
-        req = urllib.request.Request(url, headers=headers)
         try:
-            with urllib.request.urlopen(req, timeout=context.timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            data = _safe_http.get_json(url, headers=headers, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=f"EmailRep: {exc}")
@@ -76,7 +73,7 @@ class EmailRepConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            urllib.request.urlopen("https://emailrep.io/", timeout=5).close()
+            _safe_http.get_bytes("https://emailrep.io/", timeout=5)
             return True
         except Exception:
             return False

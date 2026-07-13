@@ -13,6 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from .. import _safe_http
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -129,8 +130,7 @@ class CommonCrawlConnector(BaseConnector):
 
     def health_check(self) -> bool:
         try:
-            urllib.request.urlopen("http://index.commoncrawl.org/collinfo.json",
-                                   timeout=3).close()
+            _safe_http.get_bytes("http://index.commoncrawl.org/collinfo.json", timeout=3)
             return True
         except Exception:
             return False
