@@ -5,7 +5,6 @@ import urllib.parse
 
 from .models import SearchResult
 
-
 DOMAIN_RE = re.compile(r"^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$")
 
 

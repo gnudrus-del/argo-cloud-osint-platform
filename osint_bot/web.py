@@ -10,6 +10,7 @@ import mimetypes
 import os
 import re
 import secrets
+import sqlite3
 import time
 import uuid
 
@@ -20,15 +21,18 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from . import provider_health
+from .celery_queue import create_job_queue
 from .cli import run_investigation
 from .connector import ConnectorContext
 from .connectors import build_default_registry
+from .contact_discovery import discover_contacts
 from .defensive import (
+    TakedownCase,
     assess_brand_impersonation,
     enrich_ioc,
     monitor_surface,
     score_digital_footprint,
-    TakedownCase,
 )
 from .email_verification import (
     EmailSendError,
@@ -37,32 +41,43 @@ from .email_verification import (
     verify_token,
 )
 from .external_recon import run_recon_pipeline
-from .high_risk import audit_event_payload as high_risk_audit, detect_high_risk
-from .external_tools import TOOL_SPECS, all_tools_health, resolve_command, tool_health_status
-from . import provider_health
-from .target_classifier import classify_target
-from .contact_discovery import discover_contacts
-from .ranking import rank_results
+from .external_tools import TOOL_SPECS, all_tools_health, tool_health_status
 from .forensic_report import (
-    CaseContext as _ForensicCase, ProviderUsage, ReportContext as _ForensicContext,
-    build_forensic_report, to_json as forensic_to_json, to_markdown as forensic_to_markdown,
+    CaseContext as _ForensicCase,
 )
-from .redteam_report import (
-    RedTeamContext as _RedTeamContext,
-    build_redteam_report as _build_redteam_report,
+from .forensic_report import (
+    ProviderUsage,
+    build_forensic_report,
 )
-from .scope import CaseScope, parse_entry as parse_scope_entry
-from .job_queue import JobQueue, JobSpec
-from .celery_queue import create_job_queue
+from .forensic_report import (
+    ReportContext as _ForensicContext,
+)
+from .forensic_report import (
+    to_json as forensic_to_json,
+)
+from .forensic_report import (
+    to_markdown as forensic_to_markdown,
+)
+from .high_risk import audit_event_payload as high_risk_audit
+from .high_risk import detect_high_risk
+from .job_queue import JobSpec
 from .link_analysis import export_d3_json, resolve_entities
 from .media import analyze_media_file
 from .orchestrator import ALWAYS_ON_AGENTS, RunProfile, plan_from_command
 from .pdf_report import write_pdf_from_markdown
-from .search import provider_has_key
+from .ranking import rank_results
+from .redteam_report import (
+    RedTeamContext as _RedTeamContext,
+)
+from .redteam_report import (
+    build_redteam_report as _build_redteam_report,
+)
 from .safety import redact_email, redact_phone
+from .scope import CaseScope
+from .scope import parse_entry as parse_scope_entry
 from .storage import Storage
 from .stores import InMemoryRateLimiter, InMemorySessionStore, RateLimiter, SessionStore
-
+from .target_classifier import classify_target
 
 ROOT = Path(__file__).resolve().parent
 STATIC_ROOT = ROOT / "web_static"
@@ -899,7 +914,7 @@ class OsintHandler(BaseHTTPRequestHandler):
             store.append_audit_event(username, "signup_rollback_email_error",
                                      {"reason": "email_send_failed"})
             raise WebError(HTTPStatus.SERVICE_UNAVAILABLE,
-                           "Errore invio email di verifica. Riprova più tardi.")
+                           "Errore invio email di verifica. Riprova più tardi.") from exc
         # Don't start session — user must verify first
         return self.send_json({
             "status": "pending_verification",
@@ -1158,7 +1173,8 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
             raise WebError(HTTPStatus.NOT_FOUND, "Report JSON non disponibile per questo job.")
         report = json.loads(Path(json_path).read_text(encoding="utf-8"))
         findings_raw = report.get("findings") or []
-        from .models import Evidence as _Ev, Finding as _F
+        from .models import Evidence as _Ev
+        from .models import Finding as _F
         findings = []
         for fd in findings_raw:
             try:
@@ -1335,8 +1351,8 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
             allowed_roots = (JOB_ROOT.resolve(), STATIC_ROOT.resolve())
             if not any(str(real).startswith(str(r) + os.sep) or str(real) == str(r) for r in allowed_roots):
                 raise WebError(HTTPStatus.NOT_FOUND, "File non trovato.")
-        except FileNotFoundError:
-            raise WebError(HTTPStatus.NOT_FOUND, "File non trovato.")
+        except FileNotFoundError as exc:
+            raise WebError(HTTPStatus.NOT_FOUND, "File non trovato.") from exc
         if not path.is_file():
             raise WebError(HTTPStatus.NOT_FOUND, "File non trovato.")
         data = path.read_bytes()
@@ -1575,7 +1591,7 @@ def _generate_forensic_report(
         return None, None
 
     # Ricostruisce un Investigation "leggero" dai dati su disco.
-    from .models import Investigation, Finding, Page, SearchResult, Evidence
+    from .models import Evidence, Finding, Investigation, Page, SearchResult
     def _f(d):
         return Finding(
             kind=d.get("kind", ""), value=d.get("value", ""),
@@ -1727,7 +1743,7 @@ def _generate_redteam_report(
         LOG.warning("redteam: read investigation failed: %s", exc)
         return None, None
 
-    from .models import Investigation, Finding, Page, SearchResult, Evidence
+    from .models import Evidence, Finding, Investigation, Page, SearchResult
     def _f(d):
         return Finding(
             kind=d.get("kind", ""), value=d.get("value", ""),
@@ -1981,9 +1997,11 @@ def _sync_external_stores(*, job_id: str, json_path, case_id: str, job: dict) ->
 
     # Neo4j: sync del grafo entità-relazioni.
     try:
-        from .neo4j_sync import capabilities as _neo_caps, sync_investigation_graph
+        from .neo4j_sync import capabilities as _neo_caps
+        from .neo4j_sync import sync_investigation_graph
         if _neo_caps().get("configured"):
-            from .models import Evidence as _Ev, Finding as _F
+            from .models import Evidence as _Ev
+            from .models import Finding as _F
             findings = []
             for fd in (inv.get("findings") or []):
                 try:
@@ -2535,7 +2553,7 @@ def admin_stats() -> dict:
     users_verified = sum(1 for u in users.values() if u.get("verified"))
     users_disabled = sum(1 for u in users.values() if u.get("disabled"))
     # "attivi negli ultimi 7gg" = user con login_success nell'audit chain recente
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
     now = datetime.now(timezone.utc)
     week_ago = (now - timedelta(days=7)).isoformat(timespec="seconds")
     day_ago = (now - timedelta(days=1)).isoformat(timespec="seconds")
@@ -2718,7 +2736,7 @@ def parse_multipart_file(raw: bytes, content_type: str) -> tuple[str, bytes]:
     match = re.search(r'boundary="?([^";]+)"?', content_type)
     if not match:
         raise WebError(HTTPStatus.BAD_REQUEST, "Boundary multipart mancante.")
-    boundary = f"--{match.group(1)}".encode("utf-8")
+    boundary = f"--{match.group(1)}".encode()
     for part in raw.split(boundary):
         if b' name="file"' not in part or b"filename=" not in part:
             continue
@@ -2793,47 +2811,296 @@ def get_privacy_log(actor: str) -> dict:
     return {"requests": requests}
 
 
-def handle_privacy_export(actor: str) -> dict:
-    rec = _log_privacy_request(actor, "export")
-    # Build a summary export in-process (full data would be too large for sync response)
+def _mark_privacy_request_processed(request_id: str) -> None:
+    """Flip a privacy_requests row from 'pending' to 'processed'."""
+    try:
+        get_storage()._conn().execute(
+            "UPDATE privacy_requests SET status = ?, processed_at = ? WHERE id = ?",
+            ("processed", now_iso(), request_id),
+        )
+        get_storage()._conn().commit()
+    except Exception:
+        LOG.exception("privacy.mark_processed_failed request_id=%s", request_id)
+
+
+def _table_columns(conn, table: str) -> list[str]:
+    """Return the column names of ``table`` or [] if the table is absent.
+    Used to make the DSAR collector schema-tolerant."""
+    try:
+        rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+        return [r[1] for r in rows]
+    except Exception:
+        return []
+
+
+def _safe_select(conn, table: str, actor: str,
+                 wanted: list[str], where_col: str = "owner") -> list[dict]:
+    """SELECT only those wanted columns that actually exist in table.
+    Returns a list of dicts keyed by column name, [] on any failure."""
+    cols = [c for c in wanted if c in _table_columns(conn, table)]
+    if not cols:
+        return []
+    q = f"SELECT {', '.join(cols)} FROM {table} WHERE {where_col} = ?"
+    try:
+        rows = conn.execute(q, (actor,)).fetchall()
+    except Exception:
+        return []
+    return [dict(zip(cols, r, strict=False)) for r in rows]
+
+
+def _collect_user_data(actor: str) -> dict:
+    """Return every row of user-owned data that GDPR art. 15 requires
+    to be disclosed to the data subject on request.
+
+    Schema-tolerant: probes each table for its actual columns and only
+    reads those that are present, so older databases do not break the
+    DSAR flow.
+    """
     stor = get_storage()
-    cases = stor.list_cases(actor)
-    jobs_row = stor._conn().execute(
-        "SELECT id, status, created_at, updated_at FROM jobs WHERE owner=? ORDER BY created_at DESC LIMIT 200",
-        (actor,),
-    ).fetchall()
-    export_summary = {
-        "actor": actor,
-        "exported_at": now_iso(),
-        "cases_count": len(cases),
-        "jobs_count": len(jobs_row),
-        "request_id": rec["id"],
-    }
-    LOG.info("privacy.export actor=%s request_id=%s", actor, rec["id"])
+    conn = stor._conn()
+
+    user_rows = _safe_select(conn, "users", actor,
+                             ["username", "email", "created_at", "verified"],
+                             where_col="username")
+    user = user_rows[0] if user_rows else {"username": actor}
+
+    try:
+        cases = stor.list_cases(actor)
+    except Exception:
+        cases = []
+
+    jobs = _safe_select(conn, "jobs", actor,
+                        ["id", "status", "case_id", "created_at", "updated_at"])
+    api_keys = _safe_select(conn, "api_keys", actor,
+                            ["service", "created_at"])
+    privacy_history = _safe_select(
+        conn, "privacy_requests", actor,
+        ["id", "type", "status", "reason", "created_at", "processed_at"],
+    )
+
     return {
-        "status": "ok",
-        "message": f"Esportazione avviata (ID {rec['id']}). I dati saranno disponibili a breve.",
-        "summary": export_summary,
+        "account": user,
+        "cases": cases,
+        "jobs": jobs,
+        "api_keys_configured": api_keys,
+        "privacy_history": privacy_history,
     }
 
 
-def handle_privacy_erase(actor: str, payload: dict) -> dict:
-    reason = str(payload.get("reason", "")).strip()[:500]
-    rec = _log_privacy_request(actor, "erase", reason)
-    LOG.warning("privacy.erase_request actor=%s request_id=%s reason=%s", actor, rec["id"], reason[:80])
-    return {
-        "status": "ok",
-        "message": f"Richiesta di cancellazione registrata (ID {rec['id']}). L'account sarà tombstonato entro 72 ore.",
-    }
+def handle_privacy_export(actor: str) -> dict:
+    """GDPR art. 20 — portability. Returns the actual export payload, not
+    a promise. The response is the same shape as the DSAR access response
+    but delivered as a downloadable bundle in the front-end."""
+    rec = _log_privacy_request(actor, "export")
+    try:
+        data = _collect_user_data(actor)
+        export = {
+            "actor": actor,
+            "exported_at": now_iso(),
+            "request_id": rec["id"],
+            "gdpr_basis": "Art. 20 GDPR — portability",
+            "data": data,
+        }
+        _mark_privacy_request_processed(rec["id"])
+        LOG.info("privacy.export actor=%s request_id=%s cases=%d jobs=%d",
+                 actor, rec["id"], len(data["cases"]), len(data["jobs"]))
+        return {
+            "status": "ok",
+            "message": f"Esportazione completata (ID {rec['id']}).",
+            "export": export,
+        }
+    except Exception as exc:  # pragma: no cover - defensive
+        LOG.exception("privacy.export_failed actor=%s request_id=%s", actor, rec["id"])
+        return {
+            "status": "error",
+            "message": f"Esportazione fallita (ID {rec['id']}): {exc}",
+        }
 
 
 def handle_privacy_dsar(actor: str) -> dict:
+    """GDPR art. 15 — right of access. Returns the same payload as export
+    but framed as a subject access response."""
     rec = _log_privacy_request(actor, "dsar")
-    LOG.info("privacy.dsar actor=%s request_id=%s", actor, rec["id"])
-    return {
-        "status": "ok",
-        "message": f"DSAR registrata (ID {rec['id']}). Risposta entro 30 giorni come da Art. 15 GDPR.",
-    }
+    try:
+        data = _collect_user_data(actor)
+        response = {
+            "actor": actor,
+            "responded_at": now_iso(),
+            "request_id": rec["id"],
+            "gdpr_basis": "Art. 15 GDPR — right of access",
+            "categories_held": sorted(data.keys()),
+            "retention_note": (
+                "Case data lives in your local SQLite/Postgres. Argo does "
+                "not phone home. Deletion is available via /api/privacy/erase."
+            ),
+            "data": data,
+        }
+        _mark_privacy_request_processed(rec["id"])
+        LOG.info("privacy.dsar actor=%s request_id=%s", actor, rec["id"])
+        return {"status": "ok", "response": response}
+    except Exception as exc:  # pragma: no cover - defensive
+        LOG.exception("privacy.dsar_failed actor=%s request_id=%s", actor, rec["id"])
+        return {"status": "error", "message": str(exc)}
+
+
+def handle_privacy_erase(actor: str, payload: dict) -> dict:
+    """GDPR art. 17 — right to erasure.
+
+    Executes a **real** atomic deletion instead of just logging a promise:
+
+    1. INSERT a ``privacy_requests`` row for the audit trail.
+    2. Redact the actor's personal fields from every ``audit_events`` row
+       that mentions them (case_id is hashed, target strings are replaced
+       by a stable placeholder).
+    3. Append a new ``audit_events`` row of kind ``account_erased_dsar``
+       so the chain moves forward with the erasure recorded.
+    4. INSERT a ``dsar_tombstones`` row with a SHA-256 selector of the
+       erased subject and the last audit hash, so future proof-of-erasure
+       requests can be answered without re-disclosing the subject.
+    5. DELETE the actor's rows from ``cases``, ``jobs``, ``artifacts``,
+       ``roes``, ``api_keys`` and finally ``users``.
+    6. Flip the privacy_requests row to ``processed`` and return the
+       tombstone_id and the request_id.
+
+    The whole transaction is atomic; if any step fails the deletion is
+    rolled back and the actor's account is left intact.
+    """
+    reason = str(payload.get("reason", "")).strip()[:500]
+    rec = _log_privacy_request(actor, "erase", reason)
+    LOG.warning("privacy.erase_request actor=%s request_id=%s reason=%s",
+                actor, rec["id"], reason[:80])
+
+    import hashlib as _hl
+    import json as _json
+    import uuid as _uuid
+
+    ts = now_iso()
+    selector_bytes = f"user:{actor.lower()}".encode()
+    selector_hash = _hl.sha256(selector_bytes).hexdigest()
+    tomb_id = "TOMB-" + _uuid.uuid4().hex[:12]
+    redacted = f"[REDACTED-DSAR-{ts[:10]}]"
+
+    stor = get_storage()
+    db = stor._conn()
+
+    try:
+        db.execute("BEGIN")
+
+        # 2. Redact the actor's identifiers in audit_events.
+        rows = db.execute(
+            "SELECT seq, actor, details FROM audit_events "
+            "WHERE actor = ? OR details LIKE ?",
+            (actor, f"%{actor}%"),
+        ).fetchall()
+        redacted_seqs: list[int] = []
+        for seq, ev_actor, details in rows:
+            new_actor = redacted if ev_actor == actor else ev_actor
+            new_details = details or ""
+            if actor in new_details:
+                new_details = new_details.replace(actor, redacted)
+            if new_actor != ev_actor or new_details != (details or ""):
+                db.execute(
+                    "UPDATE audit_events SET actor = ?, details = ? WHERE seq = ?",
+                    (new_actor, new_details, seq),
+                )
+                redacted_seqs.append(seq)
+
+        # 3. Append the account_erased_dsar event.
+        last = db.execute(
+            "SELECT hash FROM audit_events ORDER BY seq DESC LIMIT 1"
+        ).fetchone()
+        prev_hash = last[0] if last else ""
+        new_seq_row = db.execute(
+            "SELECT COALESCE(MAX(seq), 0) + 1 FROM audit_events"
+        ).fetchone()
+        new_seq = new_seq_row[0] if new_seq_row else 1
+        details_json = _json.dumps({
+            "subject_hash": selector_hash,
+            "tombstone_id": tomb_id,
+            "privacy_request_id": rec["id"],
+            "reason": "GDPR art. 17 erasure",
+            "redacted_seqs_count": len(redacted_seqs),
+        })
+        canonical = f"{new_seq}|{ts}|system|account_erased_dsar|{details_json}|{prev_hash}"
+        new_hash = _hl.sha256(canonical.encode()).hexdigest()
+        db.execute(
+            "INSERT INTO audit_events (seq, timestamp, actor, action, details, previous_hash, hash) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (new_seq, ts, "system", "account_erased_dsar",
+             details_json, prev_hash, new_hash),
+        )
+
+        # 4. Tombstone.
+        db.execute(
+            "INSERT INTO dsar_tombstones (id, selector_sha256, erased_at, actor, scope, audit_hash) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (tomb_id, selector_hash, ts, "system",
+             _json.dumps({
+                 "subject_kind": "user_account",
+                 "redacted_audit_events": len(redacted_seqs),
+                 "privacy_request_id": rec["id"],
+             }),
+             new_hash),
+        )
+
+        # 5. Delete the user's business data. Order matters for FK safety.
+        # Each table is deleted schema-tolerantly: we build a WHERE clause
+        # from whichever ownership column(s) actually exist on the table.
+        counts = {}
+        ownership_columns = ("owner", "actor", "signed_by", "tenant_id", "username")
+        for table in ("artifacts", "roes", "jobs", "cases", "api_keys"):
+            cols_present = [c for c in ownership_columns
+                            if c in _table_columns(db, table)]
+            if not cols_present:
+                counts[table] = 0
+                continue
+            where = " OR ".join(f"{c} = ?" for c in cols_present)
+            try:
+                cur = db.execute(
+                    f"DELETE FROM {table} WHERE {where}",
+                    tuple([actor] * len(cols_present)),
+                )
+                counts[table] = cur.rowcount
+            except sqlite3.OperationalError:
+                counts[table] = 0
+
+        # Finally, the user row.
+        cur = db.execute("DELETE FROM users WHERE username = ?", (actor,))
+        counts["users"] = cur.rowcount
+
+        # 6. Mark privacy request processed.
+        db.execute(
+            "UPDATE privacy_requests SET status = ?, processed_at = ? WHERE id = ?",
+            ("processed", ts, rec["id"]),
+        )
+
+        db.commit()
+
+        LOG.warning(
+            "privacy.erase_completed actor_hash=%s request_id=%s tombstone=%s "
+            "redacted_events=%d deleted=%s",
+            selector_hash[:16], rec["id"], tomb_id, len(redacted_seqs), counts,
+        )
+        return {
+            "status": "ok",
+            "message": (
+                f"Cancellazione eseguita (richiesta {rec['id']}). "
+                f"Tombstone: {tomb_id}. L'account non è più recuperabile "
+                f"dal filesystem attivo; eventuali backup restano soggetti "
+                f"alla policy di rotazione del datastore."
+            ),
+            "request_id": rec["id"],
+            "tombstone_id": tomb_id,
+            "selector_sha256": selector_hash,
+            "erased_at": ts,
+        }
+    except Exception as exc:
+        db.rollback()
+        LOG.exception("privacy.erase_failed actor=%s request_id=%s", actor, rec["id"])
+        return {
+            "status": "error",
+            "message": f"Cancellazione fallita (ID {rec['id']}): {exc}. Nessun dato è stato modificato.",
+        }
 
 
 def main(argv: list[str] | None = None) -> int:

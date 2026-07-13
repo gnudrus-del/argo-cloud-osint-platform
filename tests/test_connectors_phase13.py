@@ -81,7 +81,7 @@ class Phase13Tests(unittest.TestCase):
 
     # ---- sherlock_lite hardening: solo siti affidabili, niente SPA ----
     def test_sherlock_lite_only_reliable_sites(self):
-        from osint_bot.connectors.sherlock_lite import _SITES, _DELEGATED_TO_MAIGRET
+        from osint_bot.connectors.sherlock_lite import _DELEGATED_TO_MAIGRET, _SITES
         names = {s[0] for s in _SITES}
         methods = {s[2] for s in _SITES}
         # niente siti SPA/login noti tra quelli sondati
@@ -119,7 +119,10 @@ class Phase13Tests(unittest.TestCase):
             os.environ.pop("MAIGRET_PYTHON", None)
 
     def test_maigret_parse_report(self):
-        import json, tempfile, os
+        import json
+        import os
+        import tempfile
+
         from osint_bot.connectors.maigret import _parse_report
         data = {
             "Instagram": {"status": {"status": "Claimed"}, "url_user": "https://instagram.com/testuser"},

@@ -4,9 +4,6 @@ from __future__ import annotations
 import unittest
 
 from osint_bot.defensive import (
-    IOCEnrichment,
-    ImpersonationSignal,
-    MonitorReport,
     TakedownCase,
     assess_brand_impersonation,
     enrich_ioc,
@@ -14,7 +11,6 @@ from osint_bot.defensive import (
     score_digital_footprint,
 )
 from osint_bot.models import Finding
-
 
 # ---------------------------------------------------------------------------
 # monitor_surface

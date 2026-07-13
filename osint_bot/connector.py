@@ -34,7 +34,6 @@ from typing import Any, Protocol
 
 from .models import Finding, Provenance
 
-
 # ---------------------------------------------------------------------------
 # Security action classes (mirrors safety.py vocabulary)
 # ---------------------------------------------------------------------------
@@ -134,6 +133,23 @@ class BaseConnector:
 
     def run(self, context: ConnectorContext) -> ConnectorResult:
         started = time.monotonic()
+
+        # ------------------------------------------------------------------
+        # Policy gate (RoE + case scope + action-class enforcement).
+        #
+        # Runs BEFORE the api-key / cache / rate-limit checks so a denied
+        # call never touches the connector's _fetch, never consumes a rate
+        # budget, and never leaks cached output for an out-of-scope target.
+        # ------------------------------------------------------------------
+        from .policy import check_policy  # local import to avoid cycles
+        allowed, reason = check_policy(context, self.spec)
+        if not allowed:
+            return ConnectorResult(
+                connector=self.spec.name,
+                status="policy_denied",
+                error=reason,
+                duration_ms=int((time.monotonic() - started) * 1000),
+            )
 
         # Key check
         if self.spec.required_key and not context.api_key:

@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Iterable, Protocol
+from collections.abc import Iterable
+from typing import Protocol
 
 
 class SessionStore(Protocol):

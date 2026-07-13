@@ -28,16 +28,14 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import shutil
 import subprocess
 import time
 from dataclasses import asdict, dataclass, field
-from typing import Iterable
 
 from .models import Evidence, Finding
 from .scope import CaseScope, OutOfScopeError, assert_in_scope
-from .target_classifier import TargetSpec, T_DOMAIN, T_SUBDOMAIN, T_URL
+from .target_classifier import T_DOMAIN, T_SUBDOMAIN, T_URL, TargetSpec
 
 LOG = logging.getLogger("osint_bot.tool_adapter")
 
@@ -96,14 +94,14 @@ class ToolRun:
 
 
 # Adapter registry
-_REGISTRY: dict[str, "ToolAdapter"] = {}
+_REGISTRY: dict[str, ToolAdapter] = {}
 
 
-def get_adapter(name: str) -> "ToolAdapter | None":
+def get_adapter(name: str) -> ToolAdapter | None:
     return _REGISTRY.get(name)
 
 
-def list_adapters() -> list["ToolAdapter"]:
+def list_adapters() -> list[ToolAdapter]:
     return list(_REGISTRY.values())
 
 

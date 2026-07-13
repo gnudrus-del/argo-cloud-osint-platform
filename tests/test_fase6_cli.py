@@ -8,7 +8,6 @@ Test:
 import io
 import unittest
 from contextlib import redirect_stderr
-from unittest.mock import patch
 from types import SimpleNamespace
 
 from osint_bot.grading import (

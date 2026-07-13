@@ -250,6 +250,7 @@ class Pillar04GateTests(unittest.TestCase):
         errors out later.
         """
         from unittest.mock import patch
+
         from osint_bot.web import execute_job
 
         profile = RunProfile(

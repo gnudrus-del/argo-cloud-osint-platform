@@ -6,7 +6,6 @@ from osint_bot.connector import ConnectorContext
 from osint_bot.connectors import build_default_registry
 from osint_bot.connectors.holehe import _parse_stdout
 
-
 # Output realistico di holehe --only-used (con banner e legenda da NON parsare).
 SAMPLE_STDOUT = """Twitter : @palenath
 Github : https://github.com/megadose/holehe

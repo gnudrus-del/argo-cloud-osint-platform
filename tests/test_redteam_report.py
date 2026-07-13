@@ -1,15 +1,15 @@
 """Tests for redteam_report.py — Red Team variant of the forensic report."""
 from __future__ import annotations
 
-import pytest
-
-from osint_bot.forensic_report import CaseContext, ProviderUsage
+from osint_bot.forensic_report import CaseContext
 from osint_bot.models import Evidence, Finding, Investigation
 from osint_bot.redteam_report import (
-    RedTeamContext, ToolExecution, build_redteam_report, sanitize_command,
+    RedTeamContext,
+    ToolExecution,
+    build_redteam_report,
+    sanitize_command,
 )
 from osint_bot.target_classifier import classify_target
-
 
 # ---------------------------------------------------------------------------
 # Helpers

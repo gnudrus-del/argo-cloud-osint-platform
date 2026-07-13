@@ -73,7 +73,9 @@ class ReverseConnectorsTests(unittest.TestCase):
 
     # ---- holehe recovery CSV ----
     def test_holehe_recovery_csv(self):
-        import csv, tempfile
+        import csv
+        import tempfile
+
         from osint_bot.connectors.holehe import _parse_recovery_csv
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "holehe_x.csv")

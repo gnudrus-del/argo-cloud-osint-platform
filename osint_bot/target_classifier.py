@@ -23,8 +23,8 @@ from __future__ import annotations
 import ipaddress
 import re
 import urllib.parse
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from .patterns import (
     BTC_RE,
@@ -36,7 +36,6 @@ from .patterns import (
     PHONE_LOOSE_RE,
     URL_RE,
 )
-
 
 # Canonical target types — single source of truth.
 T_DOMAIN     = "domain"
@@ -249,7 +248,7 @@ def suggest_external_tools(
     # PII-targeted enumeration tools require authorization
     pii_tools = {
         "sherlock", "maigret", "socialscan", "social_analyzer",
-        "holehe", "h8mail", "socialscan", "phoneinfoga", "phunter",
+        "holehe", "h8mail", "phoneinfoga", "phunter",
         "ghunt", "toutatis", "osintgram", "mosint",
     }
     if not authorized:

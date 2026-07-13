@@ -7,12 +7,11 @@ Action class: passive. Input: ``address`` (text query).
 """
 from __future__ import annotations
 
-from .._ua import user_agent as _ua
-
 import json
 import urllib.parse
 import urllib.request
 
+from .._ua import user_agent as _ua
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,

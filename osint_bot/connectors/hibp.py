@@ -1,9 +1,18 @@
 """Connector: Have I Been Pwned — breach intelligence (PII-gated)."""
 from __future__ import annotations
+
 import json
-import urllib.request
 import urllib.parse
-from ..connector import ACTION_PII_GATED, BaseConnector, ConnectorContext, ConnectorResult, ConnectorSpec, RateLimit
+import urllib.request
+
+from ..connector import (
+    ACTION_PII_GATED,
+    BaseConnector,
+    ConnectorContext,
+    ConnectorResult,
+    ConnectorSpec,
+    RateLimit,
+)
 from ..models import Evidence, Finding
 
 _SPEC = ConnectorSpec(
@@ -73,7 +82,7 @@ class HIBPConnector(BaseConnector):
             if data is None:
                 return ConnectorResult(connector=self.spec.name, status="error", error="HIBP non risponde.")
             accounts = data if isinstance(data, dict) else {}
-            ev = [Evidence(url=f"https://haveibeenpwned.com/", title="HIBP Domain Search")]
+            ev = [Evidence(url="https://haveibeenpwned.com/", title="HIBP Domain Search")]
             count = len(accounts)
             sev = "critical" if count >= 10 else ("high" if count >= 1 else "info")
             findings.append(Finding(

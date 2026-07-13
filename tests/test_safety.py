@@ -3,8 +3,8 @@ import unittest
 
 from osint_bot.safety import (
     SafetyError,
-    assess_request,
     assert_darkweb_allowed,
+    assess_request,
     redact_email,
     redact_phone,
 )

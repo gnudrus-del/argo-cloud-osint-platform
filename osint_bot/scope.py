@@ -27,9 +27,12 @@ import urllib.parse
 from dataclasses import asdict, dataclass, field
 
 from .target_classifier import (
-    TargetSpec, T_CIDR, T_DOMAIN, T_HANDLE, T_IP, T_SUBDOMAIN, T_URL,
+    T_CIDR,
+    T_HANDLE,
+    T_IP,
+    T_URL,
+    TargetSpec,
 )
-
 
 # ---------------------------------------------------------------------------
 # Data model

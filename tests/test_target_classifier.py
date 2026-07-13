@@ -1,12 +1,24 @@
 """Tests for target_classifier.py — classification + normalization."""
 from __future__ import annotations
 
-import pytest
-
 from osint_bot.target_classifier import (
-    T_BTC, T_CIDR, T_COMPANY, T_DOMAIN, T_EMAIL, T_ETH, T_FILE_HASH,
-    T_HANDLE, T_IP, T_PERSON, T_PHONE, T_SUBDOMAIN, T_URL, T_UNKNOWN,
-    classify_target, suggest_external_tools, suggest_modules,
+    T_BTC,
+    T_CIDR,
+    T_COMPANY,
+    T_DOMAIN,
+    T_EMAIL,
+    T_ETH,
+    T_FILE_HASH,
+    T_HANDLE,
+    T_IP,
+    T_PERSON,
+    T_PHONE,
+    T_SUBDOMAIN,
+    T_UNKNOWN,
+    T_URL,
+    classify_target,
+    suggest_external_tools,
+    suggest_modules,
 )
 
 

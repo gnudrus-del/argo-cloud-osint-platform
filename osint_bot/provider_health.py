@@ -23,8 +23,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Callable
 
 LOG = logging.getLogger("osint_bot.provider_health")
 

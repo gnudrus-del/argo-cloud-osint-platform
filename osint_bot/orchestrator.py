@@ -11,8 +11,10 @@ from .patterns import (
     EMAIL_RE,
     ETH_RE,
     HANDLE_RE,
-    PHONE_LOOSE_RE as PHONE_RE,
     URL_RE,
+)
+from .patterns import (
+    PHONE_LOOSE_RE as PHONE_RE,
 )
 
 

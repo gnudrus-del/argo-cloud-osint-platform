@@ -35,7 +35,6 @@ from typing import Any
 
 from .models import Evidence, Finding
 
-
 # ---------------------------------------------------------------------------
 # Pillar 2.2 — Expanded subdomain-takeover fingerprint database
 # ---------------------------------------------------------------------------

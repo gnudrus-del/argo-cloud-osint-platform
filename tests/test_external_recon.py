@@ -2,9 +2,6 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 from osint_bot.connector import (
     ACTION_PASSIVE,
@@ -17,7 +14,6 @@ from osint_bot.connector import (
 )
 from osint_bot.external_recon import ReconReport, StageResult, run_recon_pipeline
 from osint_bot.models import Evidence, Finding
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 
-
 EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 
 URL_RE = re.compile(r"\bhttps?://[^\s<>()]+", re.IGNORECASE)

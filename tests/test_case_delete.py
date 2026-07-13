@@ -38,7 +38,7 @@ def _profile() -> RunProfile:
 
 class CaseDeleteTests(unittest.TestCase):
     def test_owner_can_delete_case(self):
-        from osint_bot.web import create_case, read_case, WebError
+        from osint_bot.web import WebError, create_case, read_case
 
         with _isolated_storage() as (_, store):
             c = create_case({"title": "X", "legal_basis": {"type": "consent"}}, actor="alice")
@@ -65,7 +65,7 @@ class CaseDeleteTests(unittest.TestCase):
 
     def test_non_owner_cannot_read_or_delete(self):
         # Sicurezza: bob non deve poter dire "esiste".
-        from osint_bot.web import create_case, read_case, WebError
+        from osint_bot.web import WebError, create_case, read_case
 
         with _isolated_storage():
             c = create_case({"title": "Alice case", "legal_basis": {"type": "consent"}}, actor="alice")

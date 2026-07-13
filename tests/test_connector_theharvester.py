@@ -6,7 +6,7 @@ import unittest
 
 from osint_bot.connector import ConnectorContext
 from osint_bot.connectors import build_default_registry
-from osint_bot.connectors.theharvester import _parse_report, _DOMAIN_RE
+from osint_bot.connectors.theharvester import _DOMAIN_RE, _parse_report
 
 
 class TheHarvesterTests(unittest.TestCase):

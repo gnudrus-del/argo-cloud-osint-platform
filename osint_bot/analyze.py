@@ -7,7 +7,6 @@ from collections import Counter, defaultdict
 from .models import Evidence, Finding, Page, SearchResult
 from .safety import redact_email
 
-
 TECH_PATTERNS = {
     "Cloudflare": re.compile(r"\bcloudflare\b", re.IGNORECASE),
     "GitHub": re.compile(r"\bgithub\b", re.IGNORECASE),

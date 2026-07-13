@@ -1,7 +1,7 @@
 import unittest
 
 from osint_bot.agents import AgentContext, RedTeamAgent
-from osint_bot.models import Page, SearchResult
+from osint_bot.models import Page
 
 
 def _ctx(pages: list[Page], confirm: bool = True, target_type: str = "domain") -> AgentContext:

@@ -28,12 +28,12 @@ from __future__ import annotations
 import logging
 import re
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from html import unescape
-from typing import Iterable
 
 from .models import Page
-from .target_classifier import TargetSpec, T_DOMAIN, T_SUBDOMAIN
+from .target_classifier import T_DOMAIN, T_SUBDOMAIN, TargetSpec
 
 LOG = logging.getLogger("osint_bot.contact_discovery")
 

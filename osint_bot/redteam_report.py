@@ -27,17 +27,17 @@ Vincoli operativi (per accettazione P8/P10 del brief):
 from __future__ import annotations
 
 import re
-import time
 from dataclasses import dataclass, field
 
 from .forensic_report import (
-    CaseContext, ForensicReport, ProviderUsage, ReportContext, ReportSection,
-    build_forensic_report, _now_iso, _render_finding_line, _severity_rank,
+    ForensicReport,
+    ReportContext,
+    ReportSection,
+    _severity_rank,
     _short,
+    build_forensic_report,
 )
 from .models import Finding
-from .scope import CaseScope
-
 
 # ---------------------------------------------------------------------------
 # Input — estende ReportContext con metadati Red Team

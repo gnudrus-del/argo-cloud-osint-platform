@@ -30,7 +30,6 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-
 # PII patterns used during tombstoning (conservative — prefers recall over precision)
 _EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", re.IGNORECASE)
 _PHONE_RE = re.compile(r"\+?[0-9][\d\s\-().]{6,}\d")

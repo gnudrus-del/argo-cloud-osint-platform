@@ -1,9 +1,18 @@
 """Connector: URLScan.io — passive URL/domain intelligence."""
 from __future__ import annotations
+
 import json
-import urllib.request
 import urllib.parse
-from ..connector import ACTION_PASSIVE, BaseConnector, ConnectorContext, ConnectorResult, ConnectorSpec, RateLimit
+import urllib.request
+
+from ..connector import (
+    ACTION_PASSIVE,
+    BaseConnector,
+    ConnectorContext,
+    ConnectorResult,
+    ConnectorSpec,
+    RateLimit,
+)
 from ..models import Evidence, Finding
 
 _SPEC = ConnectorSpec(

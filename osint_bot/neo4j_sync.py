@@ -43,7 +43,7 @@ class Neo4jSync:
         return bool(self.cfg.get("url") and self.cfg.get("password"))
 
     def _auth_header(self) -> str:
-        raw = f"{self.cfg['user']}:{self.cfg['password']}".encode("utf-8")
+        raw = f"{self.cfg['user']}:{self.cfg['password']}".encode()
         return "Basic " + base64.b64encode(raw).decode("ascii")
 
     def _commit(self, statements: list[dict], timeout: int = 15) -> dict | None:

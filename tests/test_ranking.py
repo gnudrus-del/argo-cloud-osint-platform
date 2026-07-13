@@ -1,16 +1,23 @@
 """Tests for ranking.py — canonical URL, scoring, dedup, freshness."""
 from __future__ import annotations
 
-import pytest
-
 from osint_bot.models import Finding, SearchResult
 from osint_bot.ranking import (
-    TIER_AGGREGATOR, TIER_ESTABLISHED, TIER_LOW, TIER_OFFICIAL, TIER_REGULAR,
-    canonical_url, content_hash, deduplicate_findings, rank_results,
-    score_freshness, score_source_quality, score_specificity, score_target_match,
+    TIER_AGGREGATOR,
+    TIER_ESTABLISHED,
+    TIER_LOW,
+    TIER_OFFICIAL,
+    TIER_REGULAR,
+    canonical_url,
+    content_hash,
+    deduplicate_findings,
+    rank_results,
+    score_freshness,
+    score_source_quality,
+    score_specificity,
+    score_target_match,
 )
 from osint_bot.target_classifier import classify_target
-
 
 # ---------------------------------------------------------------------------
 # canonical_url

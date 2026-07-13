@@ -3,18 +3,19 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from osint_bot.contact_discovery import Contact, ContactReport
 from osint_bot.forensic_report import (
-    CaseContext, ForensicReport, ProviderUsage, ReportContext, ReportSection,
-    build_forensic_report, to_json, to_markdown,
+    CaseContext,
+    ProviderUsage,
+    ReportContext,
+    build_forensic_report,
+    to_json,
+    to_markdown,
 )
-from osint_bot.models import Evidence, Finding, Investigation, SearchResult
+from osint_bot.models import Finding, Investigation, SearchResult
 from osint_bot.ranking import rank_results
 from osint_bot.scope import CaseScope, parse_entry
 from osint_bot.target_classifier import classify_target
-
 
 # ---------------------------------------------------------------------------
 # Helpers

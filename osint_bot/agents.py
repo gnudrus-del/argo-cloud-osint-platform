@@ -13,10 +13,8 @@ from .plugins import PluginContext, run_plugins_parallel
 from .red_team import (
     assess_takeover_candidates,
     scan_credential_exposure,
-    diff_scan_findings,
 )
 from .safety import assert_darkweb_allowed, redact_phone
-
 
 COORD_RE = re.compile(r"\b[-+]?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?)\s*,\s*[-+]?(?:1[0-7]\d(?:\.\d+)?|\d{1,2}(?:\.\d+)?|180(?:\.0+)?)\b")
 MAP_HOST_RE = re.compile(r"\b(?:maps\.google|openstreetmap|osm\.org|waze\.com)\b", re.IGNORECASE)

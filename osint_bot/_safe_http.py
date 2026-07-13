@@ -57,8 +57,8 @@ def guard_ssrf(url: str, *, allow_private: bool = False) -> None:
     if not any(ch.isdigit() for ch in host.split(".")[0][:1]) and ":" not in host:
         try:
             _, _, ips = socket.gethostbyname_ex(host)
-        except (socket.gaierror, OSError):
-            raise SSRFBlocked(f"Host non risolvibile: {host}.")
+        except (socket.gaierror, OSError) as exc:
+            raise SSRFBlocked(f"Host non risolvibile: {host}.") from exc
         for ip in ips:
             if _is_private(ip) and not allow_private:
                 raise SSRFBlocked(f"L'host {host} risolve a IP interno {ip}.")

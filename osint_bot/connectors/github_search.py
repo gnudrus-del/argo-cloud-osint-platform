@@ -1,10 +1,18 @@
 """Connector: GitHub Code Search — secret/credential exposure in public repos."""
 from __future__ import annotations
+
 import json
-import re
-import urllib.request
 import urllib.parse
-from ..connector import ACTION_PASSIVE, BaseConnector, ConnectorContext, ConnectorResult, ConnectorSpec, RateLimit
+import urllib.request
+
+from ..connector import (
+    ACTION_PASSIVE,
+    BaseConnector,
+    ConnectorContext,
+    ConnectorResult,
+    ConnectorSpec,
+    RateLimit,
+)
 from ..models import Evidence, Finding
 
 _SPEC = ConnectorSpec(

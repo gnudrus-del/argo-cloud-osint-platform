@@ -163,7 +163,7 @@ class TLSCertConnector(BaseConnector):
             kind="tls_fingerprint_sha256", value=fp,
             confidence=1.0, source_reliability="A", info_credibility=1,
             evidence=ev,
-            notes=f"SHA-256 del cert DER (identificatore univoco).",
+            notes="SHA-256 del cert DER (identificatore univoco).",
         ))
 
         raw = {k: v for k, v in cert.items() if k != "der"}

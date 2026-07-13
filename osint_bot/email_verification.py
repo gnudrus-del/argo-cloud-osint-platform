@@ -37,8 +37,6 @@ For console (dev only):
 """
 from __future__ import annotations
 
-from ._ua import user_agent as _ua
-
 import base64
 import hashlib
 import hmac
@@ -54,6 +52,8 @@ from dataclasses import dataclass
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
+
+from ._ua import user_agent as _ua
 
 LOG = logging.getLogger("osint_bot.email_verification")
 

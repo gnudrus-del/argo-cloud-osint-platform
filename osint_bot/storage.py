@@ -24,7 +24,6 @@ from typing import Any
 
 from .audit import event_hash
 
-
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     username TEXT PRIMARY KEY,

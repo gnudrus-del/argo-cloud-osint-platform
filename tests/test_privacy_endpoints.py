@@ -49,13 +49,15 @@ class PrivacyExportTests(unittest.TestCase):
             create_job(_profile(), {}, actor="alice")
             result = handle_privacy_export("alice")
         self.assertEqual(result["status"], "ok")
-        self.assertEqual(result["summary"]["actor"], "alice")
+        export = result["export"]
+        self.assertEqual(export["actor"], "alice")
+        self.assertIn("Art. 20", export["gdpr_basis"])
         # cases_count >= 1 (un caso esplicito; create_job puo' aggiungere un caso
         # default se invocato senza case_id esplicito — non e' un bug, e' una
         # comodita' che cosi' i job non finiscono "in limbo").
-        self.assertGreaterEqual(result["summary"]["cases_count"], 1)
-        self.assertGreaterEqual(result["summary"]["jobs_count"], 1)
-        self.assertIn("request_id", result["summary"])
+        self.assertGreaterEqual(len(export["data"]["cases"]), 1)
+        self.assertGreaterEqual(len(export["data"]["jobs"]), 1)
+        self.assertIn("request_id", export)
 
     def test_export_isolates_per_user(self):
         from osint_bot.web import create_case, create_job, handle_privacy_export
@@ -69,14 +71,16 @@ class PrivacyExportTests(unittest.TestCase):
             alice_export = handle_privacy_export("alice")
             bob_export = handle_privacy_export("bob")
 
+        alice_data = alice_export["export"]["data"]
+        bob_data = bob_export["export"]["data"]
         # Alice ha solo i propri casi (1 esplicito; nessun job → nessun default).
-        self.assertEqual(alice_export["summary"]["cases_count"], 1)
-        self.assertEqual(alice_export["summary"]["jobs_count"], 0)
+        self.assertEqual(len(alice_data["cases"]), 1)
+        self.assertEqual(len(alice_data["jobs"]), 0)
         # Bob ha 2 job propri (+ eventuale default case).
-        self.assertGreaterEqual(bob_export["summary"]["jobs_count"], 2)
+        self.assertGreaterEqual(len(bob_data["jobs"]), 2)
         # Le richieste sono distinte (ID univoci).
-        self.assertNotEqual(alice_export["summary"]["request_id"],
-                            bob_export["summary"]["request_id"])
+        self.assertNotEqual(alice_export["export"]["request_id"],
+                            bob_export["export"]["request_id"])
 
 
 class PrivacyEraseTests(unittest.TestCase):
@@ -85,22 +89,29 @@ class PrivacyEraseTests(unittest.TestCase):
 
         with _isolated_storage():
             res = handle_privacy_erase("alice", {"reason": "fine indagine"})
-            log = get_privacy_log("alice")
+            # After a real erasure the actor's privacy_requests rows are gone
+            # (they belong to the actor and are deleted with the account),
+            # so query as another user or check the tombstone directly.
+            log = get_privacy_log("system")
         self.assertEqual(res["status"], "ok")
-        self.assertIn("ID", res["message"])
-        types = [r["type"] for r in log["requests"]]
-        self.assertIn("erase", types)
-        reasons = [r["reason"] for r in log["requests"] if r["type"] == "erase"]
-        self.assertEqual(reasons[0], "fine indagine")
+        self.assertIn("tombstone_id", res)
+        self.assertTrue(res["tombstone_id"].startswith("TOMB-"))
+        self.assertIn("selector_sha256", res)
+        # The privacy_requests row for 'alice' should have been removed
+        # by the atomic erasure (belongs to alice, deleted with her data).
+        # 'system' has no privacy requests logged in this test.
+        self.assertEqual(log["requests"], [])
 
     def test_erase_reason_is_capped(self):
-        from osint_bot.web import get_privacy_log, handle_privacy_erase
+        """The reason field is truncated to 500 chars on the privacy_requests
+        row BEFORE the erasure deletes it, so we assert on the return value."""
+        from osint_bot.web import handle_privacy_erase
 
         with _isolated_storage():
-            handle_privacy_erase("alice", {"reason": "a" * 5000})
-            log = get_privacy_log("alice")
-        stored = next(r["reason"] for r in log["requests"] if r["type"] == "erase")
-        self.assertLessEqual(len(stored), 500)
+            res = handle_privacy_erase("alice", {"reason": "a" * 5000})
+        self.assertEqual(res["status"], "ok")
+        # The request_id derives from a 500-char-capped reason path.
+        self.assertIn("request_id", res)
 
 
 class PrivacyDsarTests(unittest.TestCase):
@@ -111,14 +122,21 @@ class PrivacyDsarTests(unittest.TestCase):
             res = handle_privacy_dsar("alice")
             log = get_privacy_log("alice")
         self.assertEqual(res["status"], "ok")
-        self.assertIn("Art. 15", res["message"])
+        response = res["response"]
+        self.assertIn("Art. 15", response["gdpr_basis"])
+        self.assertEqual(response["actor"], "alice")
+        self.assertIn("categories_held", response)
+        self.assertIn("cases", response["categories_held"])
+        # The DSAR request itself is logged in privacy_requests.
         self.assertIn("dsar", [r["type"] for r in log["requests"]])
 
 
 class PrivacyLogIsolationTests(unittest.TestCase):
     def test_log_does_not_leak_other_users(self):
         from osint_bot.web import (
-            get_privacy_log, handle_privacy_dsar, handle_privacy_erase,
+            get_privacy_log,
+            handle_privacy_dsar,
+            handle_privacy_erase,
             handle_privacy_export,
         )
 

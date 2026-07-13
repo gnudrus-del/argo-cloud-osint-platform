@@ -33,7 +33,6 @@ from .patterns import (
     URL_RE,
 )
 
-
 # ---------------------------------------------------------------------------
 # Capability detection (lazy, cached)
 # ---------------------------------------------------------------------------
@@ -101,7 +100,7 @@ def ocr_image(path: str, lang: str = "ita+eng") -> OcrResult:
     try:
         with Image.open(path) as img:
             text = pytesseract.image_to_string(img, lang=lang)
-    except Exception as exc:
+    except Exception:
         # lang pack mancante o binario assente: riprova senza lang esplicito
         try:
             import pytesseract  # type: ignore
@@ -267,7 +266,7 @@ _WORD_RE = re.compile(r"[A-Za-zÀ-ÿ0-9]{3,}")
 _STOPWORDS = {
     # italiano + inglese, set minimale per lo scoring
     "che", "non", "per", "con", "una", "uno", "del", "della", "delle", "dei",
-    "gli", "gli", "come", "sono", "hanno", "questo", "questa", "anche", "piu",
+    "gli", "come", "sono", "hanno", "questo", "questa", "anche", "piu",
     "the", "and", "for", "with", "that", "this", "from", "are", "was", "were",
     "has", "have", "not", "but", "you", "all", "can", "her", "his", "its",
 }

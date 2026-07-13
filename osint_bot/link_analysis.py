@@ -37,16 +37,13 @@ Design notes
 """
 from __future__ import annotations
 
-import hashlib
-import re
 import uuid
 import xml.etree.ElementTree as ET
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any
 
-from .models import Evidence, Finding
-
+from .models import Finding
 
 # ---------------------------------------------------------------------------
 # Core graph types
@@ -72,7 +69,7 @@ class GraphNode:
     severity: str = ""      # propagated from highest-severity finding
     attck_ttps: list[str] = field(default_factory=list)
 
-    def merge(self, other: "GraphNode") -> None:
+    def merge(self, other: GraphNode) -> None:
         """Absorb another node with the same id in-place."""
         self.confidence = max(self.confidence, other.confidence)
         for alias in other.aliases:
@@ -186,7 +183,7 @@ class EntityGraph:
     # Merge
     # ------------------------------------------------------------------
 
-    def merge_graph(self, other: "EntityGraph") -> None:
+    def merge_graph(self, other: EntityGraph) -> None:
         for node in other.nodes():
             self.add_node(node)
         for edge in other.edges():

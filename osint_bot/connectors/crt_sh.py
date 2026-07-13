@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 import re
 import urllib.request
-from typing import Any
 
 from ..connector import (
     ACTION_PASSIVE,

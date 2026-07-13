@@ -25,7 +25,6 @@ from datetime import datetime, timezone
 
 from .grading import classify_evidence_level
 
-
 # Pesi: somma == 1.0. La somma esatta e' un invariante testato.
 WEIGHTS: dict[str, float] = {
     "exact_match":        0.30,
@@ -87,7 +86,7 @@ def score_fuzzy_match(value: str, target: str) -> tuple[float, str]:
     if nv == nt:
         return 1.0, "fuzzy_match=1.00 (coincide con il target)"
     if nv in nt or nt in nv:
-        return 0.8, f"fuzzy_match=0.80 (sottostringa diretta target/value)"
+        return 0.8, "fuzzy_match=0.80 (sottostringa diretta target/value)"
     tv, tt = set(nv.split()), set(nt.split())
     if not tv or not tt:
         return 0.0, "fuzzy_match=0.00 (nessun token significativo)"

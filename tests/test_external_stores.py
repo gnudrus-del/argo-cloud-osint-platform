@@ -6,7 +6,6 @@ import unittest
 from osint_bot.neo4j_sync import Neo4jSync, sync_investigation_graph
 from osint_bot.opensearch_index import OpenSearchIndex, index_investigation
 
-
 GRAPH = {
     "nodes": [
         {"id": "n1", "kind": "domain", "value": "example.com", "label": "example.com", "confidence": 0.9, "severity": ""},

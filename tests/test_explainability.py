@@ -1,8 +1,8 @@
 """Fase 7 — spiegabilita': perche' collegato + cosa manca per confermare."""
 import unittest
 
-from osint_bot.explainability import explain_finding, enrich_investigation_explanations
-from osint_bot.models import Evidence, Finding, Investigation, Provenance
+from osint_bot.explainability import enrich_investigation_explanations, explain_finding
+from osint_bot.models import Finding, Investigation, Provenance
 
 
 def _f(**kw) -> Finding:

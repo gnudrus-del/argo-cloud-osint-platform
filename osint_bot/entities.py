@@ -228,7 +228,7 @@ def first_evidence_url(evidence: list[Evidence]) -> str:
 
 
 def entity_key(entity_type: str, value: str) -> str:
-    digest = hashlib.sha256(f"{entity_type}:{value}".encode("utf-8")).hexdigest()[:16]
+    digest = hashlib.sha256(f"{entity_type}:{value}".encode()).hexdigest()[:16]
     return f"{entity_type}:{digest}"
 
 

@@ -37,18 +37,15 @@ Il modulo è puro: non fa I/O. Caller salva il file su disco.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import time
 from dataclasses import asdict, dataclass, field
-from typing import Iterable
 
 from .contact_discovery import Contact, ContactReport
-from .models import Finding, Investigation, SearchResult
+from .models import Finding, Investigation
 from .ranking import RankedResult
 from .scope import CaseScope
 from .target_classifier import TargetSpec
-
 
 # ---------------------------------------------------------------------------
 # Input context
@@ -389,7 +386,7 @@ def _section_14_falsi_positivi(ctx: ReportContext) -> ReportSection:
     if skipped:
         notes.append(f"- {len(skipped)} URL saltati durante la raccolta (errore o policy).")
     if ctx.target.warnings:
-        notes.append(f"- Classificazione target: " + "; ".join(ctx.target.warnings))
+        notes.append("- Classificazione target: " + "; ".join(ctx.target.warnings))
     if not ctx.providers:
         notes.append(
             "- Nessun provider OSINT configurato: la copertura è limitata ai dati "

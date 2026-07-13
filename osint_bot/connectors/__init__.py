@@ -9,47 +9,86 @@ from __future__ import annotations
 import os
 
 from ..connector import ConnectorRegistry
+
 # Pillar 1 (existing)
-from . import abuseipdb, crt_sh, github_search, hibp, hunter, leakix, rdap, shodan, urlscan, virustotal, wayback
 # Phase 8 (new)
-from . import (
-    phishtank, openphish, nominatim, gdelt,
-    securitytrails, greynoise, otx, emailrep, ipinfo, etherscan,
-    opencorporates, sec_edgar, companies_house,
-    brave_search_api, google_pse,
-)
 # Phase 9 — external platforms (bridged via local API)
-from . import flowsint
 # Phase 10 — native no-key enrichers (Option C: reimplementano localmente
 # le stesse fonti pubbliche che usa FlowSINT, senza dipendenza esterna).
-from . import dns_query, tls_cert, gravatar, common_crawl, web_fingerprint
 # Phase 11 — native port di funzionalita' oggi coperte da tool CLI esterni.
-from . import asn_lookup, sherlock_lite, phone_meta
 # Phase 12 — threat-intel & geo no-key + bridge MISP.
-from . import shodan_internetdb, overpass, threatfox, misp_client
 # Phase 13 — sostituti nativi di tool CLI esterni (recon attivo/passivo).
-from . import (
-    content_discovery, port_scan, subdomain_enum, dnstwist_native,
-    secret_scan, url_harvest, holehe_native,
-)
 # Phase 14 — Maigret completo integrato come motore username primario.
-from . import maigret
 # Phase 15 — holehe completo integrato come motore email primario.
-from . import holehe
 # Phase 16 — theHarvester: raccolta email/host da dominio (OSINT aziendale).
-from . import theharvester
 # Phase 17 — reverse lookup (telefono/social → email/registrazione).
-from . import phone_footprint, ignorant, ghunt, toutatis
+# Phase 19 — Telegram (numero → account) + LinkedIn2Username (azienda → username).
+# Phase 20 — Influencers Club (BYOK, username → email verificata).
+# Phase 21 — legit_scorer aggregatore nativo (SION-like).
+# Phase 22 — darkweb_scan (leggero, sostituto onesto di Prying Deep archived).
+from . import (
+    abuseipdb,
+    asn_lookup,
+    brave_search_api,
+    common_crawl,
+    companies_house,
+    content_discovery,
+    crt_sh,
+    darkweb_scan,
+    dns_query,
+    dnstwist_native,
+    emailrep,
+    etherscan,
+    flowsint,
+    gdelt,
+    ghunt,
+    github_search,
+    google_pse,
+    gravatar,
+    greynoise,
+    hibp,
+    holehe,
+    holehe_native,
+    hunter,
+    ignorant,
+    influencers_club,
+    ipinfo,
+    leakix,
+    legit_scorer,
+    linkedin2username,
+    maigret,
+    misp_client,
+    nominatim,
+    opencorporates,
+    openphish,
+    otx,
+    overpass,
+    phishtank,
+    phone_footprint,
+    phone_meta,
+    port_scan,
+    rdap,
+    sec_edgar,
+    secret_scan,
+    securitytrails,
+    sherlock_lite,
+    shodan,
+    shodan_internetdb,
+    subdomain_enum,
+    telegram_checker,
+    theharvester,
+    threatfox,
+    tls_cert,
+    toutatis,
+    url_harvest,
+    urlscan,
+    virustotal,
+    wayback,
+    web_fingerprint,
+)
+
 # Phase 18 — socid-extractor (URL profilo → ID/metadata social).
 from . import socid_extractor as socid_extractor_mod
-# Phase 19 — Telegram (numero → account) + LinkedIn2Username (azienda → username).
-from . import telegram_checker, linkedin2username
-# Phase 20 — Influencers Club (BYOK, username → email verificata).
-from . import influencers_club
-# Phase 21 — legit_scorer aggregatore nativo (SION-like).
-from . import legit_scorer
-# Phase 22 — darkweb_scan (leggero, sostituto onesto di Prying Deep archived).
-from . import darkweb_scan
 
 __all__ = [
     "abuseipdb", "crt_sh", "github_search", "hibp", "hunter",

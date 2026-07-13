@@ -12,13 +12,11 @@ import pytest
 from osint_bot import email_verification as ev
 from osint_bot.email_verification import (
     EmailSendError,
-    TokenClaims,
     generate_token,
     send_verification_email,
     send_via_console,
     verify_token,
 )
-
 
 # ---------------------------------------------------------------------------
 # Token generation & verification

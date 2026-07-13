@@ -1,8 +1,17 @@
 """Connector: VirusTotal — threat intelligence."""
 from __future__ import annotations
+
 import json
 import urllib.request
-from ..connector import ACTION_PASSIVE, BaseConnector, ConnectorContext, ConnectorResult, ConnectorSpec, RateLimit
+
+from ..connector import (
+    ACTION_PASSIVE,
+    BaseConnector,
+    ConnectorContext,
+    ConnectorResult,
+    ConnectorSpec,
+    RateLimit,
+)
 from ..models import Evidence, Finding
 
 _SPEC = ConnectorSpec(
@@ -33,7 +42,7 @@ class VirusTotalConnector(BaseConnector):
         t = ctx.target.strip()
         key = ctx.api_key
         # Determine endpoint
-        import hashlib, re
+        import re
         if ctx.target_type in ("file_hash", ) or re.fullmatch(r"[0-9a-fA-F]{32,64}", t):
             data = _vt_get(f"/files/{t}", key, ctx.timeout)
             ev_url = f"https://www.virustotal.com/gui/file/{t}"

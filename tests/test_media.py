@@ -3,12 +3,11 @@ import unittest
 from pathlib import Path
 
 from osint_bot.media import (
+    _gps_to_decimal,
     analyze_media_file,
     build_reverse_search_urls,
-    _gps_to_decimal,
     extract_gps_from_exif,
 )
-
 
 PNG_1X1 = bytes.fromhex(
     "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"

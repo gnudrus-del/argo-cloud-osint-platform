@@ -23,12 +23,11 @@ import hashlib
 import re
 import time
 import urllib.parse
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from .models import Finding, SearchResult
-from .target_classifier import TargetSpec, T_DOMAIN, T_SUBDOMAIN
-
+from .target_classifier import T_DOMAIN, T_SUBDOMAIN, TargetSpec
 
 # ---------------------------------------------------------------------------
 # Source quality tiers (Italian-style label → weight)

@@ -25,7 +25,6 @@ import unicodedata
 import urllib.parse
 from dataclasses import dataclass
 
-
 # ---------------------------------------------------------------------------
 # Trigger di auto-attivazione (spec: 5 categorie)
 # ---------------------------------------------------------------------------

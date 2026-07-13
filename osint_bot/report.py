@@ -10,7 +10,6 @@ from .grading import distribution as grade_distribution
 from .models import Entity, Finding, Investigation, Relationship
 from .safety import redact_email, redact_phone
 
-
 KIND_LABELS = {
     "web_presence": "presenza web",
     "related_domain": "domini e sottodomini",

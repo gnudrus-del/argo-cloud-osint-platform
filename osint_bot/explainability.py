@@ -16,7 +16,6 @@ from __future__ import annotations
 from .grading import classify_evidence_level
 from .models import Finding
 
-
 # Categorie di "kind" che richiedono corroborazione da fonte indipendente per
 # essere considerati attendibili. Per ognuno spieghiamo cosa cercare.
 _KIND_CORROBORATION_HINT = {

@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import queue
 import threading
-from dataclasses import dataclass, field
-from typing import Any, Callable
-
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 JobSpecDict = dict[str, Any]
 Dispatcher = Callable[[JobSpecDict], None]
@@ -49,7 +49,7 @@ class JobSpec:
         }
 
     @classmethod
-    def from_dict(cls, data: JobSpecDict) -> "JobSpec":
+    def from_dict(cls, data: JobSpecDict) -> JobSpec:
         return cls(
             job_id=str(data["job_id"]),
             profile=dict(data.get("profile") or {}),

@@ -7,7 +7,6 @@ from html.parser import HTMLParser
 
 from .patterns import EMAIL_RE
 
-
 SPACE_RE = re.compile(r"\s+")
 
 

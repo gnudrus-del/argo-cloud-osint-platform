@@ -5,7 +5,6 @@ from osint_bot.stix_export import (
     investigation_to_stix_bundle,
 )
 
-
 SAMPLE = {
     "target": "example.com",
     "target_type": "domain",

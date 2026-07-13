@@ -2,7 +2,7 @@ import os
 import sys
 import unittest
 
-from osint_bot.external_tools import TOOL_SPECS, resolve_command, run_tool
+from osint_bot.external_tools import TOOL_SPECS, run_tool
 from osint_bot.safety import SafetyError, assert_external_tool_allowed, validate_tool_target
 
 
@@ -57,9 +57,10 @@ class TargetValidationTests(unittest.TestCase):
         # whose only argument is a sleeper script. timeout=1 is well below the
         # script's sleep, so we must see status="timeout" and the call must
         # return promptly (process group is killed).
-        import time
         import tempfile
-        from osint_bot.external_tools import ToolSpec, TOOL_SPECS
+        import time
+
+        from osint_bot.external_tools import TOOL_SPECS, ToolSpec
 
         tmp_dir = tempfile.mkdtemp()
         script_path = os.path.join(tmp_dir, "sleeper.py")

@@ -21,7 +21,6 @@ from .safety import SafetyError, assess_request
 from .search import SearchConfig, SearchError, build_queries, dedupe_results, search_many
 from .service_links import service_link_results
 
-
 TARGET_TYPES = ("domain", "company", "org", "person", "handle", "email", "phone", "crypto", "ip", "media")
 AGENTS = ("all", "planner", "web", "external", "opsec", "crypto", "media", "geo", "socmint", "phone", "darkweb", "humint")
 

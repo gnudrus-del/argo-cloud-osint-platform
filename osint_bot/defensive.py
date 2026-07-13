@@ -34,9 +34,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from .models import Evidence, Finding
+from .models import Finding
 from .red_team import ScanDiff, diff_scan_findings
-
 
 # ---------------------------------------------------------------------------
 # Pillar 3.1 — Continuous EASM monitoring

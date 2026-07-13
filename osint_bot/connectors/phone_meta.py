@@ -39,7 +39,8 @@ class PhoneMetaConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         try:
             import phonenumbers
-            from phonenumbers import carrier, geocoder, timezone as tz, number_type, PhoneNumberType
+            from phonenumbers import PhoneNumberType, carrier, geocoder, number_type
+            from phonenumbers import timezone as tz
         except ImportError:
             return ConnectorResult(
                 connector=self.spec.name, status="error",

@@ -2,23 +2,35 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from osint_bot.scope import (
-    CaseScope, ENTRY_CIDR, ENTRY_DOMAIN, ENTRY_HANDLE, ENTRY_IP, ENTRY_URL,
-    ENTRY_WILDCARD, OutOfScopeError, ScopeEntry, assert_in_scope,
-    audit_scope_attempt, in_scope, parse_entry,
+    ENTRY_CIDR,
+    ENTRY_DOMAIN,
+    ENTRY_HANDLE,
+    ENTRY_IP,
+    ENTRY_URL,
+    ENTRY_WILDCARD,
+    CaseScope,
+    OutOfScopeError,
+    assert_in_scope,
+    audit_scope_attempt,
+    in_scope,
+    parse_entry,
 )
 from osint_bot.target_classifier import classify_target
 from osint_bot.tool_adapter import (
-    KIND_DAST, KIND_PASSIVE_RECON, KIND_VULN_SCAN, AmassAdapter, NucleiAdapter,
-    SubfinderAdapter, ToolAdapter, ZAPBaselineAdapter, get_adapter,
-    list_adapters, register,
+    KIND_DAST,
+    KIND_PASSIVE_RECON,
+    AmassAdapter,
+    NucleiAdapter,
+    SubfinderAdapter,
+    ZAPBaselineAdapter,
+    get_adapter,
+    list_adapters,
 )
-
 
 # ============================================================================
 # scope.parse_entry

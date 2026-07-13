@@ -1,15 +1,14 @@
 """Tests for contact_discovery.py — extraction, scoring, anti-FP, dedupe."""
 from __future__ import annotations
 
-import pytest
-
 from osint_bot.contact_discovery import (
-    Contact, ContactReport, _categorize_email, _label_for, _normalize_phone,
+    _categorize_email,
+    _label_for,
+    _normalize_phone,
     discover_contacts,
 )
 from osint_bot.models import Page
 from osint_bot.target_classifier import classify_target
-
 
 # ---------------------------------------------------------------------------
 # Helpers

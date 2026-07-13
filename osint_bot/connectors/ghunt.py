@@ -107,7 +107,7 @@ class GHuntConnector(BaseConnector):
                                        raw={"note": "Nessun dato Google per l'email."})
 
         findings: list[Finding] = []
-        ev = [Evidence(url=f"https://mail.google.com", title="Google account")]
+        ev = [Evidence(url="https://mail.google.com", title="Google account")]
         name = (data.get("PROFILE_CONTAINER") or {}).get("profile", {}).get("names") if isinstance(data, dict) else None
         # Best-effort: struttura GHunt varia per versione; estraggo campi comuni.
         def _dig(d, *keys):

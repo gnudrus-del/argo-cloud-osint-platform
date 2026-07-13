@@ -48,7 +48,7 @@ class OpenSearchIndex:
         h = {"Content-Type": "application/json", "Accept": "application/json",
              "User-Agent": "argo-osint/1.0"}
         if self.cfg.get("user"):
-            raw = f"{self.cfg['user']}:{self.cfg['password']}".encode("utf-8")
+            raw = f"{self.cfg['user']}:{self.cfg['password']}".encode()
             h["Authorization"] = "Basic " + base64.b64encode(raw).decode("ascii")
         return h
 

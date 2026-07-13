@@ -20,8 +20,8 @@ from typing import Any
 
 from .connector import ConnectorContext, ConnectorRegistry
 from .defensive import (
-    IOCEnrichment,
     ImpersonationSignal,
+    IOCEnrichment,
     assess_brand_impersonation,
     enrich_ioc,
     score_digital_footprint,

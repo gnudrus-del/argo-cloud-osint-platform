@@ -14,7 +14,6 @@ import ipaddress
 import json
 import socket
 import urllib.request
-from typing import Any
 
 from ..connector import (
     ACTION_PASSIVE,

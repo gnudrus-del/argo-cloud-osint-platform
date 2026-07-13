@@ -136,7 +136,7 @@ class Investigation:
         skipped_urls: list[str] | None = None,
         entities: list[Entity] | None = None,
         relationships: list[Relationship] | None = None,
-    ) -> "Investigation":
+    ) -> Investigation:
         return cls(
             target=target,
             target_type=target_type,

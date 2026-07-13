@@ -78,12 +78,12 @@ class Grade:
     def label_it(self) -> str:
         return f"{RELIABILITY_LABELS_IT[self.reliability]}, {CREDIBILITY_LABELS_IT[self.credibility]}"
 
-    def is_better_than(self, other: "Grade") -> bool:
+    def is_better_than(self, other: Grade) -> bool:
         """A1 beats B2 beats F6. Equal grades are not "better"."""
         return _grade_rank(self) < _grade_rank(other)
 
 
-def _grade_rank(grade: "Grade | tuple[str, int]") -> tuple[int, int]:
+def _grade_rank(grade: Grade | tuple[str, int]) -> tuple[int, int]:
     if isinstance(grade, tuple):
         r, c = grade
     else:

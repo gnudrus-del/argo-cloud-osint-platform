@@ -6,13 +6,11 @@ import unittest
 from osint_bot.models import Evidence, Finding, Page, SearchResult
 from osint_bot.red_team import (
     TAKEOVER_DB,
-    ScanDiff,
     TakeoverVendor,
     assess_takeover_candidates,
     diff_scan_findings,
     scan_credential_exposure,
 )
-
 
 # ---------------------------------------------------------------------------
 # TAKEOVER_DB structure tests

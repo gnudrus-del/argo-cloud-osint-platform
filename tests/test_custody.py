@@ -1,5 +1,4 @@
 """Tests for Pillar 0.3 — chain of custody and artifact integrity."""
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -141,6 +140,7 @@ class ProvenanceOnFindingTests(unittest.TestCase):
     def test_finding_provenance_serializes_via_asdict(self):
         """Provenance must survive asdict() round-trip (used in Investigation.to_dict)."""
         from dataclasses import asdict
+
         from osint_bot.models import Evidence, Finding, Provenance
 
         prov = Provenance(
@@ -163,6 +163,7 @@ class ProvenanceOnFindingTests(unittest.TestCase):
 
     def test_finding_without_provenance_is_backward_compatible(self):
         from dataclasses import asdict
+
         from osint_bot.models import Finding
 
         f = Finding(kind="domain", value="example.com", confidence=0.9)

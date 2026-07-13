@@ -1,11 +1,8 @@
 """Tests for provider_health.py — semantic states + cache + per-provider probes."""
 from __future__ import annotations
 
-import time
 import urllib.error
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from osint_bot import provider_health as ph
 
