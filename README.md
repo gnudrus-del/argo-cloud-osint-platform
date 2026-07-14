@@ -4,14 +4,14 @@
 
 [![CI](https://github.com/gnudrus-del/argo-cloud-osint-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/gnudrus-del/argo-cloud-osint-platform/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/gnudrus-del/argo-cloud-osint-platform?display_name=tag&sort=semver)](https://github.com/gnudrus-del/argo-cloud-osint-platform/releases)
-[![PyPI](https://img.shields.io/pypi/v/argo-cloud-osint?label=pypi)](https://pypi.org/project/argo-cloud-osint/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![GHCR image](https://img.shields.io/badge/ghcr.io-argo--cloud--osint--platform-0f5cad?logo=docker)](https://github.com/gnudrus-del/argo-cloud-osint-platform/pkgs/container/argo-cloud-osint-platform)
 [![Attested](https://img.shields.io/badge/build_provenance-Sigstore-2b8f2e?logo=sigstore)](https://github.com/gnudrus-del/argo-cloud-osint-platform/attestations)
+[![Bilingual](https://img.shields.io/badge/UI-IT%20%2F%20EN-f5b740)](docs/README.it.md)
 [![Live demo](https://img.shields.io/badge/live_demo-argo--cloud.duckdns.org-orange)](https://argo-cloud.duckdns.org)
 
-Argo runs entirely on your infrastructure. It aggregates public sources (58 native connectors, key-free and BYOK), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. No telemetry, no cloud dependency, no vendor lock-in.
+Argo runs entirely on your infrastructure. It aggregates public sources (59 native connectors, key-free and BYOK), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. UI and connector output are bilingual (Italian / English). No telemetry, no cloud dependency, no vendor lock-in.
 
 ---
 
@@ -56,7 +56,7 @@ The [`docs/samples/example-report/`](docs/samples/example-report/) directory con
 - [`example.com.json`](docs/samples/example-report/example.com.json) — structured findings (JSON, ~82 KB)
 - [`example.com.pdf`](docs/samples/example-report/example.com.pdf) — court-ready PDF (~15 KB)
 
-No API key was configured; the report uses only the 43 key-free connectors. See [`docs/samples/README.md`](docs/samples/README.md) for details.
+No API key was configured; the report uses only the 44 key-free connectors. See [`docs/samples/README.md`](docs/samples/README.md) for details.
 
 ---
 
@@ -67,16 +67,19 @@ Existing OSINT SaaS tools work well until you cannot send your case data to a th
 ## Features
 
 - **CLI + web UI** — Python CLI for scripting; a lightweight web UI (no framework runtime bloat) for case management.
+- **Bilingual UI and output (Italian / English)** — auto-detected on first visit, persisted per user, switchable at any time from a control in the top bar. Connector `notes`, `remediation` and `legal_note` are threaded through a shared message catalog and translated per request (`ConnectorContext.lang`).
 - **Case-based investigations** — every query lives in a case with scope, Rules of Engagement, and DSAR (GDPR) endpoints.
 - **Privacy-by-design target handling** — personal targets require an explicit legal basis; contacts are redacted by default.
-- **BYOK provider model** — 15 optional providers (Shodan, VirusTotal, HIBP, SecurityTrails, etc.) use *your* API keys, never intermediated.
-- **58 native connectors** — 43 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, and more) + 15 BYOK.
+- **BYOK provider model** — 15 optional providers (Shodan, VirusTotal, HIBP, SecurityTrails, etc.) use *your* API keys, never intermediated. Three additional providers (EmailRep, IPinfo, OpenCorporates) work without a key but return richer results if one is configured.
+- **59 native connectors** — 44 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, and more) + 15 BYOK.
 - **Sourced findings** — every finding carries evidence URLs, timestamps and confidence scoring.
 - **Audit chain (SHA-256)** — every event (login, search, finding, deletion) is appended to a hash-chained log. Tampering with a past event invalidates every subsequent hash. Same pattern as Certificate Transparency and Git.
+- **SSRF-hardened outbound HTTP** — every connector routes through a single `_safe_http` gateway that blocks cloud metadata (`169.254.169.254`), loopback, RFC1918, non-HTTP schemes and unfollowed cross-boundary redirects. Enforced in CI: no connector may import `urllib.request`/`httpx`/`requests`/`aiohttp` directly.
+- **Real DSAR (GDPR Art. 15 / Art. 17)** — the erasure endpoint runs an atomic transaction: redact audit events, append a `dsar_tombstoned` proof, delete business rows across all tables, all within one commit.
 - **Markdown / JSON / PDF exports** — for analyst reports.
 - **STIX 2.1 bundle + MISP event exports** — for TIP integration.
 - **Connector/plugin architecture** — add a new source by implementing a small `BaseConnector` subclass.
-- **Docker + self-hosted deployment** — includes `Dockerfile`, `docker-compose.yml`, systemd unit, and a Caddy reverse-proxy recipe.
+- **Docker + self-hosted deployment** — includes `Dockerfile`, `docker-compose.yml`, systemd unit, and a Caddy reverse-proxy recipe. A prebuilt image is published to GHCR (`ghcr.io/gnudrus-del/argo-cloud-osint-platform:0.1.0`).
 
 ## Use cases
 
@@ -101,13 +104,6 @@ Argo is a **defensive** tool. It refuses to be a weapon.
 
 ## Quickstart (5 minutes)
 
-### Install from PyPI
-
-```bash
-pip install argo-cloud-osint
-argo-osint --help
-```
-
 ### Install from source
 
 ```bash
@@ -117,13 +113,19 @@ python -m venv .venv
 # Linux/macOS: source .venv/bin/activate
 # Windows PowerShell: .\.venv\Scripts\Activate.ps1
 pip install -e .
+argo-osint --help
 ```
 
-### Install from Docker
+### Pull the prebuilt Docker image
 
 ```bash
 docker pull ghcr.io/gnudrus-del/argo-cloud-osint-platform:0.1.0
+# also available as :latest
 ```
+
+> **PyPI:** the project name `argo-cloud-osint` is reserved but not
+> yet published; tracked in the roadmap below. Install from source or
+> Docker in the meantime.
 
 ### Run the CLI
 
@@ -189,7 +191,7 @@ More: [`docs/EXAMPLES.md`](docs/EXAMPLES.md).
 
 ## Architecture at a glance
 
-Argo is a three-layer pipeline: **input** (CLI or web UI) → **orchestrator** (with policy, audit, storage) → **connectors** (58 native sources, key-free or BYOK) → **exports**. Every finding is sourced, timestamped, hash-linked into the audit chain, and gated by the case's Rules of Engagement.
+Argo is a three-layer pipeline: **input** (CLI or web UI) → **orchestrator** (with policy, audit, storage) → **connectors** (59 native sources, key-free or BYOK) → **exports**. Every finding is sourced, timestamped, hash-linked into the audit chain, and gated by the case's Rules of Engagement.
 
 ```mermaid
 flowchart TB
@@ -213,9 +215,9 @@ flowchart TB
         OS[("OpenSearch<br/>full-text, opt.")]
     end
 
-    subgraph REG["Connector Registry — 58 native sources"]
+    subgraph REG["Connector Registry — 59 native sources"]
         direction TB
-        KFREE["43 key-free connectors"]
+        KFREE["44 key-free connectors"]
         BYOK["15 BYOK connectors"]
     end
 
@@ -258,9 +260,9 @@ flowchart TB
     class MD,JSON,PDF,STIX,MISPX,REPORT exportStyle
 ```
 
-### The 43 key-free connectors
+### The 44 key-free connectors
 
-Work out of the box, no signup, no API key. Grouped by capability.
+Work out of the box, no signup, no API key. Grouped by capability. Three of these (`emailrep`, `ipinfo`, `opencorporates`) accept a BYOK for richer output but do not require one — they are also listed under **The 15 BYOK connectors** below.
 
 **Domain & DNS intelligence (7)**
 
@@ -399,7 +401,7 @@ Fill only what you have; missing keys are silently skipped (`missing_key` status
 | `github_search` | GitHub Search | `GITHUB_TOKEN` | Code / secret search across GitHub |
 | `leakix` | LeakIX | `LEAKIX_API_KEY` | Leak & exposure intelligence |
 
-> The count is 15 "canonical" BYOK providers — some optional/tenant-owned bridges (MISP, FlowSINT) are counted separately and do not require an API key from Argo's side, only credentials to your own instance.
+> The table lists 18 rows: **15** connectors declare a required API key (Argo reports `missing_key` cleanly when unset) and **3** more (`emailrep`, `ipinfo`, `opencorporates`) accept an optional key for richer results but function without one. Tenant-owned bridges (`misp_client`, `flowsint`) are counted separately in the key-free list and expect credentials to *your own* instance rather than a third-party API key from Argo's side.
 
 ### Data flow — one investigation, end to end
 
@@ -450,13 +452,25 @@ Argo is built for authorized investigations. Reading data about a person you hav
 
 ## Roadmap
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md). Highlights of the near-term plan:
+See [`docs/ROADMAP.md`](docs/ROADMAP.md). Highlights of the near-term plan.
 
-- **Planned:** connector-key encryption at rest.
-- **Planned:** publish Docker image to GHCR.
-- **Planned:** first PyPI release under name `argo-cloud-osint`.
-- **Experimental:** AI enrichment (`ai` extra) — OCR + NER + language detection.
-- **In progress:** Next.js web frontend (`web-next/`) for richer graph visualization.
+**Recently shipped**
+
+- Bilingual UI and connector output (Italian / English) with per-request `ConnectorContext.lang` — v0.2.
+- Centralised policy gate (Rules of Engagement + case-scope enforcement) in `BaseConnector.run` — hardening H1.
+- SSRF-hardened outbound HTTP: every connector routes through `_safe_http`, redirect-revalidated, cloud-metadata-blocked, CI-enforced — hardening H2.
+- Real DSAR (GDPR Art. 17): atomic erasure transaction with hash-chained `dsar_tombstoned` proof — hardening H3.
+- Prebuilt Docker image published to GHCR (`:0.1.0`, `:latest`) with Sigstore build provenance.
+
+**Planned**
+
+- Connector-key encryption at rest.
+- First PyPI release under name `argo-cloud-osint` (the name is reserved; upload workflow is scaffolded via a Trusted Publisher).
+- AI enrichment (`ai` extra) — OCR + NER + language detection (experimental).
+
+**Frozen / experimental**
+
+- `web-next/` — Next.js prototype for graph visualization. Superseded by the production Python-served UI; kept as reference. See [`web-next/STATUS.md`](web-next/STATUS.md).
 
 ---
 
