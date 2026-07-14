@@ -25,6 +25,7 @@ import re
 import subprocess
 import tempfile
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -44,7 +45,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86_400,
     rate_limit=RateLimit(per_minute=1, per_day=20, burst=1),
-    legal_note="Naviga LinkedIn come utente autenticato dell'investigatore. Solo profili pubblici della company.",
+    legal_note="linkedin2username.legal_note",
     health_check_url="",
 )
 
@@ -69,10 +70,10 @@ class LinkedIn2UsernameConnector(BaseConnector):
         cfg = _config()
         if not (cfg["python"] and cfg["script"]):
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="linkedin2username non configurato (LINKEDIN2U_PYTHON/SCRIPT).")
+                                   error=_t("linkedin2username.not_configured", context.lang))
         if not (cfg["user"] and cfg["password"]):
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="Credenziali LinkedIn mancanti (LINKEDIN_USER/LINKEDIN_PASS).")
+                                   error=_t("linkedin2username.missing_credentials", context.lang))
 
         raw = (context.target or "").strip()
         if "|" in raw:
@@ -82,9 +83,10 @@ class LinkedIn2UsernameConnector(BaseConnector):
             company, domain = raw, ""
         if not _COMPANY_RE.match(company):
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Nome azienda non valido (max 60 char alfanumerici).")
+                                   error=_t("linkedin2username.invalid_company", context.lang))
         if domain and not _DOMAIN_RE.match(domain):
-            return ConnectorResult(connector=self.spec.name, status="error", error="Dominio non valido.")
+            return ConnectorResult(connector=self.spec.name, status="error",
+                                   error=_t("linkedin2username.invalid_domain", context.lang))
 
         env = dict(os.environ)
         env["PYTHONUTF8"] = "1"; env["PYTHONIOENCODING"] = "utf-8"
@@ -102,15 +104,16 @@ class LinkedIn2UsernameConnector(BaseConnector):
                                       encoding="utf-8", errors="replace",
                                       timeout=cfg["timeout_s"], check=False)
             except subprocess.TimeoutExpired:
-                return ConnectorResult(connector=self.spec.name, status="error", error="linkedin2username timeout.")
+                return ConnectorResult(connector=self.spec.name, status="error",
+                                       error=_t("linkedin2username.timeout", context.lang))
             except (OSError, ValueError) as exc:
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error=f"Esecuzione linkedin2username fallita: {exc}")
+                                       error=_t("linkedin2username.execution_failed", context.lang, error=exc))
 
             low = (proc.stdout + proc.stderr).lower()
             if "login" in low and ("failed" in low or "invalid" in low):
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error="Login LinkedIn fallito o account bloccato (challenge?).")
+                                       error=_t("linkedin2username.login_failed", context.lang))
 
             # linkedin2username scrive più liste (.txt); leggo tutti gli username unici.
             unames: set[str] = set()
@@ -129,7 +132,7 @@ class LinkedIn2UsernameConnector(BaseConnector):
             kind="probable_username", value=u,
             confidence=0.6, source_reliability="B", info_credibility=3,
             evidence=ev,
-            notes=(f"Username candidato per {company} (probabile). Da confermare con maigret/holehe."),
+            notes=_t("linkedin2username.candidate", context.lang, company=company),
         ) for u in sorted(unames)[:300]]
         return ConnectorResult(
             connector=self.spec.name, status="ok", findings=findings,

@@ -14,6 +14,7 @@ Input: ``email`` o ``phone``.
 """
 from __future__ import annotations
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -34,7 +35,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=1800,
     rate_limit=RateLimit(per_minute=10, per_day=500, burst=2),
-    legal_note="Solo aggregazione locale di segnali di altri connettori. Nessun invio proprio a servizi esterni.",
+    legal_note="legit_scorer.legal_note",
     health_check_url="",
 )
 
@@ -62,9 +63,9 @@ class LegitScorerConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         target = (context.target or "").strip()
         if not target:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Target vuoto.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("legit_scorer.target_empty", context.lang))
         if self._registry is None:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Registro non inizializzato.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("legit_scorer.registry_uninit", context.lang))
 
         # Distingui email vs phone
         is_email = "@" in target

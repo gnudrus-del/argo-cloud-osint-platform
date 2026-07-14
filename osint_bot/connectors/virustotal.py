@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -59,7 +60,7 @@ class VirusTotalConnector(BaseConnector):
             subject = "domain"
 
         if not data:
-            return ConnectorResult(connector=self.spec.name, status="error", error="VirusTotal non risponde o limite raggiunto.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("virustotal.no_response_or_limit", ctx.lang))
 
         attrs = (data.get("data") or {}).get("attributes") or {}
         findings: list[Finding] = []
@@ -77,10 +78,10 @@ class VirusTotalConnector(BaseConnector):
                 confidence=min(0.95, ratio + 0.1) if malicious else 0.85,
                 severity="critical" if malicious >= 5 else ("high" if malicious >= 2 else ("medium" if malicious == 1 else "info")),
                 attck_ttps=["T1588.001"] if malicious else [],
-                remediation="Bloccare immediatamente su firewall/EDR. Investigare gli endpoint che hanno contattato questo IOC." if malicious else "",
+                remediation=_t("virustotal.detection_remediation", ctx.lang) if malicious else "",
                 source_reliability="A", info_credibility=2,
                 evidence=ev,
-                notes=f"VT: {malicious}/{total} motori segnalano come malevolo.",
+                notes=_t("virustotal.detection_notes", ctx.lang, malicious=malicious, total=total),
             ))
 
         # Categories
@@ -89,7 +90,7 @@ class VirusTotalConnector(BaseConnector):
             cat_str = ", ".join(set(cats.values()))[:200]
             findings.append(Finding(kind="vt_category", value=cat_str, confidence=0.80,
                                     source_reliability="B", info_credibility=2, evidence=ev,
-                                    notes="Categoria assegnata dai vendor VirusTotal."))
+                                    notes=_t("virustotal.category_notes", ctx.lang)))
 
         # Reputation score
         reputation = attrs.get("reputation")
@@ -97,7 +98,7 @@ class VirusTotalConnector(BaseConnector):
             sev = "high" if reputation < -10 else ("medium" if reputation < 0 else "info")
             findings.append(Finding(kind="vt_reputation", value=str(reputation), confidence=0.80,
                                     severity=sev, source_reliability="B", info_credibility=2,
-                                    evidence=ev, notes=f"Score VT reputation: {reputation} (negativo = sospetto)."))
+                                    evidence=ev, notes=_t("virustotal.reputation_notes", ctx.lang, reputation=reputation)))
 
         # WHOIS / creation date
         if "creation_date" in attrs:

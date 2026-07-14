@@ -9,6 +9,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -28,7 +29,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=20, per_day=2000, burst=3),
-    legal_note="GDELT e' un dataset open su news/eventi. Uso libero per ricerca.",
+    legal_note="gdelt.legal_note",
     health_check_url="https://api.gdeltproject.org/api/v2/doc/doc?query=test&mode=ArtList&format=json&maxrecords=1",
 )
 
@@ -40,7 +41,7 @@ class GDELTConnector(BaseConnector):
         q = context.target.strip()
         if not q:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="GDELT: query vuota.")
+                                   error=_t("gdelt.empty_query", context.lang))
         url = (
             "https://api.gdeltproject.org/api/v2/doc/doc?"
             + urllib.parse.urlencode({
@@ -53,7 +54,8 @@ class GDELTConnector(BaseConnector):
             "User-Agent": "Argo-OSINT/1.0", "Accept": "application/json"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"GDELT: {exc}")
+                                   error=_t("generic.error", context.lang,
+                                            service="GDELT", error=str(exc)))
         articles = (data or {}).get("articles") or []
         findings: list[Finding] = []
         for a in articles[:5]:
@@ -64,7 +66,8 @@ class GDELTConnector(BaseConnector):
                 kind="news_mention", value=title,
                 confidence=0.70, source_reliability="C", info_credibility=3,
                 evidence=ev,
-                notes=f"GDELT — fonte: {domain}, lingua: {a.get('language', '?')}",
+                notes=_t("gdelt.article_note", context.lang,
+                         domain=domain, language=a.get("language", "?")),
             ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings,

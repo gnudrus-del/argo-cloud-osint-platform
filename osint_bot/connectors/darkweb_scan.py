@@ -15,6 +15,7 @@ import re
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_DARKWEB_GATED,
     BaseConnector,
@@ -34,7 +35,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=6, per_day=200, burst=1),
-    legal_note="Interroga solo l'indice clear-web pubblico Ahmia. Nessun accesso diretto a Tor. Gated dal scope.",
+    legal_note="darkweb_scan.legal_note",
     health_check_url="https://ahmia.fi/",
 )
 
@@ -75,7 +76,7 @@ class DarkwebScanConnector(BaseConnector):
         q = (context.target or "").strip()
         if not q or len(q) < 3:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Keyword troppo corta.")
+                                   error=_t("darkweb_scan.keyword_short", context.lang))
 
         hits = _search_ahmia(q, context.timeout)
         findings: list[Finding] = []
@@ -86,10 +87,10 @@ class DarkwebScanConnector(BaseConnector):
                 confidence=0.7, source_reliability="B", info_credibility=3,
                 evidence=[Evidence(url=f"https://ahmia.fi/search/?q={urllib.parse.quote(q)}",
                                    title=h["title"] or "Ahmia hit")],
-                notes=(f"Risorsa .onion indicizzata da Ahmia per '{q}'. "
-                       f"Titolo: {h['title'] or '—'}. Verificare con OPSEC su Tor Browser."),
+                notes=_t("darkweb_scan.onion_indexed", context.lang,
+                         query=q, title=h['title'] or '—'),
                 severity="medium",
-                why_linked=[f"Ahmia ha risposto con questo .onion per la query '{q}'"],
+                why_linked=[_t("darkweb_scan.why_linked", context.lang, query=q)],
             ))
         return ConnectorResult(
             connector=self.spec.name, status="ok",

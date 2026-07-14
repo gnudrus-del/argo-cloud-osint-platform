@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -83,7 +84,7 @@ class CrtShConnector(BaseConnector):
                             title="crt.sh CT log",
                             quote=f"issuer_ca={entry.get('issuer_ca_id','?')} not_before={entry.get('not_before','')}",
                         )],
-                        notes=f"Rilevato in Certificate Transparency logs. Cert emesso da CA {entry.get('issuer_ca_id','?')}.",
+                        notes=_t("crt_sh.detected", context.lang, ca=entry.get('issuer_ca_id', '?')),
                     )
                 )
                 if len(findings) >= 500:

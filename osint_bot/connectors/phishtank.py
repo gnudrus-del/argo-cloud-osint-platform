@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -29,10 +30,7 @@ _SPEC = ConnectorSpec(
     required_key="",  # free, no key
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=30, per_day=10_000, burst=5),
-    legal_note=(
-        "PhishTank: lookup pubblico su URL phishing verificati. Nessuna chiave "
-        "richiesta. Usare per verifiche difensive, non per offuscare URL."
-    ),
+    legal_note="phishtank.legal_note",
     health_check_url="https://data.phishtank.com/data/online-valid.json.gz",
 )
 
@@ -54,7 +52,8 @@ class PhishTankConnector(BaseConnector):
             body = json.loads(raw.decode("utf-8", errors="replace"))
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"PhishTank: {exc}")
+                                   error=_t("generic.error", context.lang,
+                                            service="PhishTank", error=exc))
         result = (body or {}).get("results") or {}
         if not result.get("in_database"):
             return ConnectorResult(connector=self.spec.name, status="ok",
@@ -67,7 +66,7 @@ class PhishTankConnector(BaseConnector):
                 kind="phishtank_match", value=target,
                 confidence=0.95, source_reliability="B", info_credibility=2,
                 severity="high", evidence=ev,
-                notes="URL presente nel database PhishTank di phishing verificato.",
+                notes=_t("phishtank.match_found", context.lang),
             )],
             raw=result,
         )

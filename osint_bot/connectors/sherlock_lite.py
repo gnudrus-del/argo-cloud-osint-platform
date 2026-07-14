@@ -21,6 +21,7 @@ import urllib.error
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -40,7 +41,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=15, per_day=800, burst=2),
-    legal_note="Solo GET verso URL pubbliche. Nessun login o dato PII inviato.",
+    legal_note="sherlock_lite.legal_note",
     health_check_url="",
 )
 
@@ -104,7 +105,7 @@ class SherlockLiteConnector(BaseConnector):
         username = (context.target or "").strip()
         if not username or "/" in username or " " in username:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Username non valido.")
+                                   error=_t("sherlock_lite.invalid_username", context.lang))
 
         per_site_timeout = min(context.timeout, 6)
         results: list[dict] = []
@@ -125,10 +126,8 @@ class SherlockLiteConnector(BaseConnector):
                 kind="social_account", value=r["url"],
                 confidence=0.9, source_reliability="A", info_credibility=1,
                 evidence=[Evidence(url=r["url"], title=f"{r['site']} — {username}")],
-                notes=(f"Profilo pubblico su {r['site']} (detection {r.get('method')} "
-                       f"deterministica). Solo siti ad alta affidabilità: nessun falso "
-                       f"positivo da 200 su SPA."),
-                why_linked=[f"L'username esatto '{username}' risolve a un profilo su {r['site']}"],
+                notes=_t("sherlock_lite.profile_found", context.lang, site=r["site"], method=r.get("method")),
+                why_linked=[_t("sherlock_lite.why_linked", context.lang, username=username, site=r["site"])],
             ))
         return ConnectorResult(
             connector=self.spec.name, status="ok",

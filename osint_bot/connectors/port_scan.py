@@ -13,6 +13,7 @@ from __future__ import annotations
 import concurrent.futures as _cf
 import socket
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_ACTIVE_GATED,
     BaseConnector,
@@ -32,7 +33,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=300,
     rate_limit=RateLimit(per_minute=6, per_day=200, burst=1),
-    legal_note="Attivo: apre connessioni TCP al target. Solo con scope autorizzato.",
+    legal_note="port_scan.legal_note",
     health_check_url="",
 )
 
@@ -80,12 +81,12 @@ class PortScanConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         target = (context.target or "").strip()
         if not target:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Target vuoto.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("port_scan.empty_target", context.lang))
         # risolvi hostname -> IP (accetta anche IP diretto)
         ip = target if target.replace(".", "").isdigit() else _resolve(target)
         if not ip:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Impossibile risolvere {target}.")
+                                   error=_t("port_scan.resolve_failed", context.lang, target=target))
 
         per_port_timeout = 1.5
         open_ports: list[dict] = []
@@ -101,11 +102,11 @@ class PortScanConnector(BaseConnector):
             port = op["port"]
             svc = _PORTS.get(port, "?")
             risky = port in _RISKY
-            note = f"Porta {port}/{svc} aperta su {ip}."
+            note = _t("port_scan.port_open", context.lang, port=port, svc=svc, ip=ip)
             if op["banner"]:
-                note += f" Banner: {op['banner']}"
+                note += " " + _t("port_scan.banner", context.lang, banner=op["banner"])
             if risky:
-                note += " ⚠ servizio potenzialmente sensibile esposto."
+                note += " " + _t("port_scan.risky", context.lang)
             findings.append(Finding(
                 kind="open_port", value=f"{ip}:{port} ({svc})",
                 confidence=0.95, source_reliability="A", info_credibility=1,

@@ -5,6 +5,7 @@ import json
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -26,20 +27,21 @@ _SPEC = ConnectorSpec(
 )
 _CDX = "http://web.archive.org/cdx/search/cdx"
 
-# URL patterns that suggest interesting/sensitive endpoints
+# URL patterns that suggest interesting/sensitive endpoints.
+# The 4th tuple element is a catalog key for the user-facing description.
 _INTERESTING_PATTERNS = [
-    (".env", "red_team_exposed_path", "high", "File .env storicizzato da Wayback", ["T1552.001"]),
-    (".git/config", "red_team_exposed_path", "high", "Git config storicizzato", ["T1552.001"]),
-    ("/admin", "wayback_admin_path", "medium", "Path admin storicizzato", ["T1078"]),
-    ("/backup", "wayback_backup_path", "medium", "Backup path storicizzato", ["T1530"]),
-    ("/wp-admin", "wayback_admin_path", "medium", "WP admin storicizzato", ["T1078"]),
-    ("/phpinfo", "red_team_exposed_path", "medium", "phpinfo storicizzato", ["T1082"]),
-    ("/api/", "wayback_api_endpoint", "low", "API endpoint storicizzato", ["T1590"]),
-    ("/swagger", "wayback_api_endpoint", "medium", "Swagger UI storicizzato", ["T1590"]),
-    ("/actuator", "wayback_api_endpoint", "high", "Spring Actuator storicizzato", ["T1082"]),
-    ("password", "wayback_credential_hint", "high", "URL con 'password' in path/query", ["T1552"]),
-    ("token=", "wayback_credential_hint", "high", "Token in query string storicizzato", ["T1528"]),
-    ("apikey=", "wayback_credential_hint", "high", "API key in query string storicizzato", ["T1552.001"]),
+    (".env", "red_team_exposed_path", "high", "wayback.desc_env", ["T1552.001"]),
+    (".git/config", "red_team_exposed_path", "high", "wayback.desc_git_config", ["T1552.001"]),
+    ("/admin", "wayback_admin_path", "medium", "wayback.desc_admin", ["T1078"]),
+    ("/backup", "wayback_backup_path", "medium", "wayback.desc_backup", ["T1530"]),
+    ("/wp-admin", "wayback_admin_path", "medium", "wayback.desc_wp_admin", ["T1078"]),
+    ("/phpinfo", "red_team_exposed_path", "medium", "wayback.desc_phpinfo", ["T1082"]),
+    ("/api/", "wayback_api_endpoint", "low", "wayback.desc_api", ["T1590"]),
+    ("/swagger", "wayback_api_endpoint", "medium", "wayback.desc_swagger", ["T1590"]),
+    ("/actuator", "wayback_api_endpoint", "high", "wayback.desc_actuator", ["T1082"]),
+    ("password", "wayback_credential_hint", "high", "wayback.desc_password", ["T1552"]),
+    ("token=", "wayback_credential_hint", "high", "wayback.desc_token", ["T1528"]),
+    ("apikey=", "wayback_credential_hint", "high", "wayback.desc_apikey", ["T1552.001"]),
 ]
 
 
@@ -71,7 +73,7 @@ class WaybackConnector(BaseConnector):
         try:
             rows = json.loads(raw)
         except Exception:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Risposta CDX non valida.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("wayback.invalid_response", ctx.lang))
 
         if not rows or not isinstance(rows, list):
             return ConnectorResult(connector=self.spec.name, status="ok", findings=[], raw={"urls": 0})
@@ -91,11 +93,12 @@ class WaybackConnector(BaseConnector):
             ts = row[2] if len(row) > 2 else ""
             orig_lower = orig_url.lower()
 
-            for pattern, kind, severity, desc, ttps in _INTERESTING_PATTERNS:
+            for pattern, kind, severity, desc_key, ttps in _INTERESTING_PATTERNS:
                 if pattern in orig_lower:
                     key = f"{kind}:{orig_url[:80]}"
                     if key not in seen:
                         seen.add(key)
+                        desc = _t(desc_key, ctx.lang)
                         snap_url = f"https://web.archive.org/web/{ts}/{orig_url}" if ts else orig_url
                         findings.append(Finding(
                             kind=kind,
@@ -103,10 +106,10 @@ class WaybackConnector(BaseConnector):
                             confidence=0.60,
                             severity=severity,
                             attck_ttps=ttps,
-                            remediation=f"Verificare se l'URL è ancora accessibile. {desc}.",
+                            remediation=_t("wayback.remediation", ctx.lang, desc=desc),
                             source_reliability="C", info_credibility=3,
                             evidence=[Evidence(url=snap_url, title="Wayback Machine CDX")],
-                            notes=f"URL storicizzata da Wayback: {desc}.",
+                            notes=_t("wayback.notes_url", ctx.lang, desc=desc),
                         ))
                     if kind not in interesting_found:
                         interesting_found[kind] = []
@@ -121,7 +124,7 @@ class WaybackConnector(BaseConnector):
             confidence=0.90,
             source_reliability="B", info_credibility=2,
             evidence=[Evidence(url=f"https://web.archive.org/web/*/{domain}", title="Wayback Machine")],
-            notes=f"Wayback Machine ha {len(all_urls)} snapshot per {domain} (200 OK, collassati per URL).",
+            notes=_t("wayback.snapshot_count", ctx.lang, count=len(all_urls), domain=domain),
         ))
 
         return ConnectorResult(connector=self.spec.name, status="ok", findings=findings[:60],

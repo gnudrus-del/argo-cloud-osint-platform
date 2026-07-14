@@ -8,7 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/app.css">
+    <link rel="stylesheet" href="/app.css?v=i18n2">
+    <script src="/i18n.js?v=i18n2" defer></script>
   </head>
   <body>
     <section id="authScreen" class="authScreen landing">
@@ -27,39 +28,40 @@
           <strong class="brandWordmark"><span class="brand-ink">Argo</span> <span class="brand-gold">Cloud</span></strong>
         </a>
         <nav class="landingNavLinks">
-          <a href="#why">Perché Argo</a>
-          <a href="#how">Come funziona</a>
-          <a href="#stack">Motore</a>
-          <a href="#start" class="landingNavCta">Inizia</a>
+          <a href="#why" data-i18n="nav.why">Perché Argo</a>
+          <a href="#how" data-i18n="nav.how">Come funziona</a>
+          <a href="#stack" data-i18n="nav.stack">Motore</a>
+          <a href="#start" class="landingNavCta" data-i18n="nav.start">Inizia</a>
+          <button type="button" class="langSwitch" aria-label="Cambia lingua">EN</button>
         </nav>
       </header>
 
       <!-- HERO -->
       <section class="hero" id="top">
-        <p class="heroEyebrow reveal">Open Source Intelligence · GDPR-oriented · court-ready</p>
+        <p class="heroEyebrow reveal" data-i18n="hero.eyebrow">Open Source Intelligence · GDPR-oriented · court-ready</p>
         <h1 class="heroTitle heroTitle--wow">
-          <span class="heroWord heroWord--vanish reveal delay-1" data-text="Traccia">Traccia</span>
-          <span class="heroWord heroWord--vanish reveal delay-2" data-text="ogni">ogni</span>
-          <span class="heroWord heroWord--vanish reveal delay-3" data-text="indizio.">indizio.</span>
+          <span class="heroWord heroWord--vanish reveal delay-1" data-text="Traccia" data-i18n="hero.w1" data-i18n-attr="data-text:hero.w1">Traccia</span>
+          <span class="heroWord heroWord--vanish reveal delay-2" data-text="ogni" data-i18n="hero.w2" data-i18n-attr="data-text:hero.w2">ogni</span>
+          <span class="heroWord heroWord--vanish reveal delay-3" data-text="indizio." data-i18n="hero.w3" data-i18n-attr="data-text:hero.w3">indizio.</span>
           <br>
-          <span class="heroWord heroWord--vanish reveal delay-4" data-text="Non">Non</span>
-          <span class="heroWord heroWord--vanish reveal delay-5" data-text="lasci">lasci</span>
-          <span class="heroWord heroWord--vanish reveal delay-6" data-text="traccia.">traccia.</span>
+          <span class="heroWord heroWord--vanish reveal delay-4" data-text="Non" data-i18n="hero.w4" data-i18n-attr="data-text:hero.w4">Non</span>
+          <span class="heroWord heroWord--vanish reveal delay-5" data-text="lasci" data-i18n="hero.w5" data-i18n-attr="data-text:hero.w5">lasci</span>
+          <span class="heroWord heroWord--vanish reveal delay-6" data-text="traccia." data-i18n="hero.w6" data-i18n-attr="data-text:hero.w6">traccia.</span>
         </h1>
-        <p class="heroLead reveal delay-7">
+        <p class="heroLead reveal delay-7" data-i18n="hero.lead">
           Argo è il motore OSINT italiano privacy-by-design.
           58 connettori nativi, ricerca aggregata, report court-ready.
           Zero dati inviati a servizi cloud terzi.
         </p>
         <div class="heroCtas reveal delay-8">
           <a href="#start" class="heroCta heroCta--primary">
-            Prova gratis
+            <span data-i18n="hero.cta.primary">Prova gratis</span>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </a>
-          <a href="#how" class="heroCta heroCta--ghost">Come funziona</a>
+          <a href="#how" class="heroCta heroCta--ghost" data-i18n="hero.cta.ghost">Come funziona</a>
         </div>
         <div class="heroScrollHint reveal delay-9" aria-hidden="true">
-          <span>Scorri</span>
+          <span data-i18n="hero.scroll">Scorri</span>
           <span class="heroScrollLine"></span>
         </div>
       </section>
@@ -67,37 +69,37 @@
       <!-- STICKY MARQUEE: numeri chiave che scorrono al posto delle "logos" -->
       <section class="marquee" aria-label="Numeri chiave">
         <div class="marqueeTrack">
-          <span>58 connettori nativi</span>
+          <span data-i18n="mq.connectors">58 connettori nativi</span>
           <span>·</span>
-          <span>Zero SaaS obbligatori</span>
+          <span data-i18n="mq.saas">Zero SaaS obbligatori</span>
           <span>·</span>
-          <span>Audit chain SHA-256</span>
+          <span data-i18n="mq.audit">Audit chain SHA-256</span>
           <span>·</span>
-          <span>Report STIX 2.1 · MISP</span>
+          <span data-i18n="mq.report">Report STIX 2.1 · MISP</span>
           <span>·</span>
-          <span>GDPR + RoE</span>
+          <span data-i18n="mq.gdpr">GDPR + RoE</span>
           <span>·</span>
-          <span>Codice open source Apache 2.0</span>
+          <span data-i18n="mq.license">Codice open source Apache 2.0</span>
           <span>·</span>
-          <span>58 connettori nativi</span>
+          <span data-i18n="mq.connectors">58 connettori nativi</span>
           <span>·</span>
-          <span>Zero SaaS obbligatori</span>
+          <span data-i18n="mq.saas">Zero SaaS obbligatori</span>
           <span>·</span>
-          <span>Audit chain SHA-256</span>
+          <span data-i18n="mq.audit">Audit chain SHA-256</span>
           <span>·</span>
-          <span>Report STIX 2.1 · MISP</span>
+          <span data-i18n="mq.report">Report STIX 2.1 · MISP</span>
           <span>·</span>
-          <span>GDPR + RoE</span>
+          <span data-i18n="mq.gdpr">GDPR + RoE</span>
           <span>·</span>
-          <span>Codice open source Apache 2.0</span>
+          <span data-i18n="mq.license">Codice open source Apache 2.0</span>
         </div>
       </section>
 
       <!-- WHY — sticky reveal 3 blocchi -->
       <section class="why" id="why">
         <div class="whySticky">
-          <p class="sectionKicker">Perché Argo</p>
-          <h2 class="sectionTitle">
+          <p class="sectionKicker" data-i18n="why.kicker">Perché Argo</p>
+          <h2 class="sectionTitle" data-i18n="why.title" data-i18n-html>
             OSINT che <span class="brand-gold">non</span> vende<br>
             i tuoi target.
           </h2>
@@ -105,53 +107,53 @@
         <div class="whyGrid">
           <article class="whyCard revealUp">
             <span class="whyCard__num">01</span>
-            <h3>Nulla lascia la tua VM.</h3>
-            <p>Aggreghiamo fonti pubbliche in locale. Nessun target, nessun caso, nessuna query passa da un provider esterno.</p>
+            <h3 data-i18n="why.c1.h">Nulla lascia la tua VM.</h3>
+            <p data-i18n="why.c1.p">Aggreghiamo fonti pubbliche in locale. Nessun target, nessun caso, nessuna query passa da un provider esterno.</p>
           </article>
           <article class="whyCard revealUp">
             <span class="whyCard__num">02</span>
-            <h3>Prova ogni claim.</h3>
-            <p>Ogni finding porta con sé provenance, hash SHA-256, timestamp e catena audit verificabile. Court-ready per default.</p>
+            <h3 data-i18n="why.c2.h">Prova ogni claim.</h3>
+            <p data-i18n="why.c2.p">Ogni finding porta con sé provenance, hash SHA-256, timestamp e catena audit verificabile. Court-ready per default.</p>
           </article>
           <article class="whyCard revealUp">
             <span class="whyCard__num">03</span>
-            <h3>Compliance nel design.</h3>
-            <p>Rules of Engagement per ogni caso, base giuridica documentata, DSAR built-in, cancellazione tombstonata.</p>
+            <h3 data-i18n="why.c3.h">Compliance nel design.</h3>
+            <p data-i18n="why.c3.p">Rules of Engagement per ogni caso, base giuridica documentata, DSAR built-in, cancellazione tombstonata.</p>
           </article>
         </div>
       </section>
 
       <!-- HOW — 4 step con progress a sinistra -->
       <section class="how" id="how">
-        <p class="sectionKicker">Come funziona</p>
-        <h2 class="sectionTitle">Da un'entità <span class="brand-gold">a un report</span> in 4 mosse.</h2>
+        <p class="sectionKicker" data-i18n="how.kicker">Come funziona</p>
+        <h2 class="sectionTitle" data-i18n="how.title" data-i18n-html>Da un'entità <span class="brand-gold">a un report</span> in 4 mosse.</h2>
         <ol class="howSteps">
           <li class="howStep revealUp">
             <span class="howStep__index">01</span>
             <div>
-              <h3>Apri un caso</h3>
-              <p>Base giuridica, scope autorizzato, collaboratori. Nulla parte senza mandato.</p>
+              <h3 data-i18n="how.s1.h">Apri un caso</h3>
+              <p data-i18n="how.s1.p">Base giuridica, scope autorizzato, collaboratori. Nulla parte senza mandato.</p>
             </div>
           </li>
           <li class="howStep revealUp">
             <span class="howStep__index">02</span>
             <div>
-              <h3>Cerca l'entità</h3>
-              <p>Email, telefono, username, dominio, wallet, IP. Argo sceglie i 58 connettori giusti.</p>
+              <h3 data-i18n="how.s2.h">Cerca l'entità</h3>
+              <p data-i18n="how.s2.p">Email, telefono, username, dominio, wallet, IP. Argo sceglie i 58 connettori giusti.</p>
             </div>
           </li>
           <li class="howStep revealUp">
             <span class="howStep__index">03</span>
             <div>
-              <h3>Verifica le fonti</h3>
-              <p>Grafo entità-relazioni, scoring Admiralty, corroborazioni cross-source, why_linked.</p>
+              <h3 data-i18n="how.s3.h">Verifica le fonti</h3>
+              <p data-i18n="how.s3.p">Grafo entità-relazioni, scoring Admiralty, corroborazioni cross-source, why_linked.</p>
             </div>
           </li>
           <li class="howStep revealUp">
             <span class="howStep__index">04</span>
             <div>
-              <h3>Genera il report</h3>
-              <p>PDF forense a 19 sezioni · JSON · Markdown · STIX 2.1 · MISP event. Audit chain firmata.</p>
+              <h3 data-i18n="how.s4.h">Genera il report</h3>
+              <p data-i18n="how.s4.p">PDF forense a 19 sezioni · JSON · Markdown · STIX 2.1 · MISP event. Audit chain firmata.</p>
             </div>
           </li>
         </ol>
@@ -159,43 +161,43 @@
 
       <!-- STACK — mosaic di categorie connettori -->
       <section class="stack" id="stack">
-        <p class="sectionKicker">Il motore</p>
-        <h2 class="sectionTitle"><span class="brand-gold">58</span> connettori. Un solo motore.</h2>
+        <p class="sectionKicker" data-i18n="stack.kicker">Il motore</p>
+        <h2 class="sectionTitle" data-i18n="stack.title" data-i18n-html><span class="brand-gold">58</span> connettori. Un solo motore.</h2>
         <div class="stackGrid">
-          <div class="stackCell revealUp"><strong>Email</strong><span>holehe · gravatar · hunter · hibp</span></div>
-          <div class="stackCell revealUp"><strong>Username</strong><span>maigret · sherlock · socid</span></div>
-          <div class="stackCell revealUp"><strong>Telefono</strong><span>ignorant · phone_meta · footprint</span></div>
-          <div class="stackCell revealUp"><strong>Dominio</strong><span>crt.sh · rdap · dns · subdomains · TLS</span></div>
-          <div class="stackCell revealUp"><strong>Rete</strong><span>ASN · shodan · port_scan · fingerprint</span></div>
-          <div class="stackCell revealUp"><strong>Threat intel</strong><span>threatfox · otx · virustotal · misp</span></div>
-          <div class="stackCell revealUp"><strong>Corporate</strong><span>edgar · companies house · opencorp</span></div>
-          <div class="stackCell revealUp"><strong>Reverse</strong><span>ghunt · toutatis · telegram</span></div>
+          <div class="stackCell revealUp"><strong data-i18n="stack.email">Email</strong><span>holehe · gravatar · hunter · hibp</span></div>
+          <div class="stackCell revealUp"><strong data-i18n="stack.username">Username</strong><span>maigret · sherlock · socid</span></div>
+          <div class="stackCell revealUp"><strong data-i18n="stack.phone">Telefono</strong><span>ignorant · phone_meta · footprint</span></div>
+          <div class="stackCell revealUp"><strong data-i18n="stack.domain">Dominio</strong><span>crt.sh · rdap · dns · subdomains · TLS</span></div>
+          <div class="stackCell revealUp"><strong data-i18n="stack.network">Rete</strong><span>ASN · shodan · port_scan · fingerprint</span></div>
+          <div class="stackCell revealUp"><strong data-i18n="stack.threat">Threat intel</strong><span>threatfox · otx · virustotal · misp</span></div>
+          <div class="stackCell revealUp"><strong data-i18n="stack.corporate">Corporate</strong><span>edgar · companies house · opencorp</span></div>
+          <div class="stackCell revealUp"><strong data-i18n="stack.reverse">Reverse</strong><span>ghunt · toutatis · telegram</span></div>
         </div>
       </section>
 
       <!-- DEMO — simulatore live senza login -->
       <section class="demo" id="demo">
-        <p class="sectionKicker">Prova senza registrarti</p>
-        <h2 class="sectionTitle">Un'anteprima. <span class="brand-gold">In 3 secondi.</span></h2>
-        <p class="demoLead">Digita un'email, un dominio o un @username finto. Argo simula una ricerca reale con dati sintetici. Nessuna chiamata di rete verso il target.</p>
+        <p class="sectionKicker" data-i18n="demo.kicker">Prova senza registrarti</p>
+        <h2 class="sectionTitle" data-i18n="demo.title" data-i18n-html>Un'anteprima. <span class="brand-gold">In 3 secondi.</span></h2>
+        <p class="demoLead" data-i18n="demo.lead">Digita un'email, un dominio o un @username finto. Argo simula una ricerca reale con dati sintetici. Nessuna chiamata di rete verso il target.</p>
 
         <div class="demoCard revealUp">
           <div class="demoInputWrap">
             <svg class="demoInputIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input id="demoInput" type="text" placeholder="es. mario.rossi@example.com" autocomplete="off" spellcheck="false">
+            <input id="demoInput" type="text" placeholder="es. mario.rossi@example.com" data-i18n-attr="placeholder:demo.input.ph" autocomplete="off" spellcheck="false">
             <button id="demoRun" type="button" class="demoBtn">
-              <span class="demoBtn__label">Analizza</span>
+              <span class="demoBtn__label" data-i18n="demo.run">Analizza</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </button>
           </div>
-          <p class="demoHint">Provalo con: <button type="button" class="demoChip" data-demo="mario.rossi@example.com">mario.rossi@example.com</button> · <button type="button" class="demoChip" data-demo="@thehackernews">@thehackernews</button> · <button type="button" class="demoChip" data-demo="hackerone.com">hackerone.com</button></p>
+          <p class="demoHint"><span data-i18n="demo.hint">Provalo con:</span> <button type="button" class="demoChip" data-demo="mario.rossi@example.com">mario.rossi@example.com</button> · <button type="button" class="demoChip" data-demo="@thehackernews">@thehackernews</button> · <button type="button" class="demoChip" data-demo="hackerone.com">hackerone.com</button></p>
 
           <div id="demoOutput" class="demoOutput" aria-live="polite">
             <div class="demoIdle">
               <span class="demoIdleDot"></span>
               <span class="demoIdleDot"></span>
               <span class="demoIdleDot"></span>
-              <p>In attesa di un input</p>
+              <p data-i18n="demo.idle">In attesa di un input</p>
             </div>
           </div>
         </div>
@@ -203,58 +205,58 @@
 
       <!-- USE-CASES — profili di riferimento per chi Argo è pensato -->
       <section class="voices" id="voices">
-        <p class="sectionKicker">Casi d'uso previsti</p>
-        <h2 class="sectionTitle">Per chi è pensato <span class="brand-gold">Argo.</span></h2>
-        <p class="voicesLead">I profili qui sotto descrivono i <strong>casi d'uso</strong> per cui il prodotto è stato pensato. Se ti riconosci in uno di questi contesti, probabilmente Argo può aiutarti — e per verificarlo puoi leggere direttamente il <a href="#stack" class="voicesInlineLink">codice</a>.</p>
+        <p class="sectionKicker" data-i18n="voices.kicker">Casi d'uso previsti</p>
+        <h2 class="sectionTitle" data-i18n="voices.title" data-i18n-html>Per chi è pensato <span class="brand-gold">Argo.</span></h2>
+        <p class="voicesLead" data-i18n="voices.lead" data-i18n-html>I profili qui sotto descrivono i <strong>casi d'uso</strong> per cui il prodotto è stato pensato. Se ti riconosci in uno di questi contesti, probabilmente Argo può aiutarti — e per verificarlo puoi leggere direttamente il <a href="#stack" class="voicesInlineLink">codice</a>.</p>
 
         <div class="voicesRotator" aria-roledescription="carousel">
           <div class="voicesTrack" id="voicesTrack">
             <article class="voiceCard is-active">
-              <blockquote>Situazione tipica: analista OSINT indipendente che oggi usa tre servizi cloud e teme la fuoriuscita dei dati d'inchiesta. Con Argo tutto resta sulla propria VM, e la catena audit produce evidenze richiamabili in perizia.</blockquote>
+              <blockquote data-i18n="voices.c1.q">Situazione tipica: analista OSINT indipendente che oggi usa tre servizi cloud e teme la fuoriuscita dei dati d'inchiesta. Con Argo tutto resta sulla propria VM, e la catena audit produce evidenze richiamabili in perizia.</blockquote>
               <footer>
                 <span class="voiceAvatar" style="--vg1:#f5b740;--vg2:#b06ab3">AO</span>
                 <div>
-                  <strong>Analista OSINT indipendente</strong>
-                  <span>Studio investigativo autorizzato</span>
+                  <strong data-i18n="voices.c1.role">Analista OSINT indipendente</strong>
+                  <span data-i18n="voices.c1.org">Studio investigativo autorizzato</span>
                 </div>
               </footer>
             </article>
             <article class="voiceCard">
-              <blockquote>Situazione tipica: SOC/CTI che deve correlare entità sospette senza mandare IoC a terzi. Il grafo entità-relazioni accelera l'attribuzione e il report STIX si integra con un TIP esistente senza modifiche.</blockquote>
+              <blockquote data-i18n="voices.c2.q">Situazione tipica: SOC/CTI che deve correlare entità sospette senza mandare IoC a terzi. Il grafo entità-relazioni accelera l'attribuzione e il report STIX si integra con un TIP esistente senza modifiche.</blockquote>
               <footer>
                 <span class="voiceAvatar" style="--vg1:#4facfe;--vg2:#f5b740">TI</span>
                 <div>
-                  <strong>Threat Intelligence Analyst</strong>
-                  <span>SOC interno di un'organizzazione regolamentata</span>
+                  <strong data-i18n="voices.c2.role">Threat Intelligence Analyst</strong>
+                  <span data-i18n="voices.c2.org">SOC interno di un'organizzazione regolamentata</span>
                 </div>
               </footer>
             </article>
             <article class="voiceCard">
-              <blockquote>Situazione tipica: giornalismo d'inchiesta con esigenza probatoria. La combinazione Rules of Engagement + catena audit permette di rispondere alla domanda "come lo sai" con hash, timestamp e catena immutabile.</blockquote>
+              <blockquote data-i18n="voices.c3.q">Situazione tipica: giornalismo d'inchiesta con esigenza probatoria. La combinazione Rules of Engagement + catena audit permette di rispondere alla domanda "come lo sai" con hash, timestamp e catena immutabile.</blockquote>
               <footer>
                 <span class="voiceAvatar" style="--vg1:#f5b740;--vg2:#4facfe">GI</span>
                 <div>
-                  <strong>Giornalista d'inchiesta</strong>
-                  <span>Freelance o testata indipendente</span>
+                  <strong data-i18n="voices.c3.role">Giornalista d'inchiesta</strong>
+                  <span data-i18n="voices.c3.org">Freelance o testata indipendente</span>
                 </div>
               </footer>
             </article>
             <article class="voiceCard">
-              <blockquote>Situazione tipica: studio legale con obbligo di riservatezza sui dati degli assistiti. L'esecuzione locale garantisce che nulla esca dal perimetro dello studio, e la licenza Apache 2.0 rimuove il costo per numero di casi.</blockquote>
+              <blockquote data-i18n="voices.c4.q">Situazione tipica: studio legale con obbligo di riservatezza sui dati degli assistiti. L'esecuzione locale garantisce che nulla esca dal perimetro dello studio, e la licenza Apache 2.0 rimuove il costo per numero di casi.</blockquote>
               <footer>
                 <span class="voiceAvatar" style="--vg1:#b06ab3;--vg2:#f5b740">SL</span>
                 <div>
-                  <strong>Studio legale (penale/cybercrime)</strong>
-                  <span>Diritto penale, riservatezza contrattuale</span>
+                  <strong data-i18n="voices.c4.role">Studio legale (penale/cybercrime)</strong>
+                  <span data-i18n="voices.c4.org">Diritto penale, riservatezza contrattuale</span>
                 </div>
               </footer>
             </article>
           </div>
-          <div class="voicesDots" role="tablist" aria-label="Naviga tra i casi d'uso">
-            <button type="button" class="voicesDot is-active" data-voice="0" aria-label="Caso d'uso 1"></button>
-            <button type="button" class="voicesDot" data-voice="1" aria-label="Caso d'uso 2"></button>
-            <button type="button" class="voicesDot" data-voice="2" aria-label="Caso d'uso 3"></button>
-            <button type="button" class="voicesDot" data-voice="3" aria-label="Caso d'uso 4"></button>
+          <div class="voicesDots" role="tablist" aria-label="Naviga tra i casi d'uso" data-i18n-attr="aria-label:voices.navAria">
+            <button type="button" class="voicesDot is-active" data-voice="0" aria-label="Caso d'uso 1" data-i18n-attr="aria-label:voices.dotAria1"></button>
+            <button type="button" class="voicesDot" data-voice="1" aria-label="Caso d'uso 2" data-i18n-attr="aria-label:voices.dotAria2"></button>
+            <button type="button" class="voicesDot" data-voice="2" aria-label="Caso d'uso 3" data-i18n-attr="aria-label:voices.dotAria3"></button>
+            <button type="button" class="voicesDot" data-voice="3" aria-label="Caso d'uso 4" data-i18n-attr="aria-label:voices.dotAria4"></button>
           </div>
         </div>
       </section>
@@ -262,34 +264,34 @@
       <!-- FREE FOREVER — box open-source -->
       <section class="freeSection" id="free">
         <div class="freeBox revealUp">
-          <p class="sectionKicker">Uno strumento, non un abbonamento.</p>
-          <h2 class="sectionTitle freeTitle">Nessun <span class="brand-gold">paywall</span>, nessuna scadenza, nessuna telemetria.</h2>
-          <p class="freeLead">Argo è software libero sotto licenza Apache 2.0: lo scarichi, lo installi sulla tua infrastruttura, lo modifichi e — se vuoi — lo redistribuisci. Non contiamo i tuoi casi, i tuoi connettori, le tue ricerche. Nessun trial, nessuna versione "Pro", nessun upselling. Ti chiediamo un'email al momento della registrazione per verificare l'identità dell'account e per poterti raggiungere se emerge una vulnerabilità critica: è l'unica informazione che vediamo, e resta tua.</p>
+          <p class="sectionKicker" data-i18n="free.kicker">Uno strumento, non un abbonamento.</p>
+          <h2 class="sectionTitle freeTitle" data-i18n="free.title" data-i18n-html>Nessun <span class="brand-gold">paywall</span>, nessuna scadenza, nessuna telemetria.</h2>
+          <p class="freeLead" data-i18n="free.lead">Argo è software libero sotto licenza Apache 2.0: lo scarichi, lo installi sulla tua infrastruttura, lo modifichi e — se vuoi — lo redistribuisci. Non contiamo i tuoi casi, i tuoi connettori, le tue ricerche. Nessun trial, nessuna versione "Pro", nessun upselling. Ti chiediamo un'email al momento della registrazione per verificare l'identità dell'account e per poterti raggiungere se emerge una vulnerabilità critica: è l'unica informazione che vediamo, e resta tua.</p>
           <div class="freeGrid">
             <div class="freeCell">
               <span class="freeCell__num">∞</span>
-              <strong>Ricerche</strong>
-              <span>Nessun quota-limit imposto da noi.</span>
+              <strong data-i18n="free.c1.h">Ricerche</strong>
+              <span data-i18n="free.c1.s">Nessun quota-limit imposto da noi.</span>
             </div>
             <div class="freeCell">
               <span class="freeCell__num">58</span>
-              <strong>Connettori</strong>
-              <span>Tutti quelli integrati, subito.</span>
+              <strong data-i18n="free.c2.h">Connettori</strong>
+              <span data-i18n="free.c2.s">Tutti quelli integrati, subito.</span>
             </div>
             <div class="freeCell">
               <span class="freeCell__num">0€</span>
-              <strong>Licenza</strong>
-              <span>Uso commerciale incluso.</span>
+              <strong data-i18n="free.c3.h">Licenza</strong>
+              <span data-i18n="free.c3.s">Uso commerciale incluso.</span>
             </div>
             <div class="freeCell">
               <span class="freeCell__num">100%</span>
-              <strong>Codice ispezionabile</strong>
-              <span>Ogni riga leggibile su GitHub.</span>
+              <strong data-i18n="free.c4.h">Codice ispezionabile</strong>
+              <span data-i18n="free.c4.s">Ogni riga leggibile su GitHub.</span>
             </div>
           </div>
           <div class="freeCtas">
             <a href="#start" class="heroCta heroCta--primary">
-              Prova subito online
+              <span data-i18n="free.cta">Prova subito online</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </a>
           </div>
@@ -298,71 +300,71 @@
 
       <!-- FAQ — accordion accessibile con <details> nativi -->
       <section class="faq" id="faq">
-        <p class="sectionKicker">Domande frequenti</p>
-        <h2 class="sectionTitle">Le cose che <span class="brand-gold">chiedete</span> più spesso.</h2>
+        <p class="sectionKicker" data-i18n="faq.kicker">Domande frequenti</p>
+        <h2 class="sectionTitle" data-i18n="faq.title" data-i18n-html>Le cose che <span class="brand-gold">chiedete</span> più spesso.</h2>
 
         <div class="faqList">
           <details class="faqItem revealUp">
-            <summary>È veramente open source? Anche per uso commerciale?</summary>
-            <div class="faqBody"><p>Sì. Licenza <strong>Apache 2.0</strong>: puoi self-hostare, modificare, distribuire e usare Argo commercialmente. L'unica cosa che ti chiediamo è di mantenere il copyright notice nei file che redistribuisci. Nessun "modello dual", nessun "core+enterprise": <strong>un solo codice, uno solo per tutti</strong>.</p></div>
+            <summary data-i18n="faq.q1">È veramente open source? Anche per uso commerciale?</summary>
+            <div class="faqBody"><p data-i18n="faq.a1" data-i18n-html>Sì. Licenza <strong>Apache 2.0</strong>: puoi self-hostare, modificare, distribuire e usare Argo commercialmente. L'unica cosa che ti chiediamo è di mantenere il copyright notice nei file che redistribuisci. Nessun "modello dual", nessun "core+enterprise": <strong>un solo codice, uno solo per tutti</strong>.</p></div>
           </details>
           <details class="faqItem revealUp">
-            <summary>Come garantite che nessun dato dei miei target finisca da voi?</summary>
-            <div class="faqBody"><p>Non ti chiediamo di installare nulla di nostro come dipendenza runtime. Argo gira <strong>interamente sulla tua VM o macchina</strong>. Non c'è telemetria, non c'è "ping home". Le API BYOK (Shodan, VirusTotal, HIBP, ecc.) le chiami direttamente tu con la tua chiave — noi non le intermediamo. Puoi verificarlo con <code>strace</code> o dal codice.</p></div>
+            <summary data-i18n="faq.q2">Come garantite che nessun dato dei miei target finisca da voi?</summary>
+            <div class="faqBody"><p data-i18n="faq.a2" data-i18n-html>Non ti chiediamo di installare nulla di nostro come dipendenza runtime. Argo gira <strong>interamente sulla tua VM o macchina</strong>. Non c'è telemetria, non c'è "ping home". Le API BYOK (Shodan, VirusTotal, HIBP, ecc.) le chiami direttamente tu con la tua chiave — noi non le intermediamo. Puoi verificarlo con <code>strace</code> o dal codice.</p></div>
           </details>
           <details class="faqItem revealUp">
-            <summary>Come si self-hosta? Serve un ops team?</summary>
-            <div class="faqBody"><p>Setup: <code>git clone</code>, <code>python -m venv</code>, <code>pip install</code>, systemd unit, Caddy davanti per HTTPS. Il repo include <code>deploy_artifacts/</code> con installer, Caddyfile pronto, docker-compose opzionale per Neo4j/Postgres/Redis. <strong>Misure reali dall'istanza demo</strong> (Ubuntu 24.04 su Oracle Cloud, 1 vCPU / 5.9 GB): il processo Argo occupa <strong>~57 MB RSS</strong>, il sistema completo <strong>~700 MB</strong>, la cartella <code>/opt/argo-osint</code> è <strong>109 MB</strong>, load average stabile a 0.00. In teoria basta molto meno di 4 GB, ma non abbiamo ancora misurato l'uso continuativo sotto carico reale. Il nostro primo deploy ha richiesto <strong>~45 minuti</strong> includendo debug della security list Oracle; su una Ubuntu pulita senza sorprese di rete dovrebbe essere sensibilmente più rapido.</p></div>
+            <summary data-i18n="faq.q3">Come si self-hosta? Serve un ops team?</summary>
+            <div class="faqBody"><p data-i18n="faq.a3" data-i18n-html>Setup: <code>git clone</code>, <code>python -m venv</code>, <code>pip install</code>, systemd unit, Caddy davanti per HTTPS. Il repo include <code>deploy_artifacts/</code> con installer, Caddyfile pronto, docker-compose opzionale per Neo4j/Postgres/Redis. <strong>Misure reali dall'istanza demo</strong> (Ubuntu 24.04 su Oracle Cloud, 1 vCPU / 5.9 GB): il processo Argo occupa <strong>~57 MB RSS</strong>, il sistema completo <strong>~700 MB</strong>, la cartella <code>/opt/argo-osint</code> è <strong>109 MB</strong>, load average stabile a 0.00. In teoria basta molto meno di 4 GB, ma non abbiamo ancora misurato l'uso continuativo sotto carico reale. Il nostro primo deploy ha richiesto <strong>~45 minuti</strong> includendo debug della security list Oracle; su una Ubuntu pulita senza sorprese di rete dovrebbe essere sensibilmente più rapido.</p></div>
           </details>
           <details class="faqItem revealUp">
-            <summary>Cos'è la "catena audit court-ready" in pratica?</summary>
-            <div class="faqBody"><p>Ogni evento (login, ricerca, finding, cancellazione) viene appeso a una lista di record. Ogni record contiene: <code>timestamp</code>, <code>actor</code>, <code>action</code>, <code>details</code>, <code>previous_hash</code>, <code>hash</code> (SHA-256 dell'evento + del precedente). Modificare un evento in mezzo alla catena invalida tutti gli hash successivi — <strong>la manomissione è rilevabile con una comando</strong>. È il pattern usato da Certificate Transparency e da Git.</p></div>
+            <summary data-i18n="faq.q4">Cos'è la "catena audit court-ready" in pratica?</summary>
+            <div class="faqBody"><p data-i18n="faq.a4" data-i18n-html>Ogni evento (login, ricerca, finding, cancellazione) viene appeso a una lista di record. Ogni record contiene: <code>timestamp</code>, <code>actor</code>, <code>action</code>, <code>details</code>, <code>previous_hash</code>, <code>hash</code> (SHA-256 dell'evento + del precedente). Modificare un evento in mezzo alla catena invalida tutti gli hash successivi — <strong>la manomissione è rilevabile con una comando</strong>. È il pattern usato da Certificate Transparency e da Git.</p></div>
           </details>
           <details class="faqItem revealUp">
-            <summary>Perché "italiano"? Cosa cambia rispetto ad altri tool OSINT?</summary>
-            <div class="faqBody"><p>Argo nasce con l'idea che l'OSINT professionale in Italia (e in UE) ha requisiti specifici: <strong>GDPR</strong>, <strong>base giuridica documentata per ogni caso</strong>, <strong>Rules of Engagement firmate</strong>, <strong>DSAR pronti</strong>, <strong>retention configurabile</strong>. Non è un tool americano tradotto: è pensato per la compliance italiana ed europea dal giorno zero. UI, documentazione, warning e report escono in italiano nativo.</p></div>
+            <summary data-i18n="faq.q5">Perché "italiano"? Cosa cambia rispetto ad altri tool OSINT?</summary>
+            <div class="faqBody"><p data-i18n="faq.a5" data-i18n-html>Argo nasce con l'idea che l'OSINT professionale in Italia (e in UE) ha requisiti specifici: <strong>GDPR</strong>, <strong>base giuridica documentata per ogni caso</strong>, <strong>Rules of Engagement firmate</strong>, <strong>DSAR pronti</strong>, <strong>retention configurabile</strong>. Non è un tool americano tradotto: è pensato per la compliance italiana ed europea dal giorno zero. UI, documentazione, warning e report escono in italiano nativo.</p></div>
           </details>
           <details class="faqItem revealUp">
-            <summary>Quali connettori posso usare senza pagare nessuno?</summary>
-            <div class="faqBody"><p>Su 58 connettori totali, <strong>43 sono no-key</strong>: crt.sh, RDAP, DNS, TLS cert, Wayback, Gravatar, GDELT, Nominatim, PhishTank, OpenPhish, subdomain enumeration, port scan (attivo, gated), holehe, maigret, telegram checker, ecc. I 15 BYOK (Shodan, VirusTotal, HIBP, ecc.) diventano disponibili nel momento in cui incolli la tua chiave nel tab "Chiavi API".</p></div>
+            <summary data-i18n="faq.q6">Quali connettori posso usare senza pagare nessuno?</summary>
+            <div class="faqBody"><p data-i18n="faq.a6" data-i18n-html>Su 58 connettori totali, <strong>43 sono no-key</strong>: crt.sh, RDAP, DNS, TLS cert, Wayback, Gravatar, GDELT, Nominatim, PhishTank, OpenPhish, subdomain enumeration, port scan (attivo, gated), holehe, maigret, telegram checker, ecc. I 15 BYOK (Shodan, VirusTotal, HIBP, ecc.) diventano disponibili nel momento in cui incolli la tua chiave nel tab "Chiavi API".</p></div>
           </details>
           <details class="faqItem revealUp">
-            <summary>Posso contribuire? Come si aggiunge un connettore?</summary>
-            <div class="faqBody"><p>Sì, PR benvenute. Un connettore è una classe che estende <code>BaseConnector</code>, dichiara uno <code>spec</code> tipizzato (input types, rate limit, cache TTL, legal note) e implementa <code>_fetch()</code>. Con un test offline che simula l'output. Il pattern è documentato in <code>CONTRIBUTING.md</code> con un template minimale. Regole d'oro: passivo di default, degradazione graceful se manca la chiave, nessun servizio SaaS obbligatorio.</p></div>
+            <summary data-i18n="faq.q7">Posso contribuire? Come si aggiunge un connettore?</summary>
+            <div class="faqBody"><p data-i18n="faq.a7" data-i18n-html>Sì, PR benvenute. Un connettore è una classe che estende <code>BaseConnector</code>, dichiara uno <code>spec</code> tipizzato (input types, rate limit, cache TTL, legal note) e implementa <code>_fetch()</code>. Con un test offline che simula l'output. Il pattern è documentato in <code>CONTRIBUTING.md</code> con un template minimale. Regole d'oro: passivo di default, degradazione graceful se manca la chiave, nessun servizio SaaS obbligatorio.</p></div>
           </details>
           <details class="faqItem revealUp">
-            <summary>C'è supporto commerciale? Formazione? Deploy on-premise per aziende?</summary>
-            <div class="faqBody"><p>Il progetto è mantenuto <strong>volontariamente</strong> e non ha ancora una struttura commerciale. Non c'è un canale di supporto paid, non c'è un team che risponde a ticket, non ci sono contratti SLA. Se hai bisogno di deploy assistito o formazione, per ora la strada realistica è farlo internamente col codice open. <strong>Il codice free-and-open resta sempre completamente utilizzabile.</strong></p></div>
+            <summary data-i18n="faq.q8">C'è supporto commerciale? Formazione? Deploy on-premise per aziende?</summary>
+            <div class="faqBody"><p data-i18n="faq.a8" data-i18n-html>Il progetto è mantenuto <strong>volontariamente</strong> e non ha ancora una struttura commerciale. Non c'è un canale di supporto paid, non c'è un team che risponde a ticket, non ci sono contratti SLA. Se hai bisogno di deploy assistito o formazione, per ora la strada realistica è farlo internamente col codice open. <strong>Il codice free-and-open resta sempre completamente utilizzabile.</strong></p></div>
           </details>
         </div>
       </section>
 
       <!-- START — la card auth originale con id preservati -->
       <section class="startSection" id="start">
-        <p class="sectionKicker reveal">Inizia adesso</p>
-        <h2 class="sectionTitle reveal">Crea il tuo account. <span class="brand-gold">Gratis.</span></h2>
-        <p class="startLead reveal">Nessuna carta. Nessuna telemetria. Codice ispezionabile.</p>
+        <p class="sectionKicker reveal" data-i18n="start.kicker">Inizia adesso</p>
+        <h2 class="sectionTitle reveal" data-i18n="start.title" data-i18n-html>Crea il tuo account. <span class="brand-gold">Gratis.</span></h2>
+        <p class="startLead reveal" data-i18n="start.lead">Nessuna carta. Nessuna telemetria. Codice ispezionabile.</p>
 
         <div class="authBox reveal">
           <div class="authBrand">
             <img src="/argo-logo.svg" alt="Argo logo" class="brandLogo">
             <div>
               <h3 class="brandWordmark"><span class="brand-ink">Argo</span> <span class="brand-gold">Cloud</span></h3>
-              <p class="brandTag">Open Source Intelligence</p>
+              <p class="brandTag" data-i18n="auth.tag">Open Source Intelligence</p>
             </div>
           </div>
           <div class="authTabs">
-            <button id="loginTab" class="active" type="button">Accedi</button>
-            <button id="signupTab" type="button">Iscriviti gratis</button>
+            <button id="loginTab" class="active" type="button" data-i18n="auth.login">Accedi</button>
+            <button id="signupTab" type="button" data-i18n="auth.signup">Iscriviti gratis</button>
           </div>
-          <label>Username
+          <label><span data-i18n="auth.user">Username</span>
             <input id="authUser" autocomplete="username" placeholder="analyst">
           </label>
-          <label id="authEmailRow" class="hidden">Email
-            <input id="authEmail" autocomplete="email" type="email" placeholder="nome@example.com">
+          <label id="authEmailRow" class="hidden"><span data-i18n="auth.email">Email</span>
+            <input id="authEmail" autocomplete="email" type="email" placeholder="nome@example.com" data-i18n-attr="placeholder:auth.email.ph">
           </label>
-          <label>Password
-            <input id="authPass" autocomplete="current-password" type="password" placeholder="minimo 12 caratteri">
+          <label><span data-i18n="auth.pass">Password</span>
+            <input id="authPass" autocomplete="current-password" type="password" placeholder="minimo 12 caratteri" data-i18n-attr="placeholder:auth.pass.ph">
           </label>
           <button id="authSubmit" type="button">Accedi</button>
           <p id="authMessage" class="authMessage"></p>
@@ -370,13 +372,13 @@
       </section>
 
       <footer class="landingFoot">
-        <span><strong>Argo OSINT</strong> — la piattaforma investigativa che rimane tua.</span>
+        <span data-i18n="foot.tag" data-i18n-html><strong>Argo OSINT</strong> — la piattaforma investigativa che rimane tua.</span>
         <span>·</span>
-        <span>Open source Apache 2.0</span>
+        <span data-i18n="foot.license">Open source Apache 2.0</span>
         <span>·</span>
-        <span>Progettata privacy-first</span>
+        <span data-i18n="foot.privacy">Progettata privacy-first</span>
         <span>·</span>
-        <span>Ingegneria italiana, standard internazionali</span>
+        <span data-i18n="foot.eng">Ingegneria italiana, standard internazionali</span>
       </footer>
     </section>
 
@@ -392,56 +394,57 @@
         <nav>
           <button class="nav active" data-panel="dashboard">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 13h7V4H4zM13 21h7V8h-7zM4 21h7v-5H4zM13 4v2h7V4z"/></svg>
-            Dashboard
+            <span data-i18n="side.dashboard">Dashboard</span>
           </button>
           <button class="nav" data-panel="cases">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10a2 2 0 0 1-2 2H3z"/></svg>
-            Casi
+            <span data-i18n="side.cases">Casi</span>
           </button>
           <button class="nav" data-panel="investigate">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4z"/></svg>
-            Ricerca
+            <span data-i18n="side.investigate">Ricerca</span>
           </button>
           <button class="nav" data-panel="jobs">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14v4H5zM5 12h14v7H5z"/></svg>
-            Report
+            <span data-i18n="side.jobs">Report</span>
           </button>
           <button class="nav" data-panel="media">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 13l2.5-2.5L16 16"/></svg>
-            Media
+            <span data-i18n="side.media">Media</span>
           </button>
           <button class="nav" data-panel="keys">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 8a4 4 0 1 1-3.6 5.7L4 20h3v-3h3v-3l.4-.4A4 4 0 0 1 14 8z"/></svg>
-            Chiavi API
+            <span data-i18n="side.keys">Chiavi API</span>
           </button>
           <button class="nav" data-panel="entity">
             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            Profilo
+            <span data-i18n="side.entity">Profilo</span>
           </button>
           <button class="nav" data-panel="opsec">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V7l8-4z"/><path d="M9 12l2 2 4-5"/></svg>
-            OPSEC
+            <span data-i18n="side.opsec">OPSEC</span>
           </button>
           <button class="nav" data-panel="privacy">
             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Privacy
+            <span data-i18n="side.privacy">Privacy</span>
           </button>
         </nav>
         <div class="status">
           <span id="healthDot"></span>
           <span id="healthText">API</span>
+          <button type="button" class="langSwitch langSwitch--side" aria-label="Cambia lingua">EN</button>
         </div>
-        <button id="logoutBtn" class="logout" type="button">Esci</button>
+        <button id="logoutBtn" class="logout" type="button" data-i18n="side.logout">Esci</button>
       </aside>
 
       <main>
         <section class="topbar">
           <div>
-            <h1>Nuova ricerca</h1>
-            <p>Compila i dati. Le aree sono tutte attive: spunta solo deep/dark web o red team se servono.</p>
+            <h1 data-i18n="topbar.title">Nuova ricerca</h1>
+            <p data-i18n="topbar.sub">Compila i dati. Le aree sono tutte attive: spunta solo deep/dark web o red team se servono.</p>
           </div>
           <div class="topActions">
-            <button id="refreshJobs" class="iconButton" title="Aggiorna report">
+            <button id="refreshJobs" class="iconButton" title="Aggiorna report" data-i18n-attr="title:topbar.refresh">
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v6h-6"/></svg>
             </button>
           </div>
@@ -449,49 +452,49 @@
 
         <section id="panel-dashboard" class="panel active">
           <section class="surface heroSearch">
-            <h2 class="heroTitle">Motore OSINT per ricerche autorizzate</h2>
-            <p class="heroSub">Cerca una entità — nome, username, email, telefono, dominio, azienda, IP o wallet — e Argo aggrega le fonti pubbliche in un profilo verificabile.</p>
+            <h2 class="heroTitle" data-i18n="dash.heroTitle">Motore OSINT per ricerche autorizzate</h2>
+            <p class="heroSub" data-i18n="dash.heroSub">Cerca una entità — nome, username, email, telefono, dominio, azienda, IP o wallet — e Argo aggrega le fonti pubbliche in un profilo verificabile.</p>
             <div class="globalSearchBar">
               <div class="globalSearchInputWrap">
                 <svg class="globalSearchIcon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4z"/></svg>
-                <input id="globalSearch" type="search" autocomplete="off" placeholder="es. mario.rossi@example.com · @username · example.com · +39 333… · bc1q…">
-                <span id="detectedType" class="detectedType muted">tipo: —</span>
+                <input id="globalSearch" type="search" autocomplete="off" placeholder="es. mario.rossi@example.com · @username · example.com · +39 333… · bc1q…" data-i18n-attr="placeholder:dash.search.ph">
+                <span id="detectedType" class="detectedType muted" data-i18n="dash.detectedType">tipo: —</span>
               </div>
-              <select id="dashCase" title="Caso a cui collegare la ricerca">
-                <option value="">— Caso (auto) —</option>
+              <select id="dashCase" title="Caso a cui collegare la ricerca" data-i18n-attr="title:dash.caseSelectTitle">
+                <option value="" data-i18n="dash.caseAuto">— Caso (auto) —</option>
               </select>
-              <button id="globalSearchBtn" type="button">Cerca</button>
+              <button id="globalSearchBtn" type="button" data-i18n="dash.searchBtn">Cerca</button>
             </div>
-            <p class="heroLegal">⚖️ Usare solo per attività lecite, autorizzate o con base giuridica documentata. Per email, telefoni e dati personali serve un caso con base giuridica.</p>
-            <ol class="onboarding" aria-label="Come funziona">
-              <li><span class="obNum">1</span> Crea caso</li>
-              <li><span class="obNum">2</span> Base giuridica</li>
-              <li><span class="obNum">3</span> Cerca entità</li>
-              <li><span class="obNum">4</span> Verifica fonti</li>
-              <li><span class="obNum">5</span> Genera report</li>
+            <p class="heroLegal" data-i18n="dash.heroLegal">⚖️ Usare solo per attività lecite, autorizzate o con base giuridica documentata. Per email, telefoni e dati personali serve un caso con base giuridica.</p>
+            <ol class="onboarding" aria-label="Come funziona" data-i18n-attr="aria-label:dash.onboarding">
+              <li><span class="obNum">1</span> <span data-i18n="dash.ob1">Crea caso</span></li>
+              <li><span class="obNum">2</span> <span data-i18n="dash.ob2">Base giuridica</span></li>
+              <li><span class="obNum">3</span> <span data-i18n="dash.ob3">Cerca entità</span></li>
+              <li><span class="obNum">4</span> <span data-i18n="dash.ob4">Verifica fonti</span></li>
+              <li><span class="obNum">5</span> <span data-i18n="dash.ob5">Genera report</span></li>
             </ol>
           </section>
 
           <div class="dashGrid">
             <section class="surface dashStats">
-              <div class="surfaceHead"><h2>Stato job</h2><span id="dashJobTotal" class="tag muted">0</span></div>
-              <div class="statTiles" id="dashStats">Carico…</div>
+              <div class="surfaceHead"><h2 data-i18n="dash.jobStatus">Stato job</h2><span id="dashJobTotal" class="tag muted">0</span></div>
+              <div class="statTiles" id="dashStats" data-i18n="common.loading">Carico…</div>
             </section>
             <section class="surface">
-              <div class="surfaceHead"><h2>Copertura fonti</h2><span id="dashCoverageTag" class="tag muted">—</span></div>
-              <div id="dashCoverage" class="coverageBox">Carico…</div>
+              <div class="surfaceHead"><h2 data-i18n="dash.coverage">Copertura fonti</h2><span id="dashCoverageTag" class="tag muted">—</span></div>
+              <div id="dashCoverage" class="coverageBox" data-i18n="common.loading">Carico…</div>
             </section>
             <section class="surface dashWarn">
-              <div class="surfaceHead"><h2>Avvisi privacy / compliance</h2></div>
-              <div id="dashWarnings" class="warnBox">Carico…</div>
+              <div class="surfaceHead"><h2 data-i18n="dash.warnings">Avvisi privacy / compliance</h2></div>
+              <div id="dashWarnings" class="warnBox" data-i18n="common.loading">Carico…</div>
             </section>
             <section class="surface">
-              <div class="surfaceHead"><h2>Casi recenti</h2><span id="dashCasesTag" class="tag muted">0</span></div>
-              <div id="dashCases" class="jobs">Carico…</div>
+              <div class="surfaceHead"><h2 data-i18n="dash.recentCases">Casi recenti</h2><span id="dashCasesTag" class="tag muted">0</span></div>
+              <div id="dashCases" class="jobs" data-i18n="common.loading">Carico…</div>
             </section>
             <section class="surface">
-              <div class="surfaceHead"><h2>Report recenti</h2><span id="dashJobsTag" class="tag muted">0</span></div>
-              <div id="dashJobs" class="jobs">Carico…</div>
+              <div class="surfaceHead"><h2 data-i18n="dash.recentReports">Report recenti</h2><span id="dashJobsTag" class="tag muted">0</span></div>
+              <div id="dashJobs" class="jobs" data-i18n="common.loading">Carico…</div>
             </section>
           </div>
           <!-- Metriche riservate all'amministratore (popolate solo se sbloccato). -->
@@ -504,56 +507,56 @@
           <div class="grid two casesLayout">
             <section class="surface">
               <div class="surfaceHead">
-                <h2>I tuoi casi</h2>
+                <h2 data-i18n="cases.yours">I tuoi casi</h2>
                 <span id="casesCount" class="tag muted">0</span>
               </div>
-              <p class="modeHint">Ogni indagine e un <strong>caso</strong>. Specifica titolo, base giuridica e finalità. I job che lanci in Ricerca finiscono dentro il caso selezionato qui.</p>
-              <div id="casesList" class="jobs">Carico…</div>
+              <p class="modeHint" data-i18n="cases.hint" data-i18n-html>Ogni indagine e un <strong>caso</strong>. Specifica titolo, base giuridica e finalità. I job che lanci in Ricerca finiscono dentro il caso selezionato qui.</p>
+              <div id="casesList" class="jobs" data-i18n="common.loading">Carico…</div>
             </section>
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Nuovo caso</h2>
+                <h2 data-i18n="cases.new">Nuovo caso</h2>
                 <span class="tag">trust-first</span>
               </div>
-              <label>Titolo
-                <input id="caseTitle" placeholder="Esempio: Recon perimetro example.com — ingaggio 2026/03">
+              <label><span data-i18n="cases.title">Titolo</span>
+                <input id="caseTitle" placeholder="Esempio: Recon perimetro example.com — ingaggio 2026/03" data-i18n-attr="placeholder:cases.title.ph">
               </label>
-              <label>Finalità
-                <textarea id="casePurpose" rows="3" placeholder="Perché stai facendo questa indagine? (per la finalità GDPR e per il RoPA esportabile)"></textarea>
+              <label><span data-i18n="cases.purpose">Finalità</span>
+                <textarea id="casePurpose" rows="3" placeholder="Perché stai facendo questa indagine? (per la finalità GDPR e per il RoPA esportabile)" data-i18n-attr="placeholder:cases.purpose.ph"></textarea>
               </label>
               <div class="formGrid">
-                <label>Base giuridica — tipo
+                <label><span data-i18n="cases.legalType">Base giuridica — tipo</span>
                   <select id="caseLegalType">
-                    <option value="consent">Consenso</option>
-                    <option value="contract">Contratto / ingaggio firmato</option>
-                    <option value="legitimate_interest">Interesse legittimo</option>
-                    <option value="legal_obligation">Obbligo di legge</option>
-                    <option value="public_task">Compito di interesse pubblico</option>
-                    <option value="vital_interest">Interesse vitale</option>
-                    <option value="unspecified">Non specificata (sconsigliato)</option>
+                    <option value="consent" data-i18n="cases.legal.consent">Consenso</option>
+                    <option value="contract" data-i18n="cases.legal.contract">Contratto / ingaggio firmato</option>
+                    <option value="legitimate_interest" data-i18n="cases.legal.li">Interesse legittimo</option>
+                    <option value="legal_obligation" data-i18n="cases.legal.obligation">Obbligo di legge</option>
+                    <option value="public_task" data-i18n="cases.legal.public">Compito di interesse pubblico</option>
+                    <option value="vital_interest" data-i18n="cases.legal.vital">Interesse vitale</option>
+                    <option value="unspecified" data-i18n="cases.legal.unspecified">Non specificata (sconsigliato)</option>
                   </select>
                 </label>
-                <label>Riferimento mandato / contratto
-                  <input id="caseLegalRef" placeholder="Esempio: SOW-2026-018">
+                <label><span data-i18n="cases.legalRef">Riferimento mandato / contratto</span>
+                  <input id="caseLegalRef" placeholder="Esempio: SOW-2026-018" data-i18n-attr="placeholder:cases.legalRef.ph">
                 </label>
               </div>
-              <label>Collaboratori (username separati da virgola)
+              <label><span data-i18n="cases.collabs">Collaboratori (username separati da virgola)</span>
                 <input id="caseCollabs" placeholder="bob, carol">
               </label>
-              <label>Retention fino al (opzionale, ISO date)
+              <label><span data-i18n="cases.retention">Retention fino al (opzionale, ISO date)</span>
                 <input id="caseRetention" placeholder="2026-12-31">
               </label>
-              <label class="wideLabel">Scope autorizzato (una voce per riga)
+              <label class="wideLabel"><span data-i18n="cases.scope">Scope autorizzato (una voce per riga)</span>
                 <textarea id="caseAllowedTargets" rows="4" placeholder="example.com&#10;*.acme.com&#10;10.0.0.0/24&#10;https://app.example.com/&#10;@username"></textarea>
               </label>
-              <p class="modeHint">
+              <p class="modeHint" data-i18n="cases.scopeHint" data-i18n-html>
                 Formati ammessi: <code>dominio</code>, <code>*.dominio</code>,
                 <code>IP</code>, <code>CIDR</code>, <code>URL</code>, <code>@handle</code>.
                 Solo i target in questa lista possono essere bersaglio di moduli Red Team /
                 active recon. Vuoto = nessun modulo invasivo abilitato.
               </p>
               <div class="actions">
-                <button id="caseCreateBtn" type="button">Crea caso</button>
+                <button id="caseCreateBtn" type="button" data-i18n="cases.create">Crea caso</button>
               </div>
               <p id="caseCreateMsg" class="authMessage"></p>
             </section>
@@ -564,37 +567,37 @@
           <div class="investigateLayout">
             <section class="surface investigateMain">
               <header class="formHero">
-                <h2 class="formTitle">Nuova ricerca</h2>
-                <p class="formLead">Scegli il tipo, inserisci il valore. Il resto lo decide Argo.</p>
+                <h2 class="formTitle" data-i18n="inv.title">Nuova ricerca</h2>
+                <p class="formLead" data-i18n="inv.lead">Scegli il tipo, inserisci il valore. Il resto lo decide Argo.</p>
               </header>
 
               <!-- 1. CASO (obbligatorio) -->
               <div class="formStep">
                 <span class="stepNum">1</span>
-                <label class="wideLabel">Caso di indagine
-                  <select id="currentCase"><option value="">— seleziona un caso —</option></select>
+                <label class="wideLabel"><span data-i18n="inv.caseLabel">Caso di indagine</span>
+                  <select id="currentCase"><option value="" data-i18n="inv.caseSelect">— seleziona un caso —</option></select>
                 </label>
-                <p class="formHelp">Per dati personali (email, telefono, persona) il caso con base giuridica è obbligatorio.</p>
+                <p class="formHelp" data-i18n="inv.caseHelp">Per dati personali (email, telefono, persona) il caso con base giuridica è obbligatorio.</p>
               </div>
 
               <!-- 2. TIPO + VALORE -->
               <div class="formStep">
                 <span class="stepNum">2</span>
-                <div class="quickModes" aria-label="Tipo di ricerca">
+                <div class="quickModes" aria-label="Tipo di ricerca" data-i18n-attr="aria-label:inv.modesAria">
                   <button class="quickMode active" data-mode="handle" type="button">
-                    <span class="qmIcon">@</span><span>Username</span>
+                    <span class="qmIcon">@</span><span data-i18n="inv.mode.username">Username</span>
                   </button>
                   <button class="quickMode" data-mode="domain" type="button">
-                    <span class="qmIcon">🌐</span><span>Dominio / Azienda</span>
+                    <span class="qmIcon">🌐</span><span data-i18n="inv.mode.domain">Dominio / Azienda</span>
                   </button>
                   <button class="quickMode" data-mode="contact" type="button">
-                    <span class="qmIcon">✉</span><span>Email / Telefono</span>
+                    <span class="qmIcon">✉</span><span data-i18n="inv.mode.contact">Email / Telefono</span>
                   </button>
                   <button class="quickMode" data-mode="media" type="button">
-                    <span class="qmIcon">🖼</span><span>Immagine / Video</span>
+                    <span class="qmIcon">🖼</span><span data-i18n="inv.mode.media">Immagine / Video</span>
                   </button>
                   <button class="quickMode" data-mode="crypto" type="button">
-                    <span class="qmIcon">₿</span><span>Wallet crypto</span>
+                    <span class="qmIcon">₿</span><span data-i18n="inv.mode.crypto">Wallet crypto</span>
                   </button>
                 </div>
                 <p id="modeHint" class="formHelp">Username pubblico: profili aperti via Sherlock e Maigret.</p>
@@ -619,7 +622,7 @@
                       <input class="pec-input" type="email" placeholder="pec 2">
                     </fieldset>
                     <fieldset class="contactBlock">
-                      <legend>Telefono</legend>
+                      <legend data-i18n="inv.legend.phone">Telefono</legend>
                       <input class="phone-input" type="tel" placeholder="telefono 1">
                       <input class="phone-input" type="tel" placeholder="telefono 2">
                       <input class="phone-input" type="tel" placeholder="telefono 3">
@@ -630,9 +633,9 @@
                 <div id="mediaPanel" class="modePanel hidden">
                   <div class="uploadDrop" id="uploadDrop">
                     <input id="mediaFileInline" type="file" accept="image/*,video/*">
-                    <p class="uploadHint">📤 Trascina qui o clicca per caricare<br><span class="muted">Analisi EXIF + geo + reverse parte automaticamente</span></p>
+                    <p class="uploadHint"><span data-i18n="inv.media.drop">📤 Trascina qui o clicca per caricare</span><br><span class="muted" data-i18n="inv.media.dropSub">Analisi EXIF + geo + reverse parte automaticamente</span></p>
                   </div>
-                  <div id="mediaInlineResult" class="mediaResult muted">Nessun file caricato.</div>
+                  <div id="mediaInlineResult" class="mediaResult muted" data-i18n="inv.media.none">Nessun file caricato.</div>
                 </div>
 
                 <div id="genericPanel" class="modePanel hidden">
@@ -642,48 +645,48 @@
 
               <!-- 3. RICERCA AGGRESSIVA (people/entity workflows) — richiede unlock admin -->
               <div class="ahLockedTeaser" id="ahLockedTeaser">
-                <button type="button" id="ahUnlockBtn" class="btnGhost ahUnlockBtn">
+                <button type="button" id="ahUnlockBtn" class="btnGhost ahUnlockBtn" data-i18n="inv.ah.unlock">
                   🔐 Sblocca funzioni avanzate
                 </button>
               </div>
               <div class="aggressiveHunt" id="aggressiveHunt" data-locked="1" hidden>
-                <h3 class="ahTitle">🎯 Ricerca aggressiva <span class="ahBadge">multi-preset</span></h3>
-                <p class="ahLead">Clicca <b>più preset insieme</b> per combinare i tool: intensity e pagine massime prendono il valore più alto, i moduli si sommano.</p>
-                <p class="ahCounter" id="ahCounter">Nessun preset attivo — seleziona uno o più.</p>
+                <h3 class="ahTitle"><span data-i18n="inv.ah.title">🎯 Ricerca aggressiva</span> <span class="ahBadge">multi-preset</span></h3>
+                <p class="ahLead" data-i18n="inv.ah.lead" data-i18n-html>Clicca <b>più preset insieme</b> per combinare i tool: intensity e pagine massime prendono il valore più alto, i moduli si sommano.</p>
+                <p class="ahCounter" id="ahCounter" data-i18n="inv.ah.counter">Nessun preset attivo — seleziona uno o più.</p>
                 <div class="ahGrid">
                   <button type="button" class="ahBtn" data-hunt="username-full">
                     <span class="ahIco">@</span>
-                    <span><strong>Username — full scan</strong>
+                    <span><strong data-i18n="inv.ah.username">Username — full scan</strong>
                       <small>sherlock + maigret + blackbird + whatsmyname</small>
                     </span>
                   </button>
                   <button type="button" class="ahBtn" data-hunt="email-deep">
                     <span class="ahIco">✉</span>
-                    <span><strong>Email — deep breach + accounts</strong>
+                    <span><strong data-i18n="inv.ah.email">Email — deep breach + accounts</strong>
                       <small>holehe + h8mail + hunter + hibp + emailrep</small>
                     </span>
                   </button>
                   <button type="button" class="ahBtn" data-hunt="phone-osint">
                     <span class="ahIco">☎</span>
-                    <span><strong>Telefono — phone OSINT</strong>
+                    <span><strong data-i18n="inv.ah.phone">Telefono — phone OSINT</strong>
                       <small>phoneinfoga + phunter + normalizzazione E.164</small>
                     </span>
                   </button>
                   <button type="button" class="ahBtn" data-hunt="person-alias">
                     <span class="ahIco">👤</span>
-                    <span><strong>Persona — alias & news</strong>
+                    <span><strong data-i18n="inv.ah.person">Persona — alias & news</strong>
                       <small>maigret + gdelt + sec_edgar + opencorporates</small>
                     </span>
                   </button>
                   <button type="button" class="ahBtn" data-hunt="domain-recon">
                     <span class="ahIco">🌐</span>
-                    <span><strong>Dominio — attack surface</strong>
+                    <span><strong data-i18n="inv.ah.domain">Dominio — attack surface</strong>
                       <small>amass + subfinder + httpx + securitytrails + wayback</small>
                     </span>
                   </button>
                   <button type="button" class="ahBtn" data-hunt="wallet-tx">
                     <span class="ahIco">₿</span>
-                    <span><strong>Wallet — chain analysis</strong>
+                    <span><strong data-i18n="inv.ah.wallet">Wallet — chain analysis</strong>
                       <small>etherscan + blockchair + trufflehog</small>
                     </span>
                   </button>
@@ -693,75 +696,75 @@
               <!-- 4. PRIVACY / RISCHIO (info live) -->
               <div id="privacyBadge" class="privacyBadge hidden">
                 <span class="privacyIcon">🛡</span>
-                <span id="privacyMsg">Dato personale: richiesto caso con base giuridica.</span>
+                <span id="privacyMsg" data-i18n="inv.privacyMsg">Dato personale: richiesto caso con base giuridica.</span>
               </div>
 
               <!-- 4. AVANZATE (collapsible) -->
               <details class="formAdvanced">
-                <summary>⚙ Opzioni avanzate</summary>
+                <summary data-i18n="inv.adv">⚙ Opzioni avanzate</summary>
                 <div class="advancedGrid">
-                  <label>Tipo
+                  <label><span data-i18n="inv.type">Tipo</span>
                     <select id="targetType">
-                      <option value="auto">Auto-rilevamento</option>
-                      <option value="domain">Dominio</option>
-                      <option value="company">Azienda</option>
-                      <option value="person">Persona</option>
-                      <option value="handle">Username</option>
-                      <option value="email">Email</option>
-                      <option value="phone">Telefono</option>
-                      <option value="crypto">Wallet crypto</option>
-                      <option value="ip">IP</option>
-                      <option value="media">Media</option>
+                      <option value="auto" data-i18n="inv.type.auto">Auto-rilevamento</option>
+                      <option value="domain" data-i18n="inv.type.domain">Dominio</option>
+                      <option value="company" data-i18n="inv.type.company">Azienda</option>
+                      <option value="person" data-i18n="inv.type.person">Persona</option>
+                      <option value="handle" data-i18n="inv.type.handle">Username</option>
+                      <option value="email" data-i18n="inv.type.email">Email</option>
+                      <option value="phone" data-i18n="inv.type.phone">Telefono</option>
+                      <option value="crypto" data-i18n="inv.type.crypto">Wallet crypto</option>
+                      <option value="ip" data-i18n="inv.type.ip">IP</option>
+                      <option value="media" data-i18n="inv.type.media">Media</option>
                     </select>
                   </label>
-                  <label>Provider di ricerca
+                  <label><span data-i18n="inv.provider">Provider di ricerca</span>
                     <select id="provider">
-                      <option value="all">Tutti i disponibili</option>
+                      <option value="all" data-i18n="inv.provider.all">Tutti i disponibili</option>
                       <option value="brave">Brave</option>
                       <option value="bing">Bing</option>
                       <option value="serper">Serper</option>
-                      <option value="auto">Auto API</option>
-                      <option value="none">Solo dati inseriti</option>
+                      <option value="auto" data-i18n="inv.provider.auto">Auto API</option>
+                      <option value="none" data-i18n="inv.provider.none">Solo dati inseriti</option>
                     </select>
                   </label>
-                  <label>Intensità
+                  <label><span data-i18n="inv.intensity">Intensità</span>
                     <select id="intensity">
-                      <option value="meticulous">Meticolosa</option>
-                      <option value="deep">Massima autorizzata</option>
-                      <option value="quick">Rapida</option>
+                      <option value="meticulous" data-i18n="inv.intensity.meticulous">Meticolosa</option>
+                      <option value="deep" data-i18n="inv.intensity.deep">Massima autorizzata</option>
+                      <option value="quick" data-i18n="inv.intensity.quick">Rapida</option>
                     </select>
                   </label>
-                  <label>Pagine max
+                  <label><span data-i18n="inv.maxPages">Pagine max</span>
                     <input id="maxPages" type="number" min="1" max="80" value="24">
                   </label>
                 </div>
-                <label class="wideLabel">URL seed (opzionale)
-                  <textarea id="seedUrls" rows="2" placeholder="Link pubblici verificabili, uno per riga"></textarea>
+                <label class="wideLabel"><span data-i18n="inv.seed">URL seed (opzionale)</span>
+                  <textarea id="seedUrls" rows="2" placeholder="Link pubblici verificabili, uno per riga" data-i18n-attr="placeholder:inv.seed.ph"></textarea>
                 </label>
-                <label class="wideLabel">Informazioni note (opzionale)
-                  <textarea id="knownFacts" rows="2" placeholder="Alias, contesto, fonti aggiuntive…"></textarea>
+                <label class="wideLabel"><span data-i18n="inv.known">Informazioni note (opzionale)</span>
+                  <textarea id="knownFacts" rows="2" placeholder="Alias, contesto, fonti aggiuntive…" data-i18n-attr="placeholder:inv.known.ph"></textarea>
                 </label>
                 <div class="gatedToggles">
                   <label class="gatedToggle" for="darkweb">
                     <span>🕶</span>
-                    <span class="gtLabel">Deep / Dark web
-                      <small>Opt-in con autorizzazione documentata</small>
+                    <span class="gtLabel"><span data-i18n="inv.gate.dark">Deep / Dark web</span>
+                      <small data-i18n="inv.gate.darkSub">Opt-in con autorizzazione documentata</small>
                     </span>
                     <input id="darkweb" type="checkbox">
                     <span class="gtSwitch" aria-hidden="true"></span>
                   </label>
                   <label class="gatedToggle" for="redTeamFlag">
                     <span>⚔</span>
-                    <span class="gtLabel">Red team
-                      <small>Richiede scope esplicito nel caso</small>
+                    <span class="gtLabel"><span data-i18n="inv.gate.red">Red team</span>
+                      <small data-i18n="inv.gate.redSub">Richiede scope esplicito nel caso</small>
                     </span>
                     <input id="redTeamFlag" type="checkbox">
                     <span class="gtSwitch" aria-hidden="true"></span>
                   </label>
                   <label class="gatedToggle" for="networkScan">
                     <span>📡</span>
-                    <span class="gtLabel">Network scan attivo
-                      <small>Solo su target autorizzato</small>
+                    <span class="gtLabel"><span data-i18n="inv.gate.net">Network scan attivo</span>
+                      <small data-i18n="inv.gate.netSub">Solo su target autorizzato</small>
                     </span>
                     <input id="networkScan" type="checkbox">
                     <span class="gtSwitch" aria-hidden="true"></span>
@@ -773,18 +776,18 @@
               <!-- 5. AVVIO -->
               <div class="formCta">
                 <button id="runBtn" type="button" class="btnPrimary">
-                  <span>🚀 Avvia ricerca</span>
+                  <span data-i18n="inv.run">🚀 Avvia ricerca</span>
                 </button>
-                <button id="planBtn" type="button" class="btnGhost">Solo anteprima del piano</button>
+                <button id="planBtn" type="button" class="btnGhost" data-i18n="inv.planOnly">Solo anteprima del piano</button>
               </div>
             </section>
 
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Piano automatico</h2>
-                <span id="planStatus" class="tag muted">in attesa</span>
+                <h2 data-i18n="inv.plan">Piano automatico</h2>
+                <span id="planStatus" class="tag muted" data-i18n="inv.plan.pending">in attesa</span>
               </div>
-              <div id="planOutput" class="empty">Compila i campi e genera l'anteprima.</div>
+              <div id="planOutput" class="empty" data-i18n="inv.plan.empty">Compila i campi e genera l'anteprima.</div>
               <div class="capabilities" id="capabilities"></div>
             </section>
           </div>
@@ -794,14 +797,14 @@
           <div class="grid two jobsLayout">
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Report investigativi</h2>
+                <h2 data-i18n="jobs.title">Report investigativi</h2>
                 <span id="jobCount" class="tag muted">0</span>
               </div>
               <div id="jobsList" class="jobs"></div>
             </section>
             <section class="surface reportSurface">
               <div class="surfaceHead">
-                <h2>Viewer</h2>
+                <h2 data-i18n="jobs.viewer">Viewer</h2>
                 <div class="viewerActions">
                   <a id="pdfLink" class="smallLink" href="#" target="_blank">PDF</a>
                   <a id="jsonLink" class="smallLink" href="#" target="_blank">JSON</a>
@@ -810,20 +813,20 @@
                   <a id="forensicJsonLink" class="smallLink" href="#" target="_blank">Forensic JSON</a>
                   <a id="redteamMdLink" class="smallLink" href="#" target="_blank">Red Team MD</a>
                   <a id="redteamJsonLink" class="smallLink" href="#" target="_blank">Red Team JSON</a>
-                  <a id="stixLink" class="smallLink" href="#" target="_blank" title="STIX 2.1 bundle per TIP/SIEM">STIX 2.1</a>
-                  <a id="mispLink" class="smallLink" href="#" target="_blank" title="MISP core-format event">MISP</a>
+                  <a id="stixLink" class="smallLink" href="#" target="_blank" title="STIX 2.1 bundle per TIP/SIEM" data-i18n-attr="title:jobs.stixTitle">STIX 2.1</a>
+                  <a id="mispLink" class="smallLink" href="#" target="_blank" title="MISP core-format event" data-i18n-attr="title:jobs.mispTitle">MISP</a>
                 </div>
               </div>
-              <div class="reportTabs" role="tablist" aria-label="Tipo report">
-                <button class="reportTab active" data-rtab="classic" type="button">Classico</button>
-                <button class="reportTab" data-rtab="forensic" type="button">Forensico (19 sezioni)</button>
+              <div class="reportTabs" role="tablist" aria-label="Tipo report" data-i18n-attr="aria-label:jobs.tab.aria">
+                <button class="reportTab active" data-rtab="classic" type="button" data-i18n="jobs.tab.classic">Classico</button>
+                <button class="reportTab" data-rtab="forensic" type="button" data-i18n="jobs.tab.forensic">Forensico (19 sezioni)</button>
                 <button class="reportTab" data-rtab="redteam" type="button">Red Team</button>
               </div>
               <div id="progressTimeline" class="progressTimeline"></div>
               <div id="entityGraph" class="entityGraph hidden"></div>
-              <pre id="reportViewer">Seleziona un report completato.</pre>
+              <pre id="reportViewer" data-i18n="jobs.viewer.empty">Seleziona un report completato.</pre>
               <div id="forensicViewer" class="forensicViewer hidden">
-                <aside class="forensicNav" id="forensicNav" aria-label="Indice sezioni"></aside>
+                <aside class="forensicNav" id="forensicNav" aria-label="Indice sezioni" data-i18n-attr="aria-label:jobs.forensicNav"></aside>
                 <article class="forensicBody" id="forensicBody"></article>
               </div>
             </section>
@@ -834,18 +837,18 @@
           <div class="grid two">
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Immagini e video</h2>
-                <span class="tag">analisi automatica</span>
+                <h2 data-i18n="media.title">Immagini e video</h2>
+                <span class="tag" data-i18n="media.tag">analisi automatica</span>
               </div>
               <input id="mediaFile" type="file" accept="image/*,video/*">
-              <p class="modeHint">L'analisi parte appena selezioni il file: EXIF, geolocalizzazione, hash SHA-256, dimensioni, MIME. Se disponibili tool reverse, vengono lanciati automaticamente.</p>
+              <p class="modeHint" data-i18n="media.hint">L'analisi parte appena selezioni il file: EXIF, geolocalizzazione, hash SHA-256, dimensioni, MIME. Se disponibili tool reverse, vengono lanciati automaticamente.</p>
             </section>
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Risultato</h2>
+                <h2 data-i18n="media.result">Risultato</h2>
                 <span class="tag muted">EXIF + geo + reverse</span>
               </div>
-              <pre id="mediaOutput">Nessun file analizzato.</pre>
+              <pre id="mediaOutput" data-i18n="media.none">Nessun file analizzato.</pre>
             </section>
           </div>
         </section>
@@ -854,16 +857,16 @@
           <div class="grid two keysLayout">
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Chiavi API per i tuoi tool</h2>
-                <span id="keysCount" class="tag muted">0 configurate</span>
+                <h2 data-i18n="keys.title">Chiavi API per i tuoi tool</h2>
+                <span id="keysCount" class="tag muted" data-i18n="keys.count">0 configurate</span>
               </div>
-              <p class="modeHint">Le chiavi inserite qui sono usate solo dai job che lanci tu, non sono mai mostrate in chiaro nelle risposte del server: vedrai solo il preview <code>••••••</code>+ ultimi 4 caratteri. Lascia vuoto e salva per rimuovere.</p>
+              <p class="modeHint" data-i18n="keys.hint" data-i18n-html>Le chiavi inserite qui sono usate solo dai job che lanci tu, non sono mai mostrate in chiaro nelle risposte del server: vedrai solo il preview <code>••••••</code>+ ultimi 4 caratteri. Lascia vuoto e salva per rimuovere.</p>
               <div id="keysCatalog" class="keysCatalog"></div>
             </section>
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Stato copertura</h2>
-                <span class="tag">per servizio</span>
+                <h2 data-i18n="keys.coverage">Stato copertura</h2>
+                <span class="tag" data-i18n="keys.perService">per servizio</span>
               </div>
               <div id="keysStatus" class="capabilities"></div>
             </section>
@@ -874,7 +877,7 @@
           <div class="entityProfileWrap">
             <div id="entityProfileEmpty" class="entityProfileEmpty">
               <svg aria-hidden="true" viewBox="0 0 24 24" width="48" height="48"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-              <p>Seleziona un report completato nella sezione <strong>Report</strong>, poi clicca <em>Apri profilo entità</em> per visualizzare il profilo aggregato qui.</p>
+              <p data-i18n="entity.empty" data-i18n-html>Seleziona un report completato nella sezione <strong>Report</strong>, poi clicca <em>Apri profilo entità</em> per visualizzare il profilo aggregato qui.</p>
             </div>
             <div id="entityProfileCard" class="entityProfileCard hidden">
               <header class="entityHeader">
@@ -885,26 +888,26 @@
                   <div class="entityConfidence" id="entityConfidence"></div>
                 </div>
                 <div class="entityActions">
-                  <button id="entityPivotBtn" type="button" class="secondary">Pivot ricerca</button>
-                  <button id="entityReportBtn" type="button">Genera report</button>
+                  <button id="entityPivotBtn" type="button" class="secondary" data-i18n="entity.pivot">Pivot ricerca</button>
+                  <button id="entityReportBtn" type="button" data-i18n="entity.report">Genera report</button>
                 </div>
               </header>
               <nav class="entityTabs" id="entityTabs" role="tablist">
                 <button class="entityTab active" data-etab="overview" type="button">Overview</button>
-                <button class="entityTab" data-etab="identifiers" type="button">Identificatori</button>
+                <button class="entityTab" data-etab="identifiers" type="button" data-i18n="entity.tab.identifiers">Identificatori</button>
                 <button class="entityTab" data-etab="social" type="button">Social</button>
-                <button class="entityTab" data-etab="domains" type="button">Domini / Aziende</button>
-                <button class="entityTab" data-etab="contacts" type="button">Contatti</button>
+                <button class="entityTab" data-etab="domains" type="button" data-i18n="entity.tab.domains">Domini / Aziende</button>
+                <button class="entityTab" data-etab="contacts" type="button" data-i18n="entity.tab.contacts">Contatti</button>
                 <button class="entityTab" data-etab="media" type="button">Media / Geo</button>
                 <button class="entityTab" data-etab="crypto" type="button">Crypto</button>
-                <button class="entityTab" data-etab="evidences" type="button">Evidenze</button>
+                <button class="entityTab" data-etab="evidences" type="button" data-i18n="entity.tab.evidences">Evidenze</button>
                 <button class="entityTab" data-etab="timeline" type="button">Timeline</button>
                 <button class="entityTab" data-etab="audit" type="button">Audit</button>
               </nav>
               <div id="entityTabBody" class="entityTabBody"></div>
               <!-- Suggested actions panel -->
               <aside class="suggestedActions" id="suggestedActions">
-                <h4>Azioni suggerite</h4>
+                <h4 data-i18n="entity.suggested">Azioni suggerite</h4>
                 <div id="suggestedList"></div>
               </aside>
             </div>
@@ -915,37 +918,37 @@
           <div class="grid two">
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Routing OPSEC</h2>
-                <span class="tag">controllato dal piano</span>
+                <h2 data-i18n="opsec.routing">Routing OPSEC</h2>
+                <span class="tag" data-i18n="opsec.byPlan">controllato dal piano</span>
               </div>
-              <p class="modeHint">L'OPSEC routing e gestito automaticamente dal planner in base al caso, al tipo di target e ai flag di autorizzazione.</p>
+              <p class="modeHint" data-i18n="opsec.hint">L'OPSEC routing e gestito automaticamente dal planner in base al caso, al tipo di target e ai flag di autorizzazione.</p>
               <ul class="securityList">
-                <li><strong>Standard protetto:</strong> default per target autorizzati senza necessità di isolamento.</li>
-                <li><strong>Mozilla/Firefox dedicato:</strong> attivato se la sorgente richiede un profilo separato.</li>
-                <li><strong>Tor isolato:</strong> obbligatorio per dark/deep web flaggato.</li>
-                <li><strong>Multi-provider:</strong> usato quando esistono API configurate per più motori.</li>
+                <li data-i18n="opsec.li1" data-i18n-html><strong>Standard protetto:</strong> default per target autorizzati senza necessità di isolamento.</li>
+                <li data-i18n="opsec.li2" data-i18n-html><strong>Mozilla/Firefox dedicato:</strong> attivato se la sorgente richiede un profilo separato.</li>
+                <li data-i18n="opsec.li3" data-i18n-html><strong>Tor isolato:</strong> obbligatorio per dark/deep web flaggato.</li>
+                <li data-i18n="opsec.li4" data-i18n-html><strong>Multi-provider:</strong> usato quando esistono API configurate per più motori.</li>
               </ul>
-              <label class="wideLabel">Override percorso OPSEC (opzionale)
+              <label class="wideLabel"><span data-i18n="opsec.override">Override percorso OPSEC (opzionale)</span>
                 <select id="sourceRoute">
-                  <option value="auto">Automatico (consigliato)</option>
-                  <option value="multi">Multi-provider controllato</option>
-                  <option value="standard">Standard protetto</option>
-                  <option value="firefox">Mozilla/Firefox dedicato</option>
-                  <option value="tor">Tor isolato</option>
+                  <option value="auto" data-i18n="opsec.route.auto">Automatico (consigliato)</option>
+                  <option value="multi" data-i18n="opsec.route.multi">Multi-provider controllato</option>
+                  <option value="standard" data-i18n="opsec.route.standard">Standard protetto</option>
+                  <option value="firefox" data-i18n="opsec.route.firefox">Mozilla/Firefox dedicato</option>
+                  <option value="tor" data-i18n="opsec.route.tor">Tor isolato</option>
                 </select>
               </label>
             </section>
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Audit e logging</h2>
-                <span id="planBadge" class="tag">Gratuito</span>
+                <h2 data-i18n="opsec.audit">Audit e logging</h2>
+                <span id="planBadge" class="tag" data-i18n="opsec.free">Gratuito</span>
               </div>
               <ul class="securityList">
-                <li>Audit log con hash chain SHA-256 — ogni evento e tracciabile.</li>
-                <li>Login con IP loggato per accountability.</li>
-                <li>Email di verifica obbligatoria al primo signup.</li>
-                <li>Sessioni HttpOnly, CSRF, Secure cookie.</li>
-                <li>GDPR by-design: DSAR export/erase, tombstone, RoPA.</li>
+                <li data-i18n="opsec.au1">Audit log con hash chain SHA-256 — ogni evento e tracciabile.</li>
+                <li data-i18n="opsec.au2">Login con IP loggato per accountability.</li>
+                <li data-i18n="opsec.au3">Email di verifica obbligatoria al primo signup.</li>
+                <li data-i18n="opsec.au4">Sessioni HttpOnly, CSRF, Secure cookie.</li>
+                <li data-i18n="opsec.au5">GDPR by-design: DSAR export/erase, tombstone, RoPA.</li>
               </ul>
             </section>
           </div>
@@ -955,40 +958,40 @@
           <div class="grid two privacyLayout">
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Privacy Center</h2>
+                <h2 data-i18n="privacy.center">Privacy Center</h2>
                 <span class="tag">GDPR</span>
               </div>
-              <p class="modeHint">Hai il diritto di accedere, esportare o cancellare i dati associati al tuo account. Le richieste vengono processate entro 72 ore e registrate nel log di audit.</p>
+              <p class="modeHint" data-i18n="privacy.hint">Hai il diritto di accedere, esportare o cancellare i dati associati al tuo account. Le richieste vengono processate entro 72 ore e registrate nel log di audit.</p>
               <div class="privacyActions">
                 <div class="privacyCard">
-                  <h3>Esporta i tuoi dati</h3>
-                  <p>Genera un archivio JSON con tutti i tuoi casi, job, evidenze e log di audit.</p>
-                  <button id="privacyExportBtn" type="button">Richiedi esportazione</button>
+                  <h3 data-i18n="privacy.export.h">Esporta i tuoi dati</h3>
+                  <p data-i18n="privacy.export.p">Genera un archivio JSON con tutti i tuoi casi, job, evidenze e log di audit.</p>
+                  <button id="privacyExportBtn" type="button" data-i18n="privacy.export.btn">Richiedi esportazione</button>
                   <div id="privacyExportResult" class="authMessage"></div>
                 </div>
                 <div class="privacyCard">
-                  <h3>Cancella account</h3>
-                  <p>Marca il tuo account per la cancellazione. I dati vengono tombstonati e rimossi nei termini di retention.</p>
-                  <label>Motivo (opzionale)
-                    <input id="privacyEraseReason" placeholder="es. fine indagine, cambio ruolo…">
+                  <h3 data-i18n="privacy.erase.h">Cancella account</h3>
+                  <p data-i18n="privacy.erase.p">Marca il tuo account per la cancellazione. I dati vengono tombstonati e rimossi nei termini di retention.</p>
+                  <label><span data-i18n="privacy.erase.reason">Motivo (opzionale)</span>
+                    <input id="privacyEraseReason" placeholder="es. fine indagine, cambio ruolo…" data-i18n-attr="placeholder:privacy.erase.reason.ph">
                   </label>
-                  <button id="privacyEraseBtn" type="button" class="danger">Richiedi cancellazione</button>
+                  <button id="privacyEraseBtn" type="button" class="danger" data-i18n="privacy.erase.btn">Richiedi cancellazione</button>
                   <div id="privacyEraseResult" class="authMessage"></div>
                 </div>
                 <div class="privacyCard">
-                  <h3>Ottieni informazioni (DSAR)</h3>
-                  <p>Richiesta formale ex Art. 15 GDPR: categorie di dati, finalità, destinatari, retention.</p>
-                  <button id="privacyDsarBtn" type="button" class="secondary">Invia DSAR</button>
+                  <h3 data-i18n="privacy.dsar.h">Ottieni informazioni (DSAR)</h3>
+                  <p data-i18n="privacy.dsar.p">Richiesta formale ex Art. 15 GDPR: categorie di dati, finalità, destinatari, retention.</p>
+                  <button id="privacyDsarBtn" type="button" class="secondary" data-i18n="privacy.dsar.btn">Invia DSAR</button>
                   <div id="privacyDsarResult" class="authMessage"></div>
                 </div>
               </div>
             </section>
             <section class="surface">
               <div class="surfaceHead">
-                <h2>Log richieste privacy</h2>
+                <h2 data-i18n="privacy.log">Log richieste privacy</h2>
                 <span class="tag muted">audit</span>
               </div>
-              <div id="privacyLog" class="jobs">Carico…</div>
+              <div id="privacyLog" class="jobs" data-i18n="common.loading">Carico…</div>
             </section>
           </div>
         </section>
@@ -998,18 +1001,18 @@
     <!-- Admin unlock modal (sblocco ricerca aggressiva & funzioni restricted) -->
     <div id="adminUnlockModal" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
       <div class="modalBox">
-        <h2 id="adminModalTitle">🔐 Sblocco funzioni avanzate</h2>
-        <p class="modeHint">Le funzioni di ricerca aggressiva richiedono credenziali amministratore. La sessione di sblocco vale solo per questa pagina (nessuna persistenza).</p>
-        <label>Username
-          <input id="adminUser" type="text" autocomplete="username" placeholder="admin username">
+        <h2 id="adminModalTitle" data-i18n="admin.title">🔐 Sblocco funzioni avanzate</h2>
+        <p class="modeHint" data-i18n="admin.hint">Le funzioni di ricerca aggressiva richiedono credenziali amministratore. La sessione di sblocco vale solo per questa pagina (nessuna persistenza).</p>
+        <label><span data-i18n="auth.user">Username</span>
+          <input id="adminUser" type="text" autocomplete="username" placeholder="admin username" data-i18n-attr="placeholder:admin.user.ph">
         </label>
-        <label>Password
-          <input id="adminPass" type="password" autocomplete="current-password" placeholder="password admin">
+        <label><span data-i18n="auth.pass">Password</span>
+          <input id="adminPass" type="password" autocomplete="current-password" placeholder="password admin" data-i18n-attr="placeholder:admin.pass.ph">
         </label>
         <p id="adminUnlockMsg" class="authMessage"></p>
         <div class="actions">
-          <button type="button" id="adminUnlockCancel" class="secondary">Annulla</button>
-          <button type="button" id="adminUnlockSubmit">Sblocca</button>
+          <button type="button" id="adminUnlockCancel" class="secondary" data-i18n="admin.cancel">Annulla</button>
+          <button type="button" id="adminUnlockSubmit" data-i18n="admin.unlock">Sblocca</button>
         </div>
       </div>
     </div>
@@ -1017,28 +1020,28 @@
     <!-- HighRiskResearchMode modal -->
     <div id="highRiskModal" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-labelledby="hrModalTitle">
       <div class="modalBox highRiskBox">
-        <h2 id="hrModalTitle">⚠ Modalità ad alto rischio</h2>
-        <p>Stai per abilitare <strong id="hrModeName">deep/dark web</strong>. Questa modalità accede a fonti sensibili e richiede:</p>
+        <h2 id="hrModalTitle" data-i18n="hr.title">⚠ Modalità ad alto rischio</h2>
+        <p><span data-i18n="hr.intro1">Stai per abilitare </span><strong id="hrModeName">deep/dark web</strong><span data-i18n="hr.intro2">. Questa modalità accede a fonti sensibili e richiede:</span></p>
         <ul>
-          <li>Base giuridica documentata nel caso corrente</li>
-          <li>Autorizzazione esplicita del responsabile dell'indagine</li>
-          <li>Isolamento OPSEC automatico (routing Tor)</li>
+          <li data-i18n="hr.li1">Base giuridica documentata nel caso corrente</li>
+          <li data-i18n="hr.li2">Autorizzazione esplicita del responsabile dell'indagine</li>
+          <li data-i18n="hr.li3">Isolamento OPSEC automatico (routing Tor)</li>
         </ul>
-        <label class="wideLabel">Giustificazione obbligatoria
-          <textarea id="hrJustification" rows="3" placeholder="Descrivi perché questa modalità è necessaria per questa specifica indagine…"></textarea>
+        <label class="wideLabel"><span data-i18n="hr.justif">Giustificazione obbligatoria</span>
+          <textarea id="hrJustification" rows="3" placeholder="Descrivi perché questa modalità è necessaria per questa specifica indagine…" data-i18n-attr="placeholder:hr.justif.ph"></textarea>
         </label>
         <label class="checkRow">
           <input id="hrConfirm" type="checkbox">
-          <span>Confermo di avere l'autorizzazione scritta e base giuridica valida per questa ricerca.</span>
+          <span data-i18n="hr.confirm">Confermo di avere l'autorizzazione scritta e base giuridica valida per questa ricerca.</span>
         </label>
         <div class="modalActions">
-          <button id="hrCancel" type="button" class="secondary">Annulla</button>
-          <button id="hrProceed" type="button">Abilita e procedi</button>
+          <button id="hrCancel" type="button" class="secondary" data-i18n="hr.cancel">Annulla</button>
+          <button id="hrProceed" type="button" data-i18n="hr.proceed">Abilita e procedi</button>
         </div>
       </div>
     </div>
 
-    <script src="/app.js"></script>
+    <script src="/app.js?v=i18n2" defer></script>
     <!-- Landing pre-login: cursor follower + reveal on scroll.
          Auto-disattivato dopo il login (appShell diventa visibile, authScreen si nasconde). -->
     <script>
@@ -1118,44 +1121,18 @@
           return "generic";
         };
 
-        // Fake findings per tipo
-        const fakeResults = {
-          email: [
-            { icon: "✓", label: "Dominio email valido", value: "gmail.com risolve (MX ok)", grade: "A1" },
-            { icon: "◐", label: "Gravatar", value: "profilo pubblico associato", grade: "A1" },
-            { icon: "◐", label: "Registrata su", value: "amazon.com · spotify.com · twitter.com", grade: "B2" },
-            { icon: "!", label: "Data breach", value: "1 breach noto (HIBP): Adobe 2013", grade: "B2" },
-            { icon: "◐", label: "Legit score", value: "82/100 · legittima", grade: "A2" },
-          ],
-          handle: [
-            { icon: "✓", label: "Profili trovati", value: "GitHub · GitLab · Reddit · Steam (10/12 con detection deterministica)", grade: "A1" },
-            { icon: "◐", label: "Maigret full", value: "confermato su 6 piattaforme aggiuntive", grade: "A2" },
-            { icon: "◐", label: "socid-extractor", value: "user_id numerico + created_at estratti", grade: "B2" },
-            { icon: "◐", label: "Cross-corroboration", value: "email associata su 2 fonti indipendenti", grade: "A2" },
-          ],
-          domain: [
-            { icon: "✓", label: "DNS", value: "A · AAAA · MX · NS · TXT (9 record)", grade: "A1" },
-            { icon: "✓", label: "TLS cert", value: "Let's Encrypt · SAN: 3 domini · SHA-256 fingerprint", grade: "A1" },
-            { icon: "◐", label: "Subdomains", value: "47 host attivi (CT logs + brute DNS + Common Crawl)", grade: "A1" },
-            { icon: "◐", label: "Wayback", value: "1247 URL storiche · 23 interessanti (/admin, /api, .env)", grade: "A1" },
-            { icon: "◐", label: "Reputation", value: "clean (ThreatFox · VT via BYOK)", grade: "B2" },
-          ],
-          phone: [
-            { icon: "✓", label: "libphonenumber", value: "valido · mobile · Italia (+39) · TIM", grade: "A1" },
-            { icon: "◐", label: "Ignorant", value: "registrato su Instagram · Amazon", grade: "B2" },
-            { icon: "◐", label: "Legit score", value: "76/100 · legittima", grade: "A2" },
-          ],
-          ip: [
-            { icon: "✓", label: "ASN (Team Cymru)", value: "AS15169 GOOGLE · US · 8.8.8.0/24", grade: "A1" },
-            { icon: "✓", label: "Shodan InternetDB", value: "porte 53 · CPE: dnsmasq", grade: "B2" },
-            { icon: "◐", label: "Reputation", value: "no threat intel", grade: "A2" },
-          ],
-          generic: [
-            { icon: "?", label: "Tipo non riconosciuto", value: "Argo prova comunque una ricerca aggregata cross-connettore", grade: "F6" },
-          ],
+        // Fake findings per tipo — labels/values are catalog keys resolved
+        // at render time so switching language re-translates the next run.
+        const T = (k, params) => (window.I18N ? window.I18N.t(k, params) : k);
+        const FAKE = {
+          email:   [{i:"✓",k:"l1",v:"v1",g:"A1"},{i:"◐",k:"l2",v:"v2",g:"A1"},{i:"◐",k:"l3",v:"v3",g:"B2"},{i:"!",k:"l4",v:"v4",g:"B2"},{i:"◐",k:"l5",v:"v5",g:"A2"}],
+          handle:  [{i:"✓",k:"l1",v:"v1",g:"A1"},{i:"◐",k:"l2",v:"v2",g:"A2"},{i:"◐",k:"l3",v:"v3",g:"B2"},{i:"◐",k:"l4",v:"v4",g:"A2"}],
+          domain:  [{i:"✓",k:"l1",v:"v1",g:"A1"},{i:"✓",k:"l2",v:"v2",g:"A1"},{i:"◐",k:"l3",v:"v3",g:"A1"},{i:"◐",k:"l4",v:"v4",g:"A1"},{i:"◐",k:"l5",v:"v5",g:"B2"}],
+          phone:   [{i:"✓",k:"l1",v:"v1",g:"A1"},{i:"◐",k:"l2",v:"v2",g:"B2"},{i:"◐",k:"l3",v:"v3",g:"A2"}],
+          ip:      [{i:"✓",k:"l1",v:"v1",g:"A1"},{i:"✓",k:"l2",v:"v2",g:"B2"},{i:"◐",k:"l3",v:"v3",g:"A2"}],
+          generic: [{i:"?",k:"l1",v:"v1",g:"F6"}],
         };
-
-        const stages = ["classificazione target...", "selezione connettori...", "raccolta cross-source...", "corroborazione + scoring...", "generazione anteprima..."];
+        const stageKeys = ["demo.stage.1","demo.stage.2","demo.stage.3","demo.stage.4","demo.stage.5"];
 
         let demoRunning = false;
         async function runDemo(rawValue) {
@@ -1171,28 +1148,31 @@
           const type = detectType(value);
 
           // Loading UI
-          demoOutput.innerHTML = '<div class="demoLoading"><div class="demoSpinner"></div><div class="demoStage" id="demoStageText">' + stages[0] + '</div></div>';
+          demoOutput.innerHTML = '<div class="demoLoading"><div class="demoSpinner"></div><div class="demoStage" id="demoStageText">' + T(stageKeys[0]) + '</div></div>';
           const stageEl = document.getElementById("demoStageText");
 
           // Progress stage animation
-          for (let i = 1; i < stages.length; i++) {
+          for (let i = 1; i < stageKeys.length; i++) {
             await new Promise(r => setTimeout(r, 380));
-            if (stageEl) stageEl.textContent = stages[i];
+            if (stageEl) stageEl.textContent = T(stageKeys[i]);
           }
           await new Promise(r => setTimeout(r, 300));
 
-          // Render results
-          const items = fakeResults[type] || fakeResults.generic;
+          // Render results — resolve labels/values against the catalog at render time
+          const items = FAKE[type] || FAKE.generic;
+          const n = Math.min(58, 4 + Math.floor(Math.random() * 8));
           let html = '<div class="demoResult">';
-          html += '<div class="demoTargetLine">Target: <strong>' + escapeHtml(value) + '</strong> · tipo: <strong>' + type + '</strong> · connettori consultati: ' + Math.min(58, 4 + Math.floor(Math.random() * 8)) + '</div>';
+          html += '<div class="demoTargetLine">' + T("demo.targetLine", { value: escapeHtml(value), type: type, n: n }) + '</div>';
           items.forEach(f => {
+            const label = T("demo." + type + "." + f.k);
+            const val = T("demo." + type + "." + f.v);
             html += '<div class="demoFinding">' +
-                    '<div class="demoFindingIcon">' + f.icon + '</div>' +
-                    '<div class="demoFindingBody"><strong>' + escapeHtml(f.label) + '</strong><span>' + escapeHtml(f.value) + '</span></div>' +
-                    '<div class="demoFindingGrade">' + f.grade + '</div>' +
+                    '<div class="demoFindingIcon">' + f.i + '</div>' +
+                    '<div class="demoFindingBody"><strong>' + escapeHtml(label) + '</strong><span>' + escapeHtml(val) + '</span></div>' +
+                    '<div class="demoFindingGrade">' + f.g + '</div>' +
                     '</div>';
           });
-          html += '<div class="demoDisclaimer">☺ Simulazione con dati sintetici. Nessuna chiamata reale verso il target. La versione live esegue davvero i ' + items.length + '+ connettori corrispondenti e produce evidenze con provenance SHA-256.</div>';
+          html += '<div class="demoDisclaimer">' + T("demo.disclaimer", { n: items.length }) + '</div>';
           html += '</div>';
           demoOutput.innerHTML = html;
           demoRun.disabled = false;

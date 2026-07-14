@@ -82,6 +82,7 @@ class ConnectorContext:
     case_id: str = ""
     api_key: str = ""     # resolved by the caller (resolve_api_key)
     timeout: int = 20
+    lang: str = "it"      # output language for findings/notes ("it" | "en")
 
 
 # ---------------------------------------------------------------------------
@@ -280,8 +281,14 @@ class ConnectorRegistry:
     def names(self) -> list[str]:
         return sorted(self._connectors)
 
-    def catalog(self) -> list[dict[str, Any]]:
-        """Return a list of spec dicts suitable for the UI / API catalog endpoint."""
+    def catalog(self, lang: str = "it") -> list[dict[str, Any]]:
+        """Return a list of spec dicts suitable for the UI / API catalog endpoint.
+
+        ``legal_note`` may hold either literal text (legacy) or an i18n catalog
+        key; ``_i18n_t`` resolves keys and returns literal text unchanged, so
+        this is safe during and after the connector migration.
+        """
+        from .i18n import t as _i18n_t
         return [
             {
                 "name": conn.spec.name,
@@ -291,7 +298,7 @@ class ConnectorRegistry:
                 "output_categories": list(conn.spec.output_categories),
                 "required_key": conn.spec.required_key,
                 "cache_ttl": conn.spec.cache_ttl,
-                "legal_note": conn.spec.legal_note,
+                "legal_note": _i18n_t(conn.spec.legal_note, lang),
             }
             for conn in self._connectors.values()
         ]

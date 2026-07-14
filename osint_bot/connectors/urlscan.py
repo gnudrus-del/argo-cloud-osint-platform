@@ -4,6 +4,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -53,7 +54,7 @@ class URLScanConnector(BaseConnector):
 
         data = _search(query, ctx.timeout, ctx.api_key)
         if data is None:
-            return ConnectorResult(connector=self.spec.name, status="error", error="URLScan non risponde.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("generic.no_response", ctx.lang, service="URLScan"))
 
         results = data.get("results") or []
         findings: list[Finding] = []
@@ -80,10 +81,10 @@ class URLScanConnector(BaseConnector):
                     confidence=0.75,
                     severity="high",
                     attck_ttps=["T1189", "T1566.002"],
-                    remediation="Bloccare URL e dominio. Verificare se qualche utente ha visitato questa pagina.",
+                    remediation=_t("urlscan.malicious_remediation", ctx.lang),
                     source_reliability="B", info_credibility=2,
                     evidence=ev,
-                    notes=f"URLScan ha rilevato questa URL come malevola nella scan {uuid_scan}.",
+                    notes=_t("urlscan.malicious_notes", ctx.lang, uuid_scan=uuid_scan),
                 ))
 
             if scan_domain and scan_domain not in seen_domains:
@@ -94,7 +95,7 @@ class URLScanConnector(BaseConnector):
                     confidence=0.70,
                     source_reliability="C", info_credibility=3,
                     evidence=ev,
-                    notes=f"Dominio osservato in scan URLScan correlato a {t}.",
+                    notes=_t("urlscan.domain_observed", ctx.lang, target=t),
                 ))
 
             if scan_ip and scan_ip not in seen_ips:
@@ -105,7 +106,7 @@ class URLScanConnector(BaseConnector):
                     confidence=0.70,
                     source_reliability="C", info_credibility=3,
                     evidence=ev,
-                    notes=f"IP osservato in scan URLScan correlato a {t}.",
+                    notes=_t("urlscan.ip_observed", ctx.lang, target=t),
                 ))
 
         total = data.get("total", len(results))

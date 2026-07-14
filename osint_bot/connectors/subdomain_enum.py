@@ -14,6 +14,7 @@ import concurrent.futures as _cf
 import socket
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -33,7 +34,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=10, per_day=1000, burst=2),
-    legal_note="Fonti passive (CT logs) + risoluzione DNS di prefissi comuni. Nessuno scan attivo del target.",
+    legal_note="subdomain_enum.legal_note",
     health_check_url="https://crt.sh/",
 )
 
@@ -82,7 +83,7 @@ class SubdomainEnumConnector(BaseConnector):
         domain = (context.target or "").strip().lower().rstrip(".")
         if not domain or "." not in domain:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target deve essere un dominio.")
+                                   error=_t("subdomain_enum.invalid_domain", context.lang))
 
         # 1) Passivo: Certificate Transparency
         subs = _crtsh_subdomains(domain, context.timeout)
@@ -108,7 +109,7 @@ class SubdomainEnumConnector(BaseConnector):
                 kind="subdomain", value=host,
                 confidence=0.9, source_reliability="A", info_credibility=1,
                 evidence=[Evidence(url=f"https://crt.sh/?q=%25.{domain}", title="crt.sh")],
-                notes=f"Sottodominio attivo → {resolved[host]}. Fonte: {source}.",
+                notes=_t("subdomain_enum.active_sub", context.lang, ip=resolved[host], source=source),
             ))
         # Anche i sub trovati in CT ma non risolti (storici) sono utili
         unresolved_ct = sorted(subs - set(resolved))
@@ -117,7 +118,7 @@ class SubdomainEnumConnector(BaseConnector):
                 kind="subdomain_historic", value=host,
                 confidence=0.6, source_reliability="A", info_credibility=2,
                 evidence=[Evidence(url=f"https://crt.sh/?q=%25.{domain}", title="crt.sh")],
-                notes="Sottodominio in CT log ma non risolve ora (storico/dismesso).",
+                notes=_t("subdomain_enum.historic_sub", context.lang),
             ))
         return ConnectorResult(
             connector=self.spec.name, status="ok",

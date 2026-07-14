@@ -16,6 +16,7 @@ from __future__ import annotations
 import re
 import urllib.error
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -35,7 +36,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=20, per_day=2000, burst=2),
-    legal_note="Un GET HTTPS al target. Passivo. No brute force.",
+    legal_note="web_fingerprint.legal_note",
     health_check_url="",
 )
 
@@ -144,12 +145,12 @@ class WebFingerprintConnector(BaseConnector):
         target = (context.target or "").strip()
         if not target:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target vuoto.")
+                                   error=_t("web_fingerprint.empty_target", context.lang))
         url = _to_url(target)
         result = _fetch(url, context.timeout)
         if result is None:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"HTTP fetch fallita per {url}.")
+                                   error=_t("web_fingerprint.fetch_failed", context.lang, url=url))
         headers, body = result
 
         findings: list[Finding] = []

@@ -17,6 +17,7 @@ import json
 import os
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -36,7 +37,7 @@ _SPEC = ConnectorSpec(
     required_key="",  # credenziali via env, non nel BYOK panel
     cache_ttl=600,
     rate_limit=RateLimit(per_minute=30, per_day=5000, burst=3),
-    legal_note="Interroga un MISP privato configurato dall'operatore. Nessun dato lascia il perimetro.",
+    legal_note="misp.legal_note",
     health_check_url="",
 )
 
@@ -82,16 +83,17 @@ class MISPConnector(BaseConnector):
         if not cfg["url"] or not cfg["key"]:
             return ConnectorResult(
                 connector=self.spec.name, status="missing_key",
-                error="MISP non configurato. Setta MISP_URL e MISP_KEY nel .env sulla VM.",
+                error=_t("misp.not_configured", context.lang),
             )
         value = (context.target or "").strip()
         if not value:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Target vuoto.")
+            return ConnectorResult(connector=self.spec.name, status="error",
+                                   error=_t("misp.empty_target", context.lang))
 
         data = _search_attributes(cfg, value, context.timeout)
         if data is None:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="MISP non raggiungibile o autenticazione fallita.")
+                                   error=_t("misp.unreachable_or_auth", context.lang))
 
         attributes = (((data.get("response") or {}).get("Attribute")) or [])
         findings: list[Finding] = []
@@ -109,15 +111,18 @@ class MISPConnector(BaseConnector):
                 evidence=[Evidence(
                     url=f"{cfg['url']}/events/view/{event_id}" if event_id else cfg["url"],
                     title=f"MISP event {event_id}")],
-                notes=(f"Attributo MISP [{category}]. {comment} "
-                       f"{'(to_ids)' if to_ids else ''}").strip(),
+                notes=_t(
+                    "misp.attribute", context.lang,
+                    category=category, comment=comment,
+                    to_ids="(to_ids)" if to_ids else "",
+                ).strip(),
                 severity="medium" if to_ids else "low",
             ))
 
         if not findings:
             return ConnectorResult(
                 connector=self.spec.name, status="ok",
-                findings=[], raw={"note": "Nessun attributo MISP per il target."},
+                findings=[], raw={"note": _t("misp.no_attributes", context.lang)},
             )
         return ConnectorResult(
             connector=self.spec.name, status="ok",

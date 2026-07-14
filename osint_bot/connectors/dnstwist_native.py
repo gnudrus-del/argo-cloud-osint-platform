@@ -11,6 +11,7 @@ from __future__ import annotations
 import concurrent.futures as _cf
 import socket
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -30,7 +31,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86_400,
     rate_limit=RateLimit(per_minute=6, per_day=500, burst=1),
-    legal_note="Genera varianti del dominio e risolve i candidati. Nessun contatto col target.",
+    legal_note="dnstwist_native.legal_note",
     health_check_url="",
 )
 
@@ -97,11 +98,11 @@ class DNSTwistNativeConnector(BaseConnector):
         domain = (context.target or "").strip().lower().rstrip(".")
         if not domain or "." not in domain:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target deve essere un dominio.")
+                                   error=_t("dnstwist_native.invalid_target", context.lang))
         candidates = _permutations(domain)
         if not candidates:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Impossibile generare permutazioni.")
+                                   error=_t("dnstwist_native.no_permutations", context.lang))
 
         registered: dict[str, str] = {}
         with _cf.ThreadPoolExecutor(max_workers=20) as ex:
@@ -118,8 +119,8 @@ class DNSTwistNativeConnector(BaseConnector):
                 kind="typosquat_domain", value=host,
                 confidence=0.7, source_reliability="B", info_credibility=2,
                 evidence=[Evidence(url=f"http://{host}", title=host)],
-                notes=(f"Variante registrata di {domain} → {registered[host]}. "
-                       f"Possibile typosquat/phishing: verificare intestatario e uso."),
+                notes=_t("dnstwist_native.variant_registered", context.lang,
+                         domain=domain, ip=registered[host]),
                 severity="medium",
             ))
         return ConnectorResult(

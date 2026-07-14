@@ -14,6 +14,7 @@ import re
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -33,7 +34,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=10, per_day=1000, burst=2),
-    legal_note="Solo archivi pubblici (Wayback CDX, Common Crawl). Nessun contatto col target.",
+    legal_note="url_harvest.legal_note",
     health_check_url="http://web.archive.org/",
 )
 

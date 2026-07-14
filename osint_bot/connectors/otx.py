@@ -7,6 +7,7 @@ Action class: passive. Input: ``ip``, ``domain``, ``url``.
 from __future__ import annotations
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -26,7 +27,7 @@ _SPEC = ConnectorSpec(
     required_key="otx",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=20, per_day=10_000, burst=3),
-    legal_note="OTX: pulse community open. Free per uso difensivo.",
+    legal_note="otx.legal_note",
     health_check_url="https://otx.alienvault.com/api/v1/indicators/domain/example.com/general",
 )
 
@@ -41,7 +42,7 @@ class OTXConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         if not context.api_key:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="OTX richiede API key.")
+                                   error=_t("generic.no_key", context.lang, service="OTX"))
         sec = _section_for(context.target_type)
         url = f"https://otx.alienvault.com/api/v1/indicators/{sec}/{context.target}/general"
         try:
@@ -49,7 +50,7 @@ class OTXConnector(BaseConnector):
             "X-OTX-API-KEY": context.api_key, "Accept": "application/json"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"OTX: {exc}")
+                                   error=_t("generic.error", context.lang, service="OTX", error=exc))
         pulse_info = (data or {}).get("pulse_info") or {}
         pulses = pulse_info.get("pulses") or []
         count = pulse_info.get("count", 0)
@@ -62,7 +63,7 @@ class OTXConnector(BaseConnector):
                 confidence=0.80, source_reliability="B", info_credibility=2,
                 severity="medium" if count > 0 else "info",
                 evidence=ev,
-                notes=f"Indicatore presente in pulse OTX (autore: {p.get('author_name', '?')}).",
+                notes=_t("otx.pulse_match", context.lang, author=p.get('author_name', '?')),
             ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings,

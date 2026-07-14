@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -48,7 +49,8 @@ class LeakIXConnector(BaseConnector):
 
         data = _lx_get(path, key, ctx.timeout)
         if data is None:
-            return ConnectorResult(connector=self.spec.name, status="error", error="LeakIX non risponde.")
+            return ConnectorResult(connector=self.spec.name, status="error",
+                                   error=_t("generic.no_response", ctx.lang, service="LeakIX"))
 
         findings: list[Finding] = []
         events = data if isinstance(data, list) else [data]
@@ -75,10 +77,10 @@ class LeakIXConnector(BaseConnector):
                     confidence=0.80,
                     severity=sev,
                     attck_ttps=["T1190", "T1082"],
-                    remediation="Verificare l'esposizione del servizio e applicare patch o firewall rule.",
+                    remediation=_t("leakix.remediation_service", ctx.lang),
                     source_reliability="B", info_credibility=2,
                     evidence=ev,
-                    notes=f"LeakIX: plugin '{plugin}' rilevato su {host}:{port}.",
+                    notes=_t("leakix.plugin", ctx.lang, plugin=plugin, host=host, port=port),
                 ))
 
             # Leak-specific data
@@ -90,10 +92,10 @@ class LeakIXConnector(BaseConnector):
                     confidence=0.75,
                     severity=sev,
                     attck_ttps=["T1530", "T1190"],
-                    remediation="Chiudere immediatamente l'accesso non autorizzato. Investigare se ci sono stati accessi.",
+                    remediation=_t("leakix.remediation_leak", ctx.lang),
                     source_reliability="B", info_credibility=2,
                     evidence=ev,
-                    notes=f"LeakIX: leak type '{leak_type}' su {host}:{port}.",
+                    notes=_t("leakix.leak", ctx.lang, leak_type=leak_type, host=host, port=port),
                 ))
 
         return ConnectorResult(connector=self.spec.name, status="ok", findings=findings,

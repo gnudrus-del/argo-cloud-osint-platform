@@ -5,6 +5,7 @@ import urllib.error
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PII_GATED,
     BaseConnector,
@@ -55,7 +56,7 @@ class HIBPConnector(BaseConnector):
         if ctx.target_type == "email":
             data = _hibp_get(f"/breachedaccount/{urllib.parse.quote(t)}?truncateResponse=false", key, ctx.timeout)
             if data is None:
-                return ConnectorResult(connector=self.spec.name, status="error", error="HIBP non risponde o chiave non valida.")
+                return ConnectorResult(connector=self.spec.name, status="error", error=_t("hibp.no_response_or_invalid_key", ctx.lang))
             breaches = data if isinstance(data, list) else []
             ev = [Evidence(url=f"https://haveibeenpwned.com/account/{urllib.parse.quote(t)}", title="HIBP")]
             for breach in breaches:
@@ -71,10 +72,10 @@ class HIBPConnector(BaseConnector):
                     confidence=0.95,
                     severity=sev,
                     attck_ttps=["T1589.001"],
-                    remediation=f"Cambiare la password usata su {title}. Se riutilizzata altrove, cambiarla ovunque. Abilitare MFA.",
+                    remediation=_t("hibp.breach_remediation", ctx.lang, title=title),
                     source_reliability="A", info_credibility=1,
                     evidence=ev,
-                    notes=f"Email '{t}' trovata nel breach '{title}' ({date}). Dati esposti: {', '.join(pw_exposed[:5])}.",
+                    notes=_t("hibp.breach_notes", ctx.lang, email=t, title=title, date=date, data_classes=", ".join(pw_exposed[:5])),
                 ))
             return ConnectorResult(connector=self.spec.name, status="ok", findings=findings,
                                    raw={"email": t, "breach_count": len(breaches)})
@@ -83,7 +84,7 @@ class HIBPConnector(BaseConnector):
             # Domain-level breach search (v3 domain endpoint)
             data = _hibp_get(f"/breacheddomain/{urllib.parse.quote(t)}", key, ctx.timeout)
             if data is None:
-                return ConnectorResult(connector=self.spec.name, status="error", error="HIBP non risponde.")
+                return ConnectorResult(connector=self.spec.name, status="error", error=_t("generic.no_response", ctx.lang, service="HIBP"))
             accounts = data if isinstance(data, dict) else {}
             ev = [Evidence(url="https://haveibeenpwned.com/", title="HIBP Domain Search")]
             count = len(accounts)
@@ -94,12 +95,12 @@ class HIBPConnector(BaseConnector):
                 confidence=0.90,
                 severity=sev,
                 attck_ttps=["T1589.001"],
-                remediation=f"Forzare il reset password per i {count} account compromessi. Notificare gli utenti secondo GDPR.",
+                remediation=_t("hibp.domain_remediation", ctx.lang, count=count),
                 source_reliability="A", info_credibility=1,
                 evidence=ev,
-                notes=f"HIBP: {count} account del dominio '{t}' presenti in breach. Severità basata su conteggio.",
+                notes=_t("hibp.domain_notes", ctx.lang, count=count, domain=t),
             ))
             return ConnectorResult(connector=self.spec.name, status="ok", findings=findings,
                                    raw={"domain": t, "account_count": count})
 
-        return ConnectorResult(connector=self.spec.name, status="error", error="Target type non supportato da HIBP.")
+        return ConnectorResult(connector=self.spec.name, status="error", error=_t("hibp.unsupported_target", ctx.lang))

@@ -8,6 +8,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -27,7 +28,7 @@ _SPEC = ConnectorSpec(
     required_key="google_pse",
     cache_ttl=600,
     rate_limit=RateLimit(per_minute=10, per_day=100, burst=2),
-    legal_note="Google PSE: API ufficiale. ToS Google.",
+    legal_note="google_pse.legal_note",
     health_check_url="https://customsearch.googleapis.com/customsearch/v1",
 )
 
@@ -38,7 +39,7 @@ class GooglePSEConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         if not context.api_key or "|" not in context.api_key:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="Google PSE richiede 'API_KEY|CX_ID'.")
+                                   error=_t("google_pse.missing_key_format", context.lang))
         api_key, cx = context.api_key.split("|", 1)
         url = ("https://customsearch.googleapis.com/customsearch/v1?"
                + urllib.parse.urlencode({"key": api_key, "cx": cx,
@@ -47,7 +48,7 @@ class GooglePSEConnector(BaseConnector):
             data = _safe_http.get_json(url, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Google PSE: {exc}")
+                                   error=_t("generic.error", context.lang, service="Google PSE", error=str(exc)))
         items = (data or {}).get("items") or []
         findings: list[Finding] = []
         for it in items[:10]:
@@ -56,7 +57,7 @@ class GooglePSEConnector(BaseConnector):
                 kind="web_presence", value=it.get("link", ""),
                 confidence=0.65, source_reliability="C", info_credibility=3,
                 evidence=ev,
-                notes=f"Google PSE: {it.get('snippet', '')[:140]}",
+                notes=_t("google_pse.snippet", context.lang, snippet=it.get('snippet', '')[:140]),
             ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings, raw={"results": len(items)})

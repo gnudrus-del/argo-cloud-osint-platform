@@ -20,6 +20,7 @@ import re
 import subprocess
 import tempfile
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -39,7 +40,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=6, per_day=200, burst=1),
-    legal_note="Usa l'API IG con la sessione dell'investigatore. Restituisce dati parzialmente mascherati esposti da IG.",
+    legal_note="toutatis.legal_note",
     health_check_url="",
 )
 
@@ -84,13 +85,13 @@ class ToutatisConnector(BaseConnector):
         cfg = _config()
         if not cfg["cmd"] and not cfg["python"]:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="Toutatis non configurato (TOUTATIS_CMD/TOUTATIS_PYTHON).")
+                                   error=_t("toutatis.not_configured", context.lang))
         if not cfg["session"]:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="TOUTATIS_SESSION mancante (sessionid Instagram dell'investigatore).")
+                                   error=_t("toutatis.session_missing", context.lang))
         username = (context.target or "").strip().lstrip("@")
         if not _USERNAME_RE.match(username):
-            return ConnectorResult(connector=self.spec.name, status="error", error="Username IG non valido.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("toutatis.invalid_username", context.lang))
 
         base = [cfg["cmd"]] if cfg["cmd"] else [cfg["python"], "-m", "toutatis"]
         argv = base + ["-u", username, "-s", cfg["session"]]
@@ -103,10 +104,10 @@ class ToutatisConnector(BaseConnector):
                                       text=True, encoding="utf-8", errors="replace",
                                       timeout=cfg["timeout_s"], check=False)
             except subprocess.TimeoutExpired:
-                return ConnectorResult(connector=self.spec.name, status="error", error="Toutatis timeout.")
+                return ConnectorResult(connector=self.spec.name, status="error", error=_t("toutatis.timeout", context.lang))
             except (OSError, ValueError) as exc:
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error=f"Esecuzione Toutatis fallita: {exc}")
+                                       error=_t("toutatis.exec_failed", context.lang, exc=exc))
 
         parsed = _parse(proc.stdout)
         low = (proc.stdout + proc.stderr).lower()

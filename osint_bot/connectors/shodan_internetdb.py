@@ -12,6 +12,7 @@ import ipaddress
 import urllib.error
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -31,7 +32,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=60, per_day=10_000, burst=5),
-    legal_note="Endpoint pubblico gratuito Shodan InternetDB. Solo dati già indicizzati, nessuna scansione attiva.",
+    legal_note="shodan_internetdb.legal_note",
     health_check_url="https://internetdb.shodan.io/",
 )
 
@@ -57,15 +58,15 @@ class ShodanInternetDBConnector(BaseConnector):
             ipaddress.ip_address(ip)
         except ValueError:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target non è un IP valido.")
+                                   error=_t("shodan_internetdb.invalid_ip", context.lang))
 
         data = _fetch_internetdb(ip, context.timeout)
         if data is None:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="InternetDB non raggiungibile.")
+                                   error=_t("generic.no_response", context.lang, service="InternetDB"))
         if not data:
             return ConnectorResult(connector=self.spec.name, status="ok",
-                                   findings=[], raw={"note": "IP non presente in InternetDB."})
+                                   findings=[], raw={"note": _t("shodan_internetdb.not_in_db", context.lang)})
 
         ev = [Evidence(url=f"https://www.shodan.io/host/{ip}", title=f"Shodan host {ip}")]
         findings: list[Finding] = []
@@ -75,7 +76,7 @@ class ShodanInternetDBConnector(BaseConnector):
                 kind="open_port", value=str(port),
                 confidence=0.9, source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes=f"Porta osservata da Shodan su {ip} (indicizzata, non scan live).",
+                notes=_t("shodan_internetdb.open_port", context.lang, ip=ip),
             ))
         for hostname in (data.get("hostnames") or [])[:20]:
             findings.append(Finding(
@@ -88,14 +89,14 @@ class ShodanInternetDBConnector(BaseConnector):
                 kind="tech_cpe", value=cpe,
                 confidence=0.8, source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes="CPE (software/versione) inferito da Shodan.",
+                notes=_t("shodan_internetdb.cpe", context.lang),
             ))
         for vuln in (data.get("vulns") or [])[:50]:
             findings.append(Finding(
                 kind="vulnerability", value=vuln,
                 confidence=0.75, source_reliability="B", info_credibility=3,
                 evidence=[Evidence(url=f"https://nvd.nist.gov/vuln/detail/{vuln}", title=vuln)],
-                notes=f"CVE potenziale associato a {ip} da Shodan. Verificare versione reale.",
+                notes=_t("shodan_internetdb.vuln", context.lang, ip=ip),
                 severity="medium",
             ))
         for tag in (data.get("tags") or [])[:20]:

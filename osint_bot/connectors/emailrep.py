@@ -10,6 +10,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PII_GATED,
     BaseConnector,
@@ -29,10 +30,7 @@ _SPEC = ConnectorSpec(
     required_key="",  # opzionale
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=10, per_day=100, burst=2),
-    legal_note=(
-        "EmailRep.io: aggrega reputazione email da fonti pubbliche. "
-        "Usabile solo con base giuridica (caso + autorizzazione)."
-    ),
+    legal_note="emailrep.legal_note",
     health_check_url="https://emailrep.io/",
 )
 
@@ -50,7 +48,8 @@ class EmailRepConnector(BaseConnector):
             data = _safe_http.get_json(url, headers=headers, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"EmailRep: {exc}")
+                                   error=_t("generic.error", context.lang,
+                                            service="EmailRep", error=exc))
         rep = (data or {}).get("reputation", "unknown")
         suspicious = (data or {}).get("suspicious", False)
         details = (data or {}).get("details") or {}
@@ -61,11 +60,10 @@ class EmailRepConnector(BaseConnector):
             confidence=0.75, source_reliability="C", info_credibility=2,
             severity="medium" if suspicious else "info",
             evidence=ev,
-            notes=(
-                f"EmailRep: reputation={rep}, suspicious={suspicious}, "
-                f"deliverable={details.get('deliverable', '?')}, "
-                f"profiles={details.get('profiles', [])[:5]}"
-            ),
+            notes=_t("emailrep.summary", context.lang,
+                     reputation=rep, suspicious=suspicious,
+                     deliverable=details.get('deliverable', '?'),
+                     profiles=details.get('profiles', [])[:5]),
         )]
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings,

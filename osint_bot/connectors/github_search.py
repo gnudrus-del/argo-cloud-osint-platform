@@ -4,6 +4,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -83,14 +84,10 @@ class GitHubSearchConnector(BaseConnector):
                     confidence=0.65,
                     severity=severity,
                     attck_ttps=ttps,
-                    remediation=(
-                        f"Revocare immediatamente qualsiasi credenziale esposta nel file {file_path}. "
-                        "Rimuovere il file dalla cronologia git (BFG Repo Cleaner). "
-                        "Aggiungere .gitignore per prevenire future esposizioni."
-                    ),
+                    remediation=_t("github_search.remediation_secret", ctx.lang, file_path=file_path),
                     source_reliability="B", info_credibility=2,
                     evidence=[Evidence(url=html_url, title=f"GitHub: {repo_name}")],
-                    notes=f"Pattern '{keyword}' trovato in repository pubblico correlato a '{t}'.",
+                    notes=_t("github_search.pattern_found", ctx.lang, keyword=keyword, target=t),
                 ))
 
         # Also search for any public repos mentioning the target domain
@@ -104,7 +101,7 @@ class GitHubSearchConnector(BaseConnector):
                     confidence=0.60,
                     source_reliability="C", info_credibility=4,
                     evidence=[Evidence(url=f"https://github.com/search?q={urllib.parse.quote(t)}", title="GitHub Search")],
-                    notes=f"{total_refs} repository pubblici GitHub menzionano '{t}' in README/descrizione.",
+                    notes=_t("github_search.repo_mentions", ctx.lang, count=total_refs, target=t),
                 ))
 
         return ConnectorResult(connector=self.spec.name, status="ok", findings=findings,

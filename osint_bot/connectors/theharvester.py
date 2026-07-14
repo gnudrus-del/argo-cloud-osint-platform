@@ -27,6 +27,7 @@ import re
 import subprocess
 import tempfile
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -46,7 +47,7 @@ _SPEC = ConnectorSpec(
     required_key="",  # tool locale via env; usa sorgenti no-key
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=4, per_day=200, burst=1),
-    legal_note="Raccolta passiva da fonti pubbliche (CT logs, motori, DNS aggregatori). Nessun contatto diretto col target.",
+    legal_note="theharvester.legal_note",
     health_check_url="",
 )
 
@@ -101,13 +102,12 @@ class TheHarvesterConnector(BaseConnector):
         if not cfg["cmd"] and not cfg["python"]:
             return ConnectorResult(
                 connector=self.spec.name, status="missing_key",
-                error=("theHarvester non configurato. Setta THEHARVESTER_CMD "
-                       "(o THEHARVESTER_PYTHON) nel .env."),
+                error=_t("theharvester.not_configured", context.lang),
             )
         domain = (context.target or "").strip().lower().rstrip(".")
         if not _DOMAIN_RE.match(domain):
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target deve essere un dominio valido.")
+                                   error=_t("theharvester.invalid_domain", context.lang))
 
         env = dict(os.environ)
         env["PYTHONUTF8"] = "1"
@@ -134,7 +134,7 @@ class TheHarvesterConnector(BaseConnector):
             parsed, out = _run(cfg["sources"], tmp)
             if out.startswith("__EXEC_ERROR__:"):
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error=f"Esecuzione theHarvester fallita: {out.split(':',1)[1]}")
+                                       error=_t("theharvester.exec_failed", context.lang, error=out.split(':', 1)[1]))
             # Fallback: se una sorgente non valida ha invalidato il run, riprova con crtsh.
             if not parsed and ("invalid source" in out.lower() or not glob.glob(os.path.join(tmp, "*.json"))):
                 with tempfile.TemporaryDirectory(prefix="argo-th-fb-") as tmp2:
@@ -149,22 +149,22 @@ class TheHarvesterConnector(BaseConnector):
                     kind="email", value=email,
                     confidence=0.8, source_reliability="B", info_credibility=2,
                     evidence=ev,
-                    notes=f"Email pubblica associata a {domain} (theHarvester).",
-                    why_linked=[f"Email raccolta da fonti pubbliche per il dominio {domain}"],
+                    notes=_t("theharvester.email_public", context.lang, domain=domain),
+                    why_linked=[_t("theharvester.email_why", context.lang, domain=domain)],
                 ))
         for host in parsed.get("hosts", [])[:200]:
             findings.append(Finding(
                 kind="subdomain", value=host,
                 confidence=0.75, source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes=f"Host/sottodominio di {domain} (theHarvester).",
+                notes=_t("theharvester.host_note", context.lang, domain=domain),
             ))
         for ip in parsed.get("ips", [])[:100]:
             findings.append(Finding(
                 kind="ip", value=ip,
                 confidence=0.7, source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes=f"IP associato a {domain} (theHarvester).",
+                notes=_t("theharvester.ip_note", context.lang, domain=domain),
             ))
 
         return ConnectorResult(

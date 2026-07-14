@@ -12,6 +12,7 @@ import socket
 import subprocess
 from collections.abc import Iterable
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -31,7 +32,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=600,
     rate_limit=RateLimit(per_minute=60, per_day=20_000, burst=5),
-    legal_note="Query DNS pubbliche: nessuna informazione personale.",
+    legal_note="dns_query.legal_note",
     health_check_url="",
 )
 
@@ -79,7 +80,7 @@ class DNSQueryConnector(BaseConnector):
         target = (context.target or "").strip().rstrip(".")
         if not target:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target vuoto.")
+                                   error=_t("dns_query.empty_target", context.lang))
         findings: list[Finding] = []
         found_any = False
         raw: dict[str, list[str]] = {}
@@ -100,7 +101,8 @@ class DNSQueryConnector(BaseConnector):
                             evidence=[Evidence(
                                 url=f"https://dns.google/query?name={target}&rr_type={rtype}",
                                 title="DNS")],
-                            notes=f"Record {rtype} per {target} via resolver di sistema.",
+                            notes=_t("dns_query.record_dig", context.lang,
+                                     rtype=rtype, target=target),
                         ))
         else:
             # Fallback minimale
@@ -113,7 +115,7 @@ class DNSQueryConnector(BaseConnector):
                     confidence=0.95, source_reliability="A", info_credibility=1,
                     evidence=[Evidence(url=f"https://dns.google/query?name={target}",
                                        title="DNS")],
-                    notes=f"IP risolto per {target} (fallback socket).",
+                    notes=_t("dns_query.record_socket", context.lang, target=target),
                 ))
 
         if not found_any:

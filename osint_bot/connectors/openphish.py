@@ -12,6 +12,7 @@ import time
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -31,7 +32,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=6, per_day=240, burst=2),
-    legal_note="Feed pubblico OpenPhish. Solo verifiche difensive.",
+    legal_note="openphish.legal_note",
     health_check_url="https://openphish.com/feed.txt",
 )
 
@@ -59,7 +60,7 @@ class OpenPhishConnector(BaseConnector):
         feed = _load_feed(context.timeout)
         if not feed:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="OpenPhish: feed non scaricabile.")
+                                   error=_t("openphish.feed_unavailable", context.lang))
         target = context.target.strip().lower()
         # Check exact URL match + host match (since feed is URL-based).
         matches: list[str] = []
@@ -80,7 +81,7 @@ class OpenPhishConnector(BaseConnector):
             kind="openphish_match", value=m,
             confidence=0.92, source_reliability="C", info_credibility=2,
             severity="high", evidence=ev,
-            notes="URL presente nella feed pubblica OpenPhish.",
+            notes=_t("openphish.match", context.lang),
         ) for m in matches[:5]]
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings, raw={"matches": matches})

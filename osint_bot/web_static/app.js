@@ -8,6 +8,7 @@ const state = {
   activeSocial: null,
   socialHandles: {},
   currentMode: "handle",
+  currentPanel: "dashboard",
 };
 
 const SOCIAL_NETWORKS = [
@@ -30,49 +31,46 @@ const SOCIAL_NETWORKS = [
 ];
 
 const modePresets = {
+  // NB: the per-mode placeholder/hint text lives in the i18n dictionary
+  // (mp.<mode>.hint, resolved by applyMode via t()); only the behavioural
+  // fields (type/modules/provider/authorized) stay here.
   handle: {
     type: "handle",
     modules: ["socmint", "phone_email"],
     provider: "all",
-    placeholder: "esempio: username oppure @username",
-    hint: "Username pubblico: Sherlock e Maigret cercano profili aperti; contatti solo se visibili pubblicamente nelle fonti.",
     authorized: true,
   },
   domain: {
     type: "domain",
     modules: ["company_domain", "opsec", "geo"],
     provider: "all",
-    placeholder: "esempio: example.com oppure nome azienda",
-    hint: "Dominio o azienda: il planner usa seed, archivi, sottodomini e fonti pubbliche.",
     authorized: false,
   },
   contact: {
     type: "email",
     modules: ["phone_email", "socmint"],
     provider: "all",
-    placeholder: "esempio: nome@example.com oppure numero autorizzato",
-    hint: "Email o telefono: verifica presenza pubblica e contatti citati; non recupera dati privati di registrazione.",
     authorized: true,
   },
   media: {
     type: "media",
     modules: ["media", "geo"],
     provider: "none",
-    placeholder: "carica il file nella sezione Media oppure inserisci un URL pubblico",
-    hint: "Media: analisi di file e riferimenti pubblici, con attenzione a metadati e contesto.",
     authorized: false,
   },
   crypto: {
     type: "crypto",
     modules: ["crypto", "opsec"],
     provider: "all",
-    placeholder: "esempio: address BTC/ETH o wallet pubblico",
-    hint: "Crypto: contestualizza address e fonti pubbliche senza attribuzioni automatiche.",
     authorized: false,
   },
 };
 
 const $ = (id) => document.getElementById(id);
+
+// i18n shortcut — resolves against the shared dictionary in i18n.js.
+// Falls back to the key if the engine isn't loaded yet.
+const t = (key, params) => (window.I18N ? window.I18N.t(key, params) : key);
 
 document.querySelectorAll(".nav").forEach((button) => {
   button.addEventListener("click", () => {
@@ -88,29 +86,41 @@ document.querySelectorAll(".nav").forEach((button) => {
   });
 });
 
+// Panel topbar copy, keyed to the i18n dictionary (resolved at render time
+// so it re-translates on language switch).
 const TOPBAR_COPY = {
-  dashboard: ["Dashboard", "Cerca una entità o riprendi un caso. Le aree gated (deep/dark web, red team) restano opt-in."],
-  cases: ["Casi e indagini", "Ogni ricerca vive dentro un caso con base giuridica e finalità documentate."],
-  investigate: ["Nuova ricerca", "Compila i dati. Le aree sono tutte attive: spunta solo deep/dark web o red team se servono."],
-  jobs: ["Report investigativi", "Apri un report completato per leggere evidenze, grafo entità e fonti."],
-  media: ["Media", "Analisi automatica di immagini e video: EXIF, geo, hash, MIME."],
-  keys: ["Chiavi API (BYOK)", "Le chiavi restano cifrate e non sono mai mostrate in chiaro."],
-  opsec: ["OPSEC", "Routing e isolamento gestiti dal planner in base al caso e ai flag."],
+  dashboard: ["pt.dashboard.h", "pt.dashboard.p"],
+  cases: ["pt.cases.h", "pt.cases.p"],
+  investigate: ["topbar.title", "topbar.sub"],
+  jobs: ["jobs.title", "pt.jobs.p"],
+  media: ["side.media", "pt.media.p"],
+  keys: ["pt.keys.h", "pt.keys.p"],
+  opsec: ["side.opsec", "pt.opsec.p"],
 };
 
 function updateTopbar(panel) {
-  const copy = TOPBAR_COPY[panel];
+  if (panel) state.currentPanel = panel;
+  const copy = TOPBAR_COPY[state.currentPanel];
   if (!copy) return;
   const head = document.querySelector(".topbar h1");
   const sub = document.querySelector(".topbar p");
-  if (head) head.textContent = copy[0];
-  if (sub) sub.textContent = copy[1];
+  if (head) head.textContent = t(copy[0]);
+  if (sub) sub.textContent = t(copy[1]);
 }
+
+// Re-render language-dependent dynamic bits when the user switches language.
+document.addEventListener("i18n:changed", () => {
+  updateTopbar();
+  if (typeof setAuthMode === "function") setAuthMode(state.authMode);
+  const activeMode = document.querySelector(".quickMode.active");
+  if (activeMode) applyMode(activeMode.dataset.mode);
+});
 
 $("loginTab").addEventListener("click", () => setAuthMode("login"));
 $("signupTab").addEventListener("click", () => setAuthMode("signup"));
 $("authSubmit").addEventListener("click", submitAuth);
 $("logoutBtn").addEventListener("click", logout);
+setAuthMode(state.authMode); // translate the submit label on load (button has no static data-i18n)
 // Palette unica: ambra (selector rimosso dalla UI)
 // $("themeSelect") rimosso — la palette è fissa "ambra".
 $("planBtn").addEventListener("click", plan);
@@ -176,7 +186,7 @@ function setAuthMode(mode) {
   state.authMode = mode;
   $("loginTab").classList.toggle("active", mode === "login");
   $("signupTab").classList.toggle("active", mode === "signup");
-  $("authSubmit").textContent = mode === "login" ? "Accedi" : "Crea account gratis";
+  $("authSubmit").textContent = mode === "login" ? t("auth.submit") : t("auth.submit.signup");
   $("authEmailRow").classList.toggle("hidden", mode !== "signup");
   $("authMessage").textContent = "";
 }
@@ -197,7 +207,7 @@ async function submitAuth() {
     if (state.authMode === "signup" && data.status === "pending_verification") {
       $("authMessage").style.color = "#65a8ff";
       $("authMessage").textContent = data.message
-        || `Email di verifica inviata a ${data.email}. Clicca il link per attivare l'account.`;
+        || t("auth.verifySent", { email: data.email });
       $("authPass").value = "";
       return;
     }
@@ -271,9 +281,9 @@ function buildCommand() {
   const known = ($("knownFacts") && $("knownFacts").value || "").trim();
   const seeds = ($("seedUrls") && $("seedUrls").value || "").trim();
   return [
-    target ? `Analizza ${target}` : "Esegui una ricerca OSINT",
-    seeds ? `fonti seed: ${seeds}` : "",
-    known ? `informazioni note: ${known}` : "",
+    target ? t("auth.searchFor", { target }) : t("auth.searchGeneric"),
+    seeds ? t("pl.seedPrefix", { v: seeds }) : "",
+    known ? t("pl.knownPrefix", { v: known }) : "",
   ].filter(Boolean).join(". ");
 }
 
@@ -329,7 +339,7 @@ async function plan() {
     $("planStatus").textContent = "pronto";
   } catch (error) {
     $("planOutput").textContent = error.message;
-    $("planStatus").textContent = "errore";
+    $("planStatus").textContent = t("st.error");
   }
 }
 
@@ -350,29 +360,30 @@ async function runJob() {
 }
 
 // Etichette leggibili per ogni agente + flag "gated" (richiede autorizzazione).
+// Agent labels are i18n keys, resolved at render time via t().
 const AGENT_LABELS = {
-  planner: "Pianificatore",
-  web: "Copertura web",
-  opsec: "OPSEC / segreti esposti",
-  geo: "Geolocalizzazione",
-  socmint: "SOCMINT (profili pubblici)",
-  media: "Media & metadati",
-  crypto: "Wallet crypto",
-  phone: "Analisi telefono",
-  humint: "HUMINT (piano etico)",
-  external: "Tool esterni",
-  reverse_account: "Reverse account (email/tel)",
-  darkweb: "Deep / dark web",
-  red_team: "Red team",
+  planner: "ag.planner",
+  web: "ag.web",
+  opsec: "ag.opsec",
+  geo: "ag.geo",
+  socmint: "ag.socmint",
+  media: "ag.media",
+  crypto: "ag.crypto",
+  phone: "ag.phone",
+  humint: "ag.humint",
+  external: "ag.external",
+  reverse_account: "ag.reverse_account",
+  darkweb: "ag.darkweb",
+  red_team: "ag.red_team",
 };
 const GATED_AGENTS = new Set(["darkweb", "red_team"]);
 
 function agentChips(agents) {
   if (!agents || !agents.length) return "<span class=\"muted\">-</span>";
   return agents.map((a) => {
-    const label = AGENT_LABELS[a] || a;
+    const label = AGENT_LABELS[a] ? t(AGENT_LABELS[a]) : a;
     const gated = GATED_AGENTS.has(a);
-    return `<span class="agentChip${gated ? " agentChip--gated" : ""}" title="${gated ? "Attivo: richiede autorizzazione/flag" : "Sempre attivo"}">${gated ? "🔒 " : ""}${escapeHtml(label)}</span>`;
+    return `<span class="agentChip${gated ? " agentChip--gated" : ""}" title="${gated ? t("ag.gatedTip") : t("ag.alwaysTip")}">${gated ? "🔒 " : ""}${escapeHtml(label)}</span>`;
   }).join("");
 }
 
@@ -383,13 +394,13 @@ function renderPlan(profile) {
   const agents = profile.agents || [];
   block.innerHTML = `
     <p><strong>Target</strong>: ${escapeHtml(profile.target || "-")}</p>
-    <p><strong>Tipo</strong>: ${escapeHtml(profile.target_type || "-")}</p>
-    <p><strong>Agenti attivi (${agents.length})</strong></p>
+    <p><strong>${t("inv.type")}</strong>: ${escapeHtml(profile.target_type || "-")}</p>
+    <p><strong>${t("pl.activeAgents")} (${agents.length})</strong></p>
     <div class="agentChips">${agentChips(agents)}</div>
-    <p class="muted agentChipsNote">Ogni ricerca esegue tutti gli agenti applicabili: quelli non pertinenti al target si auto-escludono. 🔒 = richiede flag/autorizzazione.</p>
-    <p><strong>Strumenti</strong>: ${escapeHtml((profile.external_tools || []).join(", ") || "-")}</p>
+    <p class="muted agentChipsNote">${t("pl.agentsNote")}</p>
+    <p><strong>${t("pl.tools")}</strong>: ${escapeHtml((profile.external_tools || []).join(", ") || "-")}</p>
     <p><strong>Seed URL</strong>: ${escapeHtml((profile.seed_urls || []).join(", ") || "-")}</p>
-    <p><strong>Profondita</strong>: ${profile.depth} · <strong>Pagine</strong>: ${profile.max_pages}</p>
+    <p><strong>${t("pl.depth")}</strong>: ${profile.depth} · <strong>${t("pl.pages")}</strong>: ${profile.max_pages}</p>
     <hr>
     ${(profile.notes || []).map((note) => `<p>${escapeHtml(note)}</p>`).join("")}
   `;
@@ -406,9 +417,9 @@ async function loadCapabilities() {
       const nOk = conns.count_ok || 0, nTot = conns.count || 0;
       $("capabilities").innerHTML = `
         <div class="capability" style="grid-column:1/-1;text-align:center;padding:18px">
-          <strong>🔒 Tool e connettori nascosti</strong>
-          <div class="muted" style="margin:6px 0 12px">${nOk} attivi su ${nTot}. Sblocca con la password amministratore per visualizzarli.</div>
-          <button type="button" class="btn" id="capUnlockBtn">🔐 Sblocca funzioni avanzate</button>
+          <strong>${t("cap.hidden")}</strong>
+          <div class="muted" style="margin:6px 0 12px">${t("cap.hiddenSub", { ok: nOk, tot: nTot })}</div>
+          <button type="button" class="btn" id="capUnlockBtn">${t("inv.ah.unlock")}</button>
         </div>`;
       const b = document.getElementById("capUnlockBtn");
       if (b) b.addEventListener("click", () => { if (typeof openAdminUnlockModal === "function") openAdminUnlockModal(); });
@@ -418,18 +429,18 @@ async function loadCapabilities() {
       const cls = provider.configured ? "ok" : "ko";
       return `
         <div class="capability">
-          <strong>Ricerca ${escapeHtml(provider.name)}<span class="statusDot ${cls}" title="${cls === "ok" ? "configurata" : "manca env"}"></span></strong>
-          <span>${provider.configured ? "configurata" : escapeHtml(provider.env_var)}</span>
+          <strong>${t("cap.searchPrefix")} ${escapeHtml(provider.name)}<span class="statusDot ${cls}" title="${cls === "ok" ? t("cap.configured") : t("cap.missingEnv")}"></span></strong>
+          <span>${provider.configured ? t("cap.configured") : escapeHtml(provider.env_var)}</span>
         </div>
       `;
     }).join("");
     const tools = data.tools.map((tool) => {
       const cls = tool.available ? "ok" : "ko";
-      const tip = tool.available ? "disponibile" : (tool.health_reason || "non disponibile");
+      const tip = tool.available ? t("cap.available") : (tool.health_reason || t("cap.unavailable"));
       return `
         <div class="capability">
           <strong>${escapeHtml(tool.name)}<span class="statusDot ${cls}" title="${escapeHtml(tip)}"></span></strong>
-          <span>${tool.available ? "disponibile" : escapeHtml(tool.env_var)}</span>
+          <span>${tool.available ? t("cap.available") : escapeHtml(tool.env_var)}</span>
         </div>
       `;
     }).join("");
@@ -437,10 +448,10 @@ async function loadCapabilities() {
     const connectors = (data.connectors || []).map((c) => {
       const ok = c.status === "ok";
       const cls = ok ? "ok" : "ko";
-      const tip = ok ? "attivo"
-        : (c.status === "needs_key" ? ("richiede API key: " + (c.needs || "")) : "richiede tool/credenziale (env)");
+      const tip = ok ? t("cap.connActive")
+        : (c.status === "needs_key" ? (t("cap.connNeedsKey") + (c.needs || "")) : t("cap.connNeedsTool"));
       const sub = ok ? (c.input_types || []).join(", ")
-        : (c.status === "needs_key" ? ("API: " + (c.needs || "")) : "config mancante");
+        : (c.status === "needs_key" ? ("API: " + (c.needs || "")) : t("cap.configMissing"));
       return `
         <div class="capability">
           <strong>${escapeHtml(c.label || c.name)}<span class="statusDot ${cls}" title="${escapeHtml(tip)}"></span></strong>
@@ -449,7 +460,7 @@ async function loadCapabilities() {
       `;
     }).join("");
     const connHeader = (data.connectors && data.connectors.length)
-      ? `<div class="capability" style="grid-column:1/-1;opacity:.7;font-size:12px;margin-top:6px">Connettori (${data.connectors.length})</div>`
+      ? `<div class="capability" style="grid-column:1/-1;opacity:.7;font-size:12px;margin-top:6px">${t("cap.connectors")} (${data.connectors.length})</div>`
       : "";
     $("capabilities").innerHTML = providers + tools + connHeader + connectors;
   } catch (error) {
@@ -463,11 +474,11 @@ async function loadJobs() {
     $("jobCount").textContent = String(data.jobs.length);
     $("jobsList").innerHTML = data.jobs.filter((job) => job.profile).map((job) => `
       <div class="job" data-id="${job.id}" data-status="${job.status}">
-        <button class="jobDeleteBtn" data-del-id="${job.id}" title="Elimina report e cancella tracce" aria-label="Elimina">🗑</button>
+        <button class="jobDeleteBtn" data-del-id="${job.id}" title="${t("act.delReportTitle")}" aria-label="${t("act.delAria")}">🗑</button>
         <strong>${escapeHtml(job.profile.target)} · ${escapeHtml(job.profile.target_type)}</strong>
         <span>${escapeHtml(job.status)} · ${escapeHtml(jobStageLabel(job))} · ${escapeHtml(job.updated_at || job.created_at)}</span>
       </div>
-    `).join("") || `<div class="empty">Nessun report.</div>`;
+    `).join("") || `<div class="empty">${t("jb.noReports")}</div>`;
     document.querySelectorAll(".job").forEach((item) => item.addEventListener("click", (e) => {
       // Evita di selezionare quando si clicca il cestino.
       if (e.target.closest(".jobDeleteBtn")) return;
@@ -503,8 +514,8 @@ function renderHighRiskBanner(job) {
   const restrictions = (hr.restrictions || []).slice(0, 6)
     .map((r) => `<span class="srcChip">${escapeHtml(r.label || r.key || "")}</span>`).join("");
   wrap.innerHTML = `
-    <div class="hrTitle">🛡️ ${escapeHtml(hr.banner || "Modalità' OPSEC attiva.")}</div>
-    ${reasons ? `<details class="hrDetails"><summary>Perché e' attiva (${(hr.reasons || []).length})</summary><ul>${reasons}</ul></details>` : ""}
+    <div class="hrTitle">🛡️ ${escapeHtml(hr.banner || t("hrb.opsecActive"))}</div>
+    ${reasons ? `<details class="hrDetails"><summary>${t("hrb.whyActive")} (${(hr.reasons || []).length})</summary><ul>${reasons}</ul></details>` : ""}
     ${restrictions ? `<div class="hrRestrictions">${restrictions}</div>` : ""}
   `;
   anchor.parentNode.insertBefore(wrap, anchor);
@@ -515,12 +526,7 @@ function renderHighRiskBanner(job) {
 // L'audit log registra l'azione lato server (chain-of-custody preservata).
 async function deleteJob(id) {
   if (!id) return;
-  const reason = prompt(
-    "Elimina questo report?\n\n" +
-    "I file (markdown/json/pdf/forensic/redteam) e il record DB vengono rimossi.\n" +
-    "L'evento resta tracciato nell'audit log.\n\n" +
-    "Motivo opzionale (max 500 char):", ""
-  );
+  const reason = prompt(t("act.deletePrompt"), "");
   if (reason === null) return; // utente ha annullato
   try {
     await api(`/api/jobs/${id}`, {
@@ -532,7 +538,7 @@ async function deleteJob(id) {
       state.currentJob = null;
       state.lastReport = null;
       const viewer = $("reportViewer");
-      if (viewer) viewer.textContent = "Report eliminato.";
+      if (viewer) viewer.textContent = t("jb.reportDeleted");
       const banner = document.getElementById("highRiskBanner");
       if (banner && banner.parentNode) banner.parentNode.removeChild(banner);
     }
@@ -540,7 +546,7 @@ async function deleteJob(id) {
     // Refresha anche dashboard recent-jobs se siamo lì.
     if (typeof loadDashboard === "function") loadDashboard();
   } catch (err) {
-    alert("Errore cancellazione: " + ((err && err.message) || err));
+    alert(t("err.delete") + ((err && err.message) || err));
   }
 }
 
@@ -548,21 +554,16 @@ async function deleteJob(id) {
 // del caso oppure li lascia come record orfani per audit).
 async function deleteCase(id, title) {
   if (!id) return;
-  const cascade = confirm(
-    `Elimina il caso "${title || id}"?\n\n` +
-    "OK  = elimina anche TUTTI i job del caso (file + record).\n" +
-    "Annulla ora se non vuoi procedere.\n\n" +
-    "(Il prossimo passo chiederà la motivazione.)"
-  );
-  if (!cascade && !confirm("Vuoi eliminare SOLO il caso, lasciando i job come record orfani (per audit)?")) return;
-  const reason = prompt("Motivo (opzionale, max 500 char) per l'audit log:", "") ?? "";
+  const cascade = confirm(t("cs.delConfirm", { name: title || id }));
+  if (!cascade && !confirm(t("cs.delOnlyCase"))) return;
+  const reason = prompt(t("cs.delReason"), "") ?? "";
   try {
     const url = `/api/cases/${id}${cascade ? "?cascade=1" : ""}`;
     await api(url, { method: "DELETE", body: JSON.stringify({ reason: String(reason).slice(0, 500) }) });
     await loadCases();
     if (typeof loadDashboard === "function") loadDashboard();
   } catch (err) {
-    alert("Errore cancellazione caso: " + ((err && err.message) || err));
+    alert(t("err.deleteCase") + ((err && err.message) || err));
   }
 }
 
@@ -659,19 +660,18 @@ function renderForensicViewer() {
       body.innerHTML =
         '<div class="rtEmpty">' +
           '<div class="rtEmptyIcon">⚔</div>' +
-          '<h3>Report Red Team non disponibile</h3>' +
+          `<h3>${t("rt.unavailable")}</h3>` +
           (skipReason
             ? `<p class="rtWhy">${escapeHtml(skipReason)}</p>`
-            : '<p class="muted">Il report viene generato quando: (1) il modulo <b>red_team</b> è attivo e (2) il caso ha almeno un target nello <b>scope autorizzato</b>.</p>'
+            : `<p class="muted">${t("rt.whenGenerated")}</p>`
           ) +
           '<div class="rtActions">' +
-            '<button type="button" class="btnPrimary" onclick="document.querySelector(&quot;.nav[data-panel=cases]&quot;).click()">Apri i Casi</button>' +
-            '<button type="button" class="btnGhost" onclick="document.querySelector(&quot;.nav[data-panel=investigate]&quot;).click()">Nuova ricerca</button>' +
+            `<button type="button" class="btnPrimary" onclick="document.querySelector(&quot;.nav[data-panel=cases]&quot;).click()">${t("rt.openCases")}</button>` +
+            `<button type="button" class="btnGhost" onclick="document.querySelector(&quot;.nav[data-panel=investigate]&quot;).click()">${t("inv.title")}</button>` +
           '</div>' +
         '</div>';
     } else {
-      body.innerHTML = '<p class="muted">Nessun report forensico per questo job. ' +
-        'I report forensici a 19 sezioni vengono generati per i job avviati dopo l\'ultimo deploy.</p>';
+      body.innerHTML = `<p class="muted">${t("rt.noForensic")}</p>`;
     }
     return;
   }
@@ -694,9 +694,9 @@ function renderForensicViewer() {
     <header class="forensicHeader">
       <h2>${escapeHtml(sections[0]?.body_markdown || report.target)}</h2>
       <p class="forensicMeta">
-        Caso <code>${escapeHtml(report.case_id)}</code> · target
+        ${t("rp.case")} <code>${escapeHtml(report.case_id)}</code> · target
         <code>${escapeHtml(report.target)}</code> (${escapeHtml(report.target_type)})
-        · generato ${escapeHtml(report.generated_at)}
+        · ${t("rp.generated")} ${escapeHtml(report.generated_at)}
       </p>
     </header>
   `;
@@ -803,20 +803,20 @@ function jobStageLabel(job) {
   const progress = job.progress || [];
   const last = progress[progress.length - 1];
   if (last) return progressLabel(last.stage);
-  return progressLabel(job.status) || "in attesa";
+  return progressLabel(job.status) || t("st.pending");
 }
 
 function progressLabel(stage) {
   const labels = {
-    queued: "in coda",
-    running: "pipeline",
-    collecting: "raccolta",
-    pdf: "PDF",
-    pdf_error: "PDF non disponibile",
-    complete: "completo",
-    error: "errore",
+    queued: "pr.queued",
+    running: "pr.running",
+    collecting: "pr.collecting",
+    pdf: "pr.pdf",
+    pdf_error: "pr.pdfError",
+    complete: "pr.complete",
+    error: "st.error",
   };
-  return labels[stage] || stage || "stato";
+  return labels[stage] ? t(labels[stage]) : (stage || t("st.state"));
 }
 
 function renderEntityGraph(report) {
@@ -860,17 +860,17 @@ function renderEntityGraph(report) {
   graph.innerHTML = `
     <div class="graphHead">
       <div>
-        <strong>Grafo entità</strong>
-        <span>${nodes.length} nodi · ${links.length} relazioni visibili</span>
+        <strong>${t("gr.title")}</strong>
+        <span>${t("gr.nodesLinks", { n: nodes.length, r: links.length })}</span>
       </div>
       <span class="tag">pivot</span>
     </div>
-    <svg viewBox="0 0 900 360" role="img" aria-label="Grafo entità del report">
+    <svg viewBox="0 0 900 360" role="img" aria-label="${t("gr.ariaLabel")}">
       <rect class="graphCanvas" x="0" y="0" width="900" height="360" rx="8"></rect>
       ${linkMarkup}
       ${nodeMarkup}
     </svg>
-    <div id="graphDetails" class="graphDetails">Seleziona un nodo per preparare un pivot investigativo.</div>
+    <div id="graphDetails" class="graphDetails">${t("gr.selectNode")}</div>
   `;
   graph.querySelectorAll(".graphNode").forEach((nodeEl) => {
     nodeEl.addEventListener("click", () => {
@@ -964,9 +964,9 @@ function renderGraphDetails(entity) {
   details.innerHTML = `
     <div>
       <strong>${escapeHtml(entity.display_value || entity.value)}</strong>
-      <span>${escapeHtml(entityTypeLabel(entity.type))} · grado ${escapeHtml((entity.source_reliability || "F") + (entity.info_credibility || 6))} · confidenza ${Number(entity.confidence || 0).toFixed(2)}</span>
+      <span>${escapeHtml(entityTypeLabel(entity.type))} · ${t("gr.grade")} ${escapeHtml((entity.source_reliability || "F") + (entity.info_credibility || 6))} · ${t("gr.confidence")} ${Number(entity.confidence || 0).toFixed(2)}</span>
     </div>
-    <button type="button" class="smallAction">Prepara pivot</button>
+    <button type="button" class="smallAction">${t("gr.preparePivot")}</button>
   `;
   details.querySelector("button").addEventListener("click", () => pivotFromEntity(entity));
 }
@@ -976,7 +976,7 @@ function pivotFromEntity(entity) {
   $("target").value = entity.value;
   $("targetType").value = targetTypeFromEntity(entity.type);
   setModules(modulesFromEntity(entity.type));
-  $("modeHint").textContent = `Pivot preparato da entità ${entityTypeLabel(entity.type)} del report selezionato.`;
+  $("modeHint").textContent = t("gr.pivotPrepared", { type: entityTypeLabel(entity.type) });
   if (["email", "phone", "username", "person"].includes(entity.type)) {
     $("confirmAuth").checked = false;
   }
@@ -1013,18 +1013,18 @@ function modulesFromEntity(type) {
 
 function entityTypeLabel(type) {
   const labels = {
-    domain: "dominio",
-    organization: "azienda",
-    email: "email",
-    username: "username",
-    phone: "telefono",
-    ip: "IP",
-    wallet: "wallet",
-    url: "URL",
-    media: "media",
-    location: "luogo",
+    domain: "et.domain",
+    organization: "et.organization",
+    email: "et.email",
+    username: "et.username",
+    phone: "et.phone",
+    ip: "et.ip",
+    wallet: "et.wallet",
+    url: "et.url",
+    media: "et.media",
+    location: "et.location",
   };
-  return labels[type] || type;
+  return labels[type] ? t(labels[type]) : type;
 }
 
 function shortLabel(value, maxLength) {
@@ -1036,10 +1036,10 @@ function shortLabel(value, maxLength) {
 async function uploadMedia() {
   const file = $("mediaFile").files[0];
   if (!file) {
-    $("mediaOutput").textContent = "Seleziona un file.";
+    $("mediaOutput").textContent = t("md.selectFile");
     return;
   }
-  $("mediaOutput").textContent = "Analisi in corso…";
+  $("mediaOutput").textContent = t("md.analyzing");
   const form = new FormData();
   form.append("file", file);
   try {
@@ -1055,11 +1055,11 @@ async function uploadMediaInline() {
   const out = $("mediaInlineResult");
   if (!file) {
     out.classList.add("muted");
-    out.textContent = "Nessun file caricato.";
+    out.textContent = t("inv.media.none");
     return;
   }
   out.classList.remove("muted");
-  out.textContent = `Analisi in corso di ${file.name}…`;
+  out.textContent = t("md.analyzingFile", { name: file.name });
   const form = new FormData();
   form.append("file", file);
   try {
@@ -1069,12 +1069,12 @@ async function uploadMediaInline() {
     out.innerHTML = `
       <div class="mediaSummary">
         <strong>${escapeHtml(file.name)}</strong>
-        <span class="tag">${escapeHtml(m.mime || "n/d")}</span>
+        <span class="tag">${escapeHtml(m.mime || t("md.na"))}</span>
       </div>
       <pre>${escapeHtml(JSON.stringify(m, null, 2))}</pre>
     `;
   } catch (error) {
-    out.textContent = `Errore: ${error.message}`;
+    out.textContent = t("err.generic") + error.message;
   }
 }
 
@@ -1111,9 +1111,9 @@ function escapeHtml(value) {
 }
 
 function nomePiano(plan) {
-  if (plan === "free") return "Gratuito";
+  if (plan === "free") return t("opsec.free");
   if (plan === "pro") return "Pro";
-  return plan || "Gratuito";
+  return plan || t("opsec.free");
 }
 
 function applyMode(mode) {
@@ -1122,9 +1122,10 @@ function applyMode(mode) {
   document.querySelectorAll(".quickMode").forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === mode);
   });
+  const usedMode = modePresets[mode] ? mode : "handle";
   $("targetType").value = preset.type;
   $("provider").value = preset.provider;
-  if ($("modeHint")) $("modeHint").textContent = preset.hint;
+  if ($("modeHint")) $("modeHint").textContent = t(`mp.${usedMode}.hint`);
   $("confirmAuth").checked = preset.authorized;
 
   // Show/hide mode panels
@@ -1140,8 +1141,7 @@ function applyMode(mode) {
   if (active) active.classList.remove("hidden");
 
   if (mode === "domain" || mode === "crypto") {
-    const ph = mode === "domain" ? "example.com · 192.0.2.1 · Acme Spa"
-                                  : "address BTC / ETH (bc1q… / 0x…)";
+    const ph = mode === "domain" ? t("mp.domain.genph") : t("mp.crypto.genph");
     if ($("genericTarget")) $("genericTarget").placeholder = ph;
   }
   updatePrivacyBadge();
@@ -1207,7 +1207,7 @@ function refreshAggressiveState() {
   state.activeModules = [...modules];  // consumato in payload()
   // Contatore visivo
   const counter = document.getElementById("ahCounter");
-  if (counter) counter.textContent = `${active.length} preset attivi · ${modules.size} moduli`;
+  if (counter) counter.textContent = t("inv.ah.activeCount", { presets: active.length, modules: modules.size });
   // Focus sul primo input rilevante
   const focusMap = {
     handle:  ".socialBtn",
@@ -1291,10 +1291,10 @@ function updatePrivacyBadge() {
   badge.classList.remove("hidden");
   if (hasCase) {
     badge.dataset.state = "ok";
-    msg.textContent = "Dato personale: caso selezionato. Verifica la base giuridica sia documentata.";
+    msg.textContent = t("pb.caseSelected");
   } else {
     badge.dataset.state = "warn";
-    msg.textContent = "⚠ Dato personale: seleziona prima un caso con base giuridica.";
+    msg.textContent = t("pb.needCase");
   }
 }
 
@@ -1371,7 +1371,7 @@ async function loadApiKeys() {
   try {
     const data = await api("/api/keys", { method: "GET" });
     renderApiKeys(data.catalog || [], data.keys || []);
-    count.textContent = `${(data.keys || []).length} configurate`;
+    count.textContent = t("ky.configured", { n: (data.keys || []).length });
     // Lo stato copertura usa la response di /api/capabilities che ora
     // contiene lo stato semantico (state, message, last4, ...) per provider.
     try {
@@ -1380,10 +1380,10 @@ async function loadApiKeys() {
       // Aggiorno anche il pannello capabilities (in tab Investigate).
       renderCapabilitiesPanel(caps);
     } catch (capsErr) {
-      status.textContent = "Stato copertura non disponibile: " + (capsErr.message || capsErr);
+      status.textContent = t("ky.coverageUnavail") + (capsErr.message || capsErr);
     }
   } catch (exc) {
-    catalog.textContent = "Errore nel caricamento: " + (exc.message || exc);
+    catalog.textContent = t("err.loading") + (exc.message || exc);
     if (status) status.textContent = "";
   }
 }
@@ -1394,7 +1394,7 @@ function renderApiKeys(catalog, keys) {
   container.innerHTML = "";
   const byCategory = {};
   for (const entry of catalog) {
-    const cat = entry.category || "Altri";
+    const cat = entry.category || t("ky.other");
     if (!byCategory[cat]) byCategory[cat] = [];
     byCategory[cat].push(entry);
   }
@@ -1422,7 +1422,7 @@ function buildKeyRow(entry, current) {
   const input = document.createElement("input");
   input.type = "password";
   input.autocomplete = "off";
-  input.placeholder = current ? current.masked : `Incolla qui la chiave per ${entry.label}`;
+  input.placeholder = current ? current.masked : t("ky.pastePlaceholder", { label: entry.label });
   input.dataset.service = entry.service;
   wrap.appendChild(input);
 
@@ -1432,7 +1432,7 @@ function buildKeyRow(entry, current) {
   const save = document.createElement("button");
   save.type = "button";
   save.className = "smallAction";
-  save.textContent = "Salva";
+  save.textContent = t("ky.save");
   save.addEventListener("click", async () => {
     save.disabled = true;
     try { await saveApiKey(entry.service, input.value, { andTest: true }); }
@@ -1444,7 +1444,7 @@ function buildKeyRow(entry, current) {
   test.type = "button";
   test.className = "smallAction secondary";
   test.textContent = "Test";
-  test.title = "Esegue una probe reale verso il provider per validare la chiave.";
+  test.title = t("ky.testTip");
   test.addEventListener("click", async () => {
     test.disabled = true;
     try { await testApiKey(entry.service, input.value); }
@@ -1456,9 +1456,9 @@ function buildKeyRow(entry, current) {
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "smallAction danger";
-    remove.textContent = "Rimuovi";
+    remove.textContent = t("ky.remove");
     remove.addEventListener("click", async () => {
-      if (!confirm(`Rimuovere la chiave salvata per ${entry.label}?`)) return;
+      if (!confirm(t("ky.removeConfirm", { label: entry.label }))) return;
       remove.disabled = true;
       try { await saveApiKey(entry.service, ""); }
       finally { remove.disabled = false; }
@@ -1481,8 +1481,8 @@ function buildKeyRow(entry, current) {
   result.className = "keyResult muted";
   result.dataset.role = "key-result";
   result.textContent = current
-    ? `Chiave salvata · ${current.masked} · aggiornata ${current.updated_at || "?"}`
-    : "Nessuna chiave salvata.";
+    ? t("ky.saved", { masked: current.masked, updated: current.updated_at || "?" })
+    : t("ky.noneSaved");
   wrap.appendChild(result);
 
   return wrap;
@@ -1491,20 +1491,20 @@ function buildKeyRow(entry, current) {
 // --------- Stato copertura provider (pannello "Stato copertura" + Investigate)
 
 const PROVIDER_STATE_LABELS = {
-  not_configured:  { label: "Non configurato", cls: "neutral" },
-  untested:        { label: "Salvato, non testato", cls: "warn" },
-  ok:              { label: "Attivo", cls: "ok" },
-  auth_error:      { label: "Errore autenticazione", cls: "ko" },
-  quota_exceeded:  { label: "Quota esaurita", cls: "warn" },
-  network_error:   { label: "Errore rete", cls: "ko" },
-  unsupported:     { label: "Provider non supportato", cls: "neutral" },
+  not_configured:  { key: "ps.not_configured", cls: "neutral" },
+  untested:        { key: "ps.untested", cls: "warn" },
+  ok:              { key: "ps.ok", cls: "ok" },
+  auth_error:      { key: "ps.auth_error", cls: "ko" },
+  quota_exceeded:  { key: "ps.quota_exceeded", cls: "warn" },
+  network_error:   { key: "ps.network_error", cls: "ko" },
+  unsupported:     { key: "ps.unsupported", cls: "neutral" },
 };
 
 function providerBadge(state) {
-  const cfg = PROVIDER_STATE_LABELS[state] || { label: state || "—", cls: "neutral" };
+  const cfg = PROVIDER_STATE_LABELS[state];
   const span = document.createElement("span");
-  span.className = `providerBadge ${cfg.cls}`;
-  span.textContent = cfg.label;
+  span.className = `providerBadge ${cfg ? cfg.cls : "neutral"}`;
+  span.textContent = cfg ? t(cfg.key) : (state || "—");
   return span;
 }
 
@@ -1515,7 +1515,7 @@ function renderApiKeyStatus(providers) {
   // Salto "all" — è meta, non un provider reale.
   const real = providers.filter((p) => p.service && p.service !== "all");
   if (!real.length) {
-    status.textContent = "Nessun provider nel catalogo.";
+    status.textContent = t("ky.noProviders");
     return;
   }
   for (const p of real) {
@@ -1593,7 +1593,7 @@ async function loadCases() {
     renderCasesList(state.cases);
     populateCaseSelector(state.cases);
   } catch (exc) {
-    list.textContent = "Errore: " + (exc.message || exc);
+    list.textContent = t("err.generic") + (exc.message || exc);
   }
 }
 
@@ -1603,7 +1603,7 @@ function renderCasesList(cases) {
   count.textContent = `${cases.length}`;
   list.innerHTML = "";
   if (!cases.length) {
-    list.textContent = "Nessun caso ancora. Crea il primo a destra: titolo + base giuridica obbligatoria.";
+    list.textContent = t("cs.noCases");
     return;
   }
   for (const c of cases) {
@@ -1615,7 +1615,7 @@ function renderCasesList(cases) {
     const delBtn = document.createElement("button");
     delBtn.type = "button";
     delBtn.className = "jobDeleteBtn caseDelBtn";
-    delBtn.title = "Elimina caso e le sue tracce";
+    delBtn.title = t("cs.delTitle");
     delBtn.textContent = "🗑";
     delBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -1632,8 +1632,8 @@ function renderCasesList(cases) {
     meta.style.fontSize = "12px";
     const lb = (c.legal_basis && c.legal_basis.type) ? c.legal_basis.type : "—";
     const ref = (c.legal_basis && c.legal_basis.reference) ? ` · ${c.legal_basis.reference}` : "";
-    const collab = (c.collaborators || []).length ? ` · collab: ${(c.collaborators || []).join(", ")}` : "";
-    meta.textContent = `${c.status} · base: ${lb}${ref}${collab}`;
+    const collab = (c.collaborators || []).length ? ` · ${t("cs.collabLabel")}: ${(c.collaborators || []).join(", ")}` : "";
+    meta.textContent = `${c.status} · ${t("cs.basisLabel")}: ${lb}${ref}${collab}`;
     card.appendChild(meta);
 
     if (c.purpose) {
@@ -1648,15 +1648,15 @@ function renderCasesList(cases) {
     scopeBtn.type = "button";
     scopeBtn.className = "smallAction secondary";
     scopeBtn.textContent = (c.allowed_targets && c.allowed_targets.length)
-      ? `Scope (${c.allowed_targets.length}) · modifica`
-      : "Scope vuoto · aggiungi";
+      ? t("cs.scopeEdit", { n: c.allowed_targets.length })
+      : t("cs.scopeEmpty");
     scopeBtn.style.marginTop = "10px";
     scopeBtn.style.marginRight = "8px";
 
     const useBtn = document.createElement("button");
     useBtn.type = "button";
     useBtn.className = "smallAction";
-    useBtn.textContent = "Usa per la prossima ricerca";
+    useBtn.textContent = t("cs.useForSearch");
     useBtn.style.marginTop = "10px";
     useBtn.addEventListener("click", () => selectCaseAndGoToSearch(c.id));
 
@@ -1669,15 +1669,12 @@ function renderCasesList(cases) {
     const msgId = `caseScopeMsg-${c.id}`;
     const current = (c.allowed_targets || []).join("\n");
     scopeBox.innerHTML = `
-      <label class="wideLabel">Scope autorizzato (una voce per riga)
+      <label class="wideLabel">${t("cases.scope")}
         <textarea id="${taId}" rows="5">${escapeHtml(current)}</textarea>
       </label>
-      <p class="modeHint">
-        Formati: <code>dominio</code> · <code>*.dominio</code> · <code>IP</code> ·
-        <code>CIDR</code> · <code>URL</code> · <code>@handle</code>.
-      </p>
+      <p class="modeHint">${t("cs.formats")}</p>
       <div class="actions">
-        <button type="button" class="smallAction" data-action="save-scope">Salva scope</button>
+        <button type="button" class="smallAction" data-action="save-scope">${t("cs.saveScope")}</button>
       </div>
       <p id="${msgId}" class="authMessage"></p>
     `;
@@ -1700,7 +1697,7 @@ function populateCaseSelector(cases) {
   sel.innerHTML = "";
   const blank = document.createElement("option");
   blank.value = "";
-  blank.textContent = "— Caso default (auto) —";
+  blank.textContent = t("cs.defaultCase");
   sel.appendChild(blank);
   for (const c of cases) {
     const opt = document.createElement("option");
@@ -1722,7 +1719,7 @@ async function createCase() {
   const msg = $("caseCreateMsg");
   msg.textContent = "";
   const title = $("caseTitle").value.trim();
-  if (!title) { msg.textContent = "Titolo obbligatorio."; return; }
+  if (!title) { msg.textContent = t("cs.titleRequired"); return; }
   const collabs = $("caseCollabs").value.split(",").map((s) => s.trim()).filter(Boolean);
   const body = {
     title,
@@ -1746,11 +1743,11 @@ async function createCase() {
     $("caseCollabs").value = "";
     $("caseRetention").value = "";
     if ($("caseAllowedTargets")) $("caseAllowedTargets").value = "";
-    msg.textContent = "Caso creato.";
+    msg.textContent = t("cs.created");
     msg.style.color = "var(--green)";
     await loadCases();
   } catch (exc) {
-    msg.textContent = "Errore: " + (exc.message || exc);
+    msg.textContent = t("err.generic") + (exc.message || exc);
     msg.style.color = "var(--danger)";
   }
 }
@@ -1762,18 +1759,18 @@ async function updateCaseScope(caseId, allowedTextareaId, msgId) {
   const msgEl = document.getElementById(msgId);
   if (!ta) return;
   const allowed_targets = ta.value.split("\n").map((s) => s.trim()).filter(Boolean);
-  if (msgEl) { msgEl.textContent = "Salvataggio…"; msgEl.style.color = ""; }
+  if (msgEl) { msgEl.textContent = t("cs.saving"); msgEl.style.color = ""; }
   try {
     const updated = await api(`/api/cases/${encodeURIComponent(caseId)}/scope`,
       { method: "POST", body: JSON.stringify({ allowed_targets }) });
     if (msgEl) {
-      msgEl.textContent = `Scope aggiornato: ${(updated.allowed_targets || []).length} voci.`;
+      msgEl.textContent = t("cs.scopeUpdated", { n: (updated.allowed_targets || []).length });
       msgEl.style.color = "#21d07a";
     }
     await loadCases();
   } catch (exc) {
     if (msgEl) {
-      msgEl.textContent = "Errore: " + (exc.message || exc);
+      msgEl.textContent = t("err.generic") + (exc.message || exc);
       msgEl.style.color = "#ff7a8a";
     }
   }
@@ -1787,7 +1784,7 @@ async function saveApiKey(service, value, opts = {}) {
       body: JSON.stringify({ service, value: trimmed }),
     });
     renderApiKeys(data.catalog || [], data.keys || []);
-    $("keysCount").textContent = `${(data.keys || []).length} configurate`;
+    $("keysCount").textContent = t("ky.configured", { n: (data.keys || []).length });
     // Aggiorno subito lo stato copertura (passa per /api/capabilities che
     // restituisce gli stati semantici dei provider).
     if (trimmed && opts.andTest !== false) {
@@ -1797,7 +1794,7 @@ async function saveApiKey(service, value, opts = {}) {
       await refreshProviderStatus();
     }
   } catch (exc) {
-    setKeyResult(service, `Errore salvataggio: ${exc.message || exc}`, "ko");
+    setKeyResult(service, t("ky.saveError") + (exc.message || exc), "ko");
   }
 }
 
@@ -1805,18 +1802,19 @@ async function testApiKey(service, value) {
   const body = { service };
   const v = (value || "").trim();
   if (v) body.value = v;  // se passato, testa quella stringa senza salvarla
-  setKeyResult(service, "Probe in corso…", "neutral");
+  setKeyResult(service, t("ky.probing"), "neutral");
   try {
     const status = await api("/api/keys/test", { method: "POST", body: JSON.stringify(body) });
-    const label = (PROVIDER_STATE_LABELS[status.state] || { label: status.state }).label;
-    const cls = (PROVIDER_STATE_LABELS[status.state] || { cls: "neutral" }).cls;
+    const cfg = PROVIDER_STATE_LABELS[status.state];
+    const label = cfg ? t(cfg.key) : status.state;
+    const cls = cfg ? cfg.cls : "neutral";
     const lat = status.latency_ms != null ? ` · ${status.latency_ms}ms` : "";
     const http = status.http_status != null ? ` · HTTP ${status.http_status}` : "";
     const last4 = status.last4 ? ` · ${"•".repeat(6)}${status.last4}` : "";
     setKeyResult(service, `${label}: ${status.message}${http}${lat}${last4}`, cls);
     await refreshProviderStatus();
   } catch (exc) {
-    setKeyResult(service, `Test fallito: ${exc.message || exc}`, "ko");
+    setKeyResult(service, t("ky.testFailed") + (exc.message || exc), "ko");
   }
 }
 
@@ -1852,7 +1850,7 @@ async function loadDashboard() {
   try {
     data = await api("/api/dashboard");
   } catch (err) {
-    renderDashError((err && err.message) ? err.message : "Errore nel caricamento della dashboard.");
+    renderDashError((err && err.message) ? err.message : t("db.loadError"));
     return;
   }
   populateDashCaseSelector(data.cases_select || []);
@@ -1874,25 +1872,25 @@ async function loadAdminStats() {
     const s = await api("/api/admin/stats");
     const u = s.users || {}, j = s.jobs || {}, a = s.audit || {};
     box.innerHTML = `
-      <div class="capability" style="grid-column:1/-1"><strong>📊 Metriche piattaforma</strong></div>
-      <div class="capability"><strong>Utenti totali</strong><span>${u.total ?? 0}</span></div>
-      <div class="capability"><strong>Utenti verificati</strong><span>${u.verified ?? 0}</span></div>
-      <div class="capability"><strong>Attivi ultime 24h</strong><span>${u.active_24h ?? 0}</span></div>
-      <div class="capability"><strong>Attivi ultimi 7gg</strong><span>${u.active_7d ?? 0}</span></div>
-      <div class="capability"><strong>Nuove iscrizioni (7gg)</strong><span>${u.signups_7d ?? 0}</span></div>
-      <div class="capability"><strong>Job totali</strong><span>${j.total ?? 0}</span></div>
-      <div class="capability"><strong>Job per stato</strong><span>${
+      <div class="capability" style="grid-column:1/-1"><strong>📊 ${t("db.metrics")}</strong></div>
+      <div class="capability"><strong>${t("db.usersTotal")}</strong><span>${u.total ?? 0}</span></div>
+      <div class="capability"><strong>${t("db.usersVerified")}</strong><span>${u.verified ?? 0}</span></div>
+      <div class="capability"><strong>${t("db.active24h")}</strong><span>${u.active_24h ?? 0}</span></div>
+      <div class="capability"><strong>${t("db.active7d")}</strong><span>${u.active_7d ?? 0}</span></div>
+      <div class="capability"><strong>${t("db.signups7d")}</strong><span>${u.signups_7d ?? 0}</span></div>
+      <div class="capability"><strong>${t("db.jobsTotal")}</strong><span>${j.total ?? 0}</span></div>
+      <div class="capability"><strong>${t("db.jobsByStatus")}</strong><span>${
         Object.entries(j.by_status || {}).map(([k,v])=>`${k}: ${v}`).join(" · ") || "—"
       }</span></div>
-      <div class="capability"><strong>Audit chain</strong><span>${a.chain_valid ? "✓ integra" : "⚠ compromessa"} (${a.events_total ?? 0} eventi)</span></div>
+      <div class="capability"><strong>Audit chain</strong><span>${a.chain_valid ? t("db.chainValid") : t("db.chainBroken")} (${a.events_total ?? 0} ${t("db.events")})</span></div>
     `;
     box.hidden = false;
   } catch (err) {
     // 403 = non-admin: mostro CTA discreta.
     box.innerHTML = `
       <div class="capability" style="grid-column:1/-1;text-align:center;padding:14px">
-        <span class="muted">📊 Metriche piattaforma riservate all'amministratore. </span>
-        <button type="button" class="btn" id="statsUnlockBtn" style="margin-left:8px">🔐 Sblocca</button>
+        <span class="muted">📊 ${t("db.metricsLocked")} </span>
+        <button type="button" class="btn" id="statsUnlockBtn" style="margin-left:8px">${t("db.unlock")}</button>
       </div>`;
     const b = document.getElementById("statsUnlockBtn");
     if (b) b.addEventListener("click", () => { if (typeof openAdminUnlockModal === "function") openAdminUnlockModal(); });
@@ -1911,7 +1909,7 @@ function populateDashCaseSelector(cases) {
   const sel = $("dashCase");
   if (!sel) return;
   const previous = sel.value;
-  sel.innerHTML = '<option value="">— Caso (auto) —</option>';
+  sel.innerHTML = `<option value="">${t("dash.caseAuto")}</option>`;
   (cases || []).forEach((c) => {
     const opt = document.createElement("option");
     opt.value = c.id;
@@ -1927,13 +1925,13 @@ function renderDashStats(stats, totalJobs) {
   if (!el) return;
   if (total) total.textContent = totalJobs;
   el.innerHTML = [
-    { key: "complete", label: "Completi", cls: "complete" },
-    { key: "running",  label: "In corso", cls: "running" },
-    { key: "error",    label: "Errore",   cls: "error" },
+    { key: "complete", k: "db.complete", cls: "complete" },
+    { key: "running",  k: "db.running",  cls: "running" },
+    { key: "error",    k: "st.error",    cls: "error" },
   ].map((s) => `
     <div class="statTile ${s.cls}">
       <span class="statN">${Number(stats[s.key] || 0)}</span>
-      <span class="statLabel">${s.label}</span>
+      <span class="statLabel">${t(s.k)}</span>
     </div>
   `).join("");
 }
@@ -1948,9 +1946,9 @@ function renderDashCoverage(coverage) {
   const tTot = Number(coverage.tools_total || 0);
   if (tag) tag.textContent = `${pOk}/${pTot} API`;
   el.innerHTML = `
-    <div class="coverageRow"><span>Provider di ricerca configurati</span><strong>${pOk} / ${pTot}</strong></div>
-    <div class="coverageRow"><span>Tool OSINT disponibili</span><strong>${tOk} / ${tTot}</strong></div>
-    <p class="modeHint">Le fonti senza chiave restano disattivate con eleganza (BYOK). Configurale in <em>Chiavi API</em>.</p>`;
+    <div class="coverageRow"><span>${t("db.providersConfigured")}</span><strong>${pOk} / ${pTot}</strong></div>
+    <div class="coverageRow"><span>${t("db.toolsAvailable")}</span><strong>${tOk} / ${tTot}</strong></div>
+    <p class="modeHint">${t("db.byokNote")}</p>`;
 }
 
 function renderDashWarnings(warnings) {
@@ -1958,7 +1956,7 @@ function renderDashWarnings(warnings) {
   if (!el) return;
   warnings = warnings || [];
   if (!warnings.length) {
-    el.innerHTML = `<div class="warnItem ok">Nessun avviso di compliance attivo.</div>`;
+    el.innerHTML = `<div class="warnItem ok">${t("db.noWarnings")}</div>`;
     return;
   }
   el.innerHTML = warnings.map((w) =>
@@ -1970,11 +1968,11 @@ function renderDashRecentCases(cases, totalCases) {
   const tag = $("dashCasesTag");
   if (!el) return;
   if (tag) tag.textContent = totalCases;
-  if (!cases.length) { el.innerHTML = '<div class="empty">Nessun caso. Vai in Casi per crearne uno.</div>'; return; }
+  if (!cases.length) { el.innerHTML = `<div class="empty">${t("db.noCases")}</div>`; return; }
   el.innerHTML = cases.map((c) => `
     <div class="job" data-status="${escapeHtml(c.status || "open")}" style="cursor:pointer" onclick="selectCaseAndGoToSearch('${escapeHtml(c.id)}')">
       <strong>${escapeHtml(c.title)}</strong>
-      <span>${escapeHtml(c.status || "aperto")} · ${escapeHtml(c.legal_basis || "—")}</span>
+      <span>${escapeHtml(c.status || t("db.open"))} · ${escapeHtml(c.legal_basis || "—")}</span>
     </div>
   `).join("");
 }
@@ -1984,7 +1982,7 @@ function renderDashRecentJobs(jobs, totalJobs) {
   const tag = $("dashJobsTag");
   if (!el) return;
   if (tag) tag.textContent = totalJobs;
-  if (!jobs.length) { el.innerHTML = '<div class="empty">Nessun report. Vai in Ricerca per avviarne uno.</div>'; return; }
+  if (!jobs.length) { el.innerHTML = `<div class="empty">${t("db.noJobs")}</div>`; return; }
   el.innerHTML = jobs.map((j) => `
     <div class="job" data-status="${escapeHtml(j.status)}" style="cursor:pointer" onclick="openJobFromDash('${escapeHtml(j.id)}')">
       <strong>${escapeHtml(j.target || "—")} · ${escapeHtml(j.target_type || "")}</strong>
@@ -2003,26 +2001,26 @@ function openJobFromDash(id) {
 // ================================================================
 
 const TYPE_PATTERNS = [
-  [/^https?:\/\//i,                           "url"],
-  [/@[a-z0-9._-]+/i,                          "username/handle"],
-  [/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i, "email"],
-  [/^\+?[\d\s\-().]{7,}$/,                    "telefono"],
-  [/^(bc1|[13])[a-z0-9]{25,}/i,              "BTC"],
-  [/^0x[a-f0-9]{40}/i,                        "ETH"],
-  [/[a-f0-9]{32,64}/i,                        "file hash"],
-  [/^(\d{1,3}\.){3}\d{1,3}/,                 "IP"],
-  [/[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z]{2,})+/i, "dominio"],
+  [/^https?:\/\//i,                           "dt.url"],
+  [/@[a-z0-9._-]+/i,                          "dt.username"],
+  [/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i, "dt.email"],
+  [/^\+?[\d\s\-().]{7,}$/,                    "dt.phone"],
+  [/^(bc1|[13])[a-z0-9]{25,}/i,              "dt.btc"],
+  [/^0x[a-f0-9]{40}/i,                        "dt.eth"],
+  [/[a-f0-9]{32,64}/i,                        "dt.hash"],
+  [/^(\d{1,3}\.){3}\d{1,3}/,                 "dt.ip"],
+  [/[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z]{2,})+/i, "dt.domain"],
 ];
 
 function updateDetectedType(value) {
   const el = $("detectedType");
   if (!el) return;
   const v = (value || "").trim();
-  if (!v) { el.textContent = "tipo: —"; return; }
-  for (const [re, label] of TYPE_PATTERNS) {
-    if (re.test(v)) { el.textContent = `tipo: ${label}`; return; }
+  if (!v) { el.textContent = t("dash.detectedType"); return; }
+  for (const [re, key] of TYPE_PATTERNS) {
+    if (re.test(v)) { el.textContent = `${t("dt.prefix")} ${t(key)}`; return; }
   }
-  el.textContent = "tipo: nome / azienda";
+  el.textContent = `${t("dt.prefix")} ${t("dt.nameCompany")}`;
 }
 
 function routeGlobalSearch(value) {
@@ -2090,21 +2088,21 @@ function showEntityProfile(report) {
     const cls = avgConf >= 0.7 ? "high" : avgConf >= 0.4 ? "medium" : "low";
     confEl.innerHTML = `
       <div class="confBar">
-        <span>Confidenza</span>
+        <span>${t("en.confidence")}</span>
         <div class="confTrack"><div class="confFill ${cls}" style="width:${Math.round(avgConf * 100)}%"></div></div>
         <strong>${Math.round(avgConf * 100)}%</strong>
       </div>
-      <span style="color:var(--muted);font-size:12px">${entities.length} entità · ${(report.findings || []).length} finding</span>
+      <span style="color:var(--muted);font-size:12px">${t("en.entitiesFindings", { n: entities.length, f: (report.findings || []).length })}</span>
     `;
   }
 
   // Tabs
   const tabs = document.querySelectorAll(".entityTab");
-  tabs.forEach((t) => {
-    t.addEventListener("click", () => {
+  tabs.forEach((tabEl) => {
+    tabEl.addEventListener("click", () => {
       tabs.forEach((x) => x.classList.remove("active"));
-      t.classList.add("active");
-      renderEntityTab(t.dataset.etab, report);
+      tabEl.classList.add("active");
+      renderEntityTab(tabEl.dataset.etab, report);
     });
   });
 
@@ -2138,37 +2136,37 @@ function renderEntityTab(tab, report) {
     case "identifiers":
       body.innerHTML = renderEntityTable(
         entities.filter((e) => ["email", "phone", "ip", "domain", "url"].includes(e.type)),
-        ["Tipo", "Valore", "Confidenza", "Fonti"]
+        ["th.type", "th.value", "th.confidence", "th.sources"]
       );
       break;
     case "social":
       body.innerHTML = renderEntityTable(
         entities.filter((e) => ["username", "handle", "social"].includes(e.type)),
-        ["Tipo", "Valore", "Confidenza", "Network"]
+        ["th.type", "th.value", "th.confidence", "th.network"]
       );
       break;
     case "domains":
       body.innerHTML = renderEntityTable(
         entities.filter((e) => ["domain", "organization", "company"].includes(e.type)),
-        ["Tipo", "Valore", "Confidenza", "Fonte"]
+        ["th.type", "th.value", "th.confidence", "th.source"]
       );
       break;
     case "contacts":
       body.innerHTML = renderEntityTable(
         entities.filter((e) => ["email", "phone"].includes(e.type)),
-        ["Tipo", "Contatto", "Confidenza", "Visibilità"]
+        ["th.type", "th.contact", "th.confidence", "th.visibility"]
       );
       break;
     case "media":
       body.innerHTML = renderEntityTable(
         entities.filter((e) => ["media", "location", "image"].includes(e.type)),
-        ["Tipo", "Valore", "Geo", "Fonte"]
+        ["th.type", "th.value", "th.geo", "th.source"]
       );
       break;
     case "crypto":
       body.innerHTML = renderEntityTable(
         entities.filter((e) => ["wallet", "btc", "eth", "crypto"].includes(e.type)),
-        ["Rete", "Address", "Confidenza", "Fonte"]
+        ["th.network", "th.address", "th.confidence", "th.source"]
       );
       break;
     case "evidences":
@@ -2181,7 +2179,7 @@ function renderEntityTab(tab, report) {
       body.innerHTML = renderAuditTab(report);
       break;
     default:
-      body.innerHTML = `<div class="entityTabEmpty">Tab non disponibile.</div>`;
+      body.innerHTML = `<div class="entityTabEmpty">${t("en.tabUnavailable")}</div>`;
   }
 }
 
@@ -2190,7 +2188,7 @@ function renderEntityOverview(report, entities, findings) {
   const byType = {};
   entities.forEach((e) => { byType[e.type] = (byType[e.type] || 0) + 1; });
   const typesSummary = Object.entries(byType)
-    .map(([t, c]) => `${c} ${entityTypeLabel(t)}`)
+    .map(([ty, c]) => `${c} ${entityTypeLabel(ty)}`)
     .join(" · ");
   const critHigh = findings.filter((f) => ["critical", "high"].includes(f.severity));
 
@@ -2198,11 +2196,11 @@ function renderEntityOverview(report, entities, findings) {
   const avgConf = entities.length
     ? entities.reduce((s, e) => s + Number(e.confidence || 0), 0) / entities.length : 0;
   const warns = [];
-  if (!findings.length) warns.push("Nessuna evidenza raccolta: profilo basato solo sull'input.");
-  if (entities.length && avgConf < 0.45) warns.push("Confidenza media bassa: verifica le fonti prima di trarre conclusioni.");
+  if (!findings.length) warns.push(t("en.noEvidence"));
+  if (entities.length && avgConf < 0.45) warns.push(t("en.lowConfidence"));
   const nameLike = entities.filter((e) => ["person", "username", "handle"].includes(e.type));
   const distinctNames = new Set(nameLike.map((e) => String(e.value || "").toLowerCase()));
-  if (distinctNames.size > 1) warns.push(`Possibili omonimi: ${distinctNames.size} identità simili NON unite automaticamente.`);
+  if (distinctNames.size > 1) warns.push(t("en.homonyms", { n: distinctNames.size }));
   const warnHtml = warns.length
     ? `<div class="entityWarns">${warns.map((w) => `<div class="warnItem">⚠️ ${escapeHtml(w)}</div>`).join("")}</div>` : "";
 
@@ -2214,27 +2212,27 @@ function renderEntityOverview(report, entities, findings) {
   const srcChips = [...providers.map((p) => `provider:${p}`), ...evidenceHosts.slice(0, 20)];
   const srcHtml = `
     <div class="entitySources">
-      <h4>Fonti consultate (${srcChips.length})</h4>
+      <h4>${t("en.sourcesConsulted")} (${srcChips.length})</h4>
       ${srcChips.length
         ? `<div class="srcChips">${srcChips.map((s) => `<span class="srcChip">${escapeHtml(s)}</span>`).join("")}</div>`
-        : '<p style="color:var(--muted);font-size:13px;margin:0">Nessuna fonte esterna: solo dati inseriti.</p>'}
+        : `<p style="color:var(--muted);font-size:13px;margin:0">${t("en.noExternalSources")}</p>`}
     </div>`;
 
   return `
     ${warnHtml}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
-      <div class="statTile"><span class="statN">${n}</span><span class="statLabel">Entità trovate</span></div>
-      <div class="statTile"><span class="statN">${findings.length}</span><span class="statLabel">Finding</span></div>
+      <div class="statTile"><span class="statN">${n}</span><span class="statLabel">${t("en.entitiesFound")}</span></div>
+      <div class="statTile"><span class="statN">${findings.length}</span><span class="statLabel">${t("en.findings")}</span></div>
       <div class="statTile ${critHigh.length ? "error" : ""}"><span class="statN">${critHigh.length}</span><span class="statLabel">Critical/High</span></div>
     </div>
-    <p style="color:var(--muted);font-size:13px;margin:0 0 16px">${typesSummary || "Nessuna entità estratta."}</p>
-    ${n ? renderEntityTable(entities.slice(0, 8), ["Tipo", "Valore", "Confidenza", "Grado"]) : '<div class="entityTabEmpty">Nessuna entità estratta in questo report.</div>'}
+    <p style="color:var(--muted);font-size:13px;margin:0 0 16px">${typesSummary || t("en.noEntitiesExtracted")}</p>
+    ${n ? renderEntityTable(entities.slice(0, 8), ["th.type", "th.value", "th.confidence", "th.grade"]) : `<div class="entityTabEmpty">${t("en.noEntitiesInReport")}</div>`}
     ${srcHtml}
   `;
 }
 
 function renderEntityTable(items, headers) {
-  if (!items.length) return '<div class="entityTabEmpty">Nessun dato per questa categoria.</div>';
+  if (!items.length) return `<div class="entityTabEmpty">${t("en.noDataCategory")}</div>`;
   const rows = items.map((e) => {
     const grade = `${e.source_reliability || "F"}${e.info_credibility || 6}`;
     const conf = Number(e.confidence || 0);
@@ -2248,7 +2246,7 @@ function renderEntityTable(items, headers) {
   }).join("");
   return `
     <table class="entityTable">
-      <thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
+      <thead><tr>${headers.map((h) => `<th>${escapeHtml(t(h))}</th>`).join("")}</tr></thead>
       <tbody>${rows}</tbody>
     </table>
   `;
@@ -2259,10 +2257,10 @@ function evidenceHostLabel(url) {
 }
 
 function renderEvidencesTab(findings) {
-  if (!findings.length) return '<div class="entityTabEmpty">Nessun finding in questo report.</div>';
+  if (!findings.length) return `<div class="entityTabEmpty">${t("en.noFindingsReport")}</div>`;
   return `
     <table class="entityTable">
-      <thead><tr><th>Severity</th><th>Tipo</th><th>Valore</th><th>Confidenza</th><th>Fonte</th></tr></thead>
+      <thead><tr><th>Severity</th><th>${t("th.type")}</th><th>${t("th.value")}</th><th>${t("th.confidence")}</th><th>${t("th.source")}</th></tr></thead>
       <tbody>
         ${findings.slice(0, 50).map((f) => {
           const links = (f.evidence || [])
@@ -2288,10 +2286,10 @@ function renderTimelineTab(entities) {
   const dated = entities.filter((e) => e.first_seen || e.last_seen).sort(
     (a, b) => new Date(b.first_seen || 0) - new Date(a.first_seen || 0)
   );
-  if (!dated.length) return '<div class="entityTabEmpty">Nessuna entità con timestamp disponibile.</div>';
+  if (!dated.length) return `<div class="entityTabEmpty">${t("en.noTimestamps")}</div>`;
   return `
     <table class="entityTable">
-      <thead><tr><th>Prima vista</th><th>Ultima vista</th><th>Tipo</th><th>Valore</th></tr></thead>
+      <thead><tr><th>${t("th.firstSeen")}</th><th>${t("th.lastSeen")}</th><th>${t("th.type")}</th><th>${t("th.value")}</th></tr></thead>
       <tbody>
         ${dated.slice(0, 30).map((e) => `
           <tr>
@@ -2314,23 +2312,20 @@ function renderAuditTab(report) {
     `<td style="font-size:12px;color:var(--muted)">${escapeHtml(String(a.summary || "").slice(0, 120))}</td></tr>`
   ).join("");
   return `
-    <p style="color:var(--muted);font-size:13px;margin:0 0 12px">
-      Tracciabilità del report. La catena di audit firmata (hash-chain SHA-256) è
-      mantenuta lato server ed esportabile dal Privacy Center.
-    </p>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 12px">${t("au.intro")}</p>
     <div class="auditMeta">
-      <div><strong>Generato</strong>: ${escapeHtml(report.generated_at || "—")}</div>
+      <div><strong>${t("au.generated")}</strong>: ${escapeHtml(report.generated_at || "—")}</div>
       <div><strong>Target</strong>: ${escapeHtml(report.target || "—")} (${escapeHtml(report.target_type || "—")})</div>
-      <div><strong>Query eseguite</strong>: ${queries.length}</div>
+      <div><strong>${t("au.queriesRun")}</strong>: ${queries.length}</div>
     </div>
     ${agents.length ? `
-      <h4 style="margin:16px 0 8px">Moduli eseguiti</h4>
+      <h4 style="margin:16px 0 8px">${t("au.modulesRun")}</h4>
       <table class="entityTable">
-        <thead><tr><th>Agente</th><th>Stato</th><th>Sintesi</th></tr></thead>
+        <thead><tr><th>${t("au.agent")}</th><th>${t("au.status")}</th><th>${t("au.summary")}</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>` : ""}
     ${queries.length ? `
-      <h4 style="margin:16px 0 8px">Query verificabili</h4>
+      <h4 style="margin:16px 0 8px">${t("au.verifiableQueries")}</h4>
       <ul class="auditQueries">${queries.slice(0, 20).map((q) => `<li>${escapeHtml(q)}</li>`).join("")}</ul>` : ""}
   `;
 }
@@ -2340,24 +2335,24 @@ function renderSuggestedActions(target, type, report) {
   if (!list) return;
   const actions = [];
   if (["domain", "company"].includes(type)) {
-    actions.push({ label: "Cerca sottodomini", mode: "domain" });
-    actions.push({ label: "Analisi WHOIS", mode: "domain" });
+    actions.push({ labelKey: "sa.subdomains", mode: "domain" });
+    actions.push({ labelKey: "sa.whois", mode: "domain" });
   }
   if (["email"].includes(type)) {
-    actions.push({ label: "Pivot su username", mode: "handle" });
-    actions.push({ label: "Verifica breach", mode: "contact" });
+    actions.push({ labelKey: "sa.pivotUsername", mode: "handle" });
+    actions.push({ labelKey: "sa.checkBreach", mode: "contact" });
   }
   if (["handle", "username"].includes(type)) {
-    actions.push({ label: "Cerca email associate", mode: "contact" });
-    actions.push({ label: "Ricerca su altri social", mode: "handle" });
+    actions.push({ labelKey: "sa.findEmails", mode: "contact" });
+    actions.push({ labelKey: "sa.otherSocial", mode: "handle" });
   }
   if (["ip"].includes(type)) {
-    actions.push({ label: "Reputazione IP", mode: "domain" });
-    actions.push({ label: "Geolocalizzazione", mode: "domain" });
+    actions.push({ labelKey: "sa.ipReputation", mode: "domain" });
+    actions.push({ labelKey: "sa.geolocation", mode: "domain" });
   }
-  actions.push({ label: "Genera report forensico", action: "forensic" });
+  actions.push({ labelKey: "sa.forensicReport", action: "forensic" });
   list.innerHTML = actions.map((a) => `
-    <button class="suggestedAction" type="button" data-mode="${a.mode || ""}" data-action="${a.action || ""}">${escapeHtml(a.label)}</button>
+    <button class="suggestedAction" type="button" data-mode="${a.mode || ""}" data-action="${a.action || ""}">${escapeHtml(t(a.labelKey))}</button>
   `).join("");
   list.querySelectorAll(".suggestedAction").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -2446,17 +2441,17 @@ async function loadPrivacyLog() {
     const data = await api("/api/privacy/log");
     const requests = data.requests || [];
     if (!requests.length) {
-      el.innerHTML = '<div class="empty">Nessuna richiesta privacy registrata.</div>';
+      el.innerHTML = `<div class="empty">${t("pv.noRequests")}</div>`;
       return;
     }
     el.innerHTML = requests.map((r) => `
       <div class="job" style="cursor:default">
-        <strong>${escapeHtml(r.type || "richiesta")} · ${escapeHtml(r.status || "—")}</strong>
+        <strong>${escapeHtml(r.type || t("pv.requestFallback"))} · ${escapeHtml(r.status || "—")}</strong>
         <span>${escapeHtml(r.created_at || "—")} · ${escapeHtml(r.reason || "")}</span>
       </div>
     `).join("");
   } catch (exc) {
-    el.textContent = "Log non disponibile: " + (exc.message || exc);
+    el.textContent = t("pv.logUnavailable") + (exc.message || exc);
   }
 }
 
@@ -2466,15 +2461,15 @@ function setupPrivacyCenter() {
       const btn = $("privacyExportBtn");
       const msg = $("privacyExportResult");
       btn.disabled = true;
-      if (msg) { msg.textContent = "Richiesta in corso…"; msg.style.color = ""; }
+      if (msg) { msg.textContent = t("pv.requesting"); msg.style.color = ""; }
       try {
         const data = await api("/api/privacy/export", { method: "POST" });
         if (msg) {
           msg.style.color = "var(--green)";
-          msg.textContent = data.message || "Esportazione avviata. Riceverai una email con il link.";
+          msg.textContent = data.message || t("pv.exportStarted");
         }
       } catch (exc) {
-        if (msg) { msg.style.color = "var(--danger)"; msg.textContent = "Errore: " + exc.message; }
+        if (msg) { msg.style.color = "var(--danger)"; msg.textContent = t("err.generic") + exc.message; }
       } finally {
         btn.disabled = false;
         await loadPrivacyLog();
@@ -2485,19 +2480,19 @@ function setupPrivacyCenter() {
   if ($("privacyEraseBtn")) {
     $("privacyEraseBtn").addEventListener("click", async () => {
       const reason = ($("privacyEraseReason") && $("privacyEraseReason").value.trim()) || "";
-      if (!confirm("Sei sicuro di voler richiedere la cancellazione del tuo account? Questa azione è irreversibile.")) return;
+      if (!confirm(t("pv.eraseConfirm"))) return;
       const btn = $("privacyEraseBtn");
       const msg = $("privacyEraseResult");
       btn.disabled = true;
-      if (msg) { msg.textContent = "Richiesta in corso…"; msg.style.color = ""; }
+      if (msg) { msg.textContent = t("pv.requesting"); msg.style.color = ""; }
       try {
         const data = await api("/api/privacy/erase", { method: "POST", body: JSON.stringify({ reason }) });
         if (msg) {
           msg.style.color = "var(--amber)";
-          msg.textContent = data.message || "Richiesta di cancellazione registrata.";
+          msg.textContent = data.message || t("pv.eraseRegistered");
         }
       } catch (exc) {
-        if (msg) { msg.style.color = "var(--danger)"; msg.textContent = "Errore: " + exc.message; }
+        if (msg) { msg.style.color = "var(--danger)"; msg.textContent = t("err.generic") + exc.message; }
       } finally {
         btn.disabled = false;
         await loadPrivacyLog();
@@ -2510,15 +2505,15 @@ function setupPrivacyCenter() {
       const btn = $("privacyDsarBtn");
       const msg = $("privacyDsarResult");
       btn.disabled = true;
-      if (msg) { msg.textContent = "Invio richiesta…"; msg.style.color = ""; }
+      if (msg) { msg.textContent = t("pv.sending"); msg.style.color = ""; }
       try {
         const data = await api("/api/privacy/dsar", { method: "POST" });
         if (msg) {
           msg.style.color = "var(--green)";
-          msg.textContent = data.message || "DSAR registrata. Risposta entro 30 giorni.";
+          msg.textContent = data.message || t("pv.dsarRegistered");
         }
       } catch (exc) {
-        if (msg) { msg.style.color = "var(--danger)"; msg.textContent = "Errore: " + exc.message; }
+        if (msg) { msg.style.color = "var(--danger)"; msg.textContent = t("err.generic") + exc.message; }
       } finally {
         btn.disabled = false;
         await loadPrivacyLog();
@@ -2540,7 +2535,7 @@ async function selectJob(id) {
     btn.id = "openEntityBtn";
     btn.type = "button";
     btn.className = "smallAction secondary";
-    btn.textContent = "Apri profilo entità";
+    btn.textContent = t("en.openProfile");
     btn.style.marginLeft = "auto";
     btn.addEventListener("click", () => {
       if (state.lastReport) showEntityProfile(state.lastReport);

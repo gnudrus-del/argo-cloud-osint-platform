@@ -7,6 +7,7 @@ Action class: passive. Input: ``ip``.
 from __future__ import annotations
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -26,7 +27,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86400,
     rate_limit=RateLimit(per_minute=30, per_day=1000, burst=5),
-    legal_note="IPinfo: geolocation IP pubblica. Niente PII di utenti.",
+    legal_note="ipinfo.legal_note",
     health_check_url="https://ipinfo.io/8.8.8.8/json",
 )
 
@@ -43,7 +44,7 @@ class IPinfoConnector(BaseConnector):
             "Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"IPinfo: {exc}")
+                                   error=_t("generic.error", context.lang, service="IPinfo", error=exc))
         ev = [Evidence(url=f"https://ipinfo.io/{context.target}", title="IPinfo")]
         findings: list[Finding] = []
         for key, kind in (("city", "geo_city"), ("country", "geo_country"),
@@ -53,7 +54,7 @@ class IPinfoConnector(BaseConnector):
                     kind=kind, value=str(data[key]),
                     confidence=0.80, source_reliability="B", info_credibility=2,
                     evidence=ev,
-                    notes=f"IPinfo: {key}={data[key]}",
+                    notes=_t("ipinfo.finding", context.lang, field=key, val=data[key]),
                 ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings, raw=data)

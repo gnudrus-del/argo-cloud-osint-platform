@@ -7,6 +7,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -26,7 +27,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86400,
     rate_limit=RateLimit(per_minute=10, per_day=1000, burst=2),
-    legal_note="SEC EDGAR: documenti pubblici SEC. User-Agent identificativo richiesto.",
+    legal_note="sec_edgar.legal_note",
     health_check_url="https://efts.sec.gov/LATEST/search-index?q=apple&dateRange=custom&forms=10-K",
 )
 
@@ -44,7 +45,7 @@ class SECEdgarConnector(BaseConnector):
             data = _safe_http.get_json(url, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"SEC EDGAR: {exc}")
+                                   error=_t("generic.error", context.lang, service="SEC EDGAR", error=exc))
         hits = ((data or {}).get("hits") or {}).get("hits") or []
         findings: list[Finding] = []
         for h in hits[:5]:

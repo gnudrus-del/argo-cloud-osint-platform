@@ -9,6 +9,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -28,7 +29,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86400,
     rate_limit=RateLimit(per_minute=10, per_day=200, burst=2),
-    legal_note="OpenCorporates aggrega registri imprese pubblici.",
+    legal_note="opencorporates.legal_note",
     health_check_url="https://api.opencorporates.com/v0.4/companies/search?q=test&limit=1",
 )
 
@@ -46,7 +47,7 @@ class OpenCorporatesConnector(BaseConnector):
             "Accept": "application/json", "User-Agent": "Argo-OSINT/1.0"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"OpenCorporates: {exc}")
+                                   error=_t("generic.error", context.lang, service="OpenCorporates", error=exc))
         results = ((data or {}).get("results") or {}).get("companies") or []
         findings: list[Finding] = []
         for r in results[:5]:
@@ -58,9 +59,10 @@ class OpenCorporatesConnector(BaseConnector):
                 kind="company_record", value=f"{name} ({jur})",
                 confidence=0.85, source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes=f"OpenCorporates: numero={c.get('company_number', '?')}, "
-                      f"status={c.get('current_status', '?')}, "
-                      f"creata={c.get('incorporation_date', '?')}",
+                notes=_t("opencorporates.company_record", context.lang,
+                         number=c.get('company_number', '?'),
+                         status=c.get('current_status', '?'),
+                         created=c.get('incorporation_date', '?')),
             ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings,

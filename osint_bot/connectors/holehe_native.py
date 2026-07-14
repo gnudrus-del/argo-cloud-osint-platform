@@ -15,6 +15,7 @@ import hashlib
 import socket
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -34,7 +35,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=20, per_day=2000, burst=3),
-    legal_note="Controlli passivi su email (Gravatar, MX, disposable). Nessun invio di posta.",
+    legal_note="holehe_native.legal_note",
     health_check_url="",
 )
 

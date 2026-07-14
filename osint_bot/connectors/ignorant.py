@@ -19,6 +19,7 @@ import re
 import subprocess
 import tempfile
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -38,7 +39,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=6, per_day=300, burst=1),
-    legal_note="Esegue ignorant in locale su endpoint pubblici. Nessun SMS inviato; solo check di registrazione.",
+    legal_note="ignorant.legal_note",
     health_check_url="",
 )
 
@@ -87,12 +88,12 @@ class IgnorantConnector(BaseConnector):
         if not cfg["cmd"] and not cfg["python"]:
             return ConnectorResult(
                 connector=self.spec.name, status="missing_key",
-                error="ignorant non configurato. Setta IGNORANT_CMD (o IGNORANT_PYTHON) nel .env.",
+                error=_t("ignorant.not_configured", context.lang),
             )
         split = _split_number((context.target or "").strip())
         if not split:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Numero non valido (serve formato internazionale, es. +39...).")
+                                   error=_t("ignorant.invalid_number", context.lang))
         cc, nsn = split
 
         base = [cfg["cmd"]] if cfg["cmd"] else [cfg["python"], "-m", "ignorant"]
@@ -106,18 +107,18 @@ class IgnorantConnector(BaseConnector):
                                       text=True, encoding="utf-8", errors="replace",
                                       timeout=cfg["timeout_s"], check=False)
             except subprocess.TimeoutExpired:
-                return ConnectorResult(connector=self.spec.name, status="error", error="ignorant timeout.")
+                return ConnectorResult(connector=self.spec.name, status="error", error=_t("ignorant.timeout", context.lang))
             except (OSError, ValueError) as exc:
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error=f"Esecuzione ignorant fallita: {exc}")
+                                       error=_t("ignorant.execution_failed", context.lang, error=exc))
 
         domains = _parse_stdout(proc.stdout)
         findings = [Finding(
             kind="phone_registered", value=d,
             confidence=0.8, source_reliability="B", info_credibility=2,
             evidence=[Evidence(url=f"https://{d}", title=f"{d} (numero registrato)")],
-            notes=f"ignorant: numero registrato su {d} (endpoint pubblico). Possibili FP/rate-limit.",
-            why_linked=[f"ignorant ha marcato il numero come usato su {d}"],
+            notes=_t("ignorant.registered_on", context.lang, domain=d),
+            why_linked=[_t("ignorant.why_linked", context.lang, domain=d)],
         ) for d in domains]
         return ConnectorResult(
             connector=self.spec.name, status="ok", findings=findings,

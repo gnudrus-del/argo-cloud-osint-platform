@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import urllib.parse
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -34,7 +35,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86_400,
     rate_limit=RateLimit(per_minute=60, per_day=50_000, burst=10),
-    legal_note="Elaborazione locale + generazione URL di ricerca pubblici. Nessun dato inviato in rete.",
+    legal_note="phone_footprint.legal_note",
     health_check_url="",
 )
 
@@ -80,18 +81,18 @@ class PhoneFootprintConnector(BaseConnector):
             import phonenumbers
         except ImportError:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Modulo 'phonenumbers' non installato.")
+                                   error=_t("phone_footprint.module_missing", context.lang))
         raw = (context.target or "").strip()
         if not raw:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Numero vuoto.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("phone_footprint.empty_number", context.lang))
         try:
             parsed = phonenumbers.parse(raw, "IT")
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Parsing numero fallito: {exc}")
+                                   error=_t("phone_footprint.parse_failed", context.lang, error=str(exc)))
         if not phonenumbers.is_valid_number(parsed):
             return ConnectorResult(connector=self.spec.name, status="ok", findings=[],
-                                   raw={"valid": False, "note": "Numero non valido: nessun footprint."})
+                                   raw={"valid": False, "note": _t("phone_footprint.invalid_no_footprint", context.lang)})
 
         e164 = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
         national = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.NATIONAL)
@@ -103,7 +104,7 @@ class PhoneFootprintConnector(BaseConnector):
                 kind="footprint_url", value=url,
                 confidence=0.5, source_reliability="C", info_credibility=3,
                 evidence=[Evidence(url=url, title=label)],
-                notes=f"Pivot OSINT per {e164}: {label}. Da aprire manualmente.",
+                notes=_t("phone_footprint.pivot", context.lang, e164=e164, label=label),
             ))
         return ConnectorResult(
             connector=self.spec.name, status="ok",

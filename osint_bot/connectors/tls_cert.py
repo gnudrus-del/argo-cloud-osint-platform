@@ -12,6 +12,7 @@ import hashlib
 import socket
 import ssl
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -31,7 +32,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=30, per_day=5000, burst=3),
-    legal_note="Una connessione TCP al target:443 per leggere il cert pubblico. Passivo.",
+    legal_note="tls_cert.legal_note",
     health_check_url="",
 )
 
@@ -94,7 +95,7 @@ class TLSCertConnector(BaseConnector):
         target = (context.target or "").strip()
         if not target:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target vuoto.")
+                                   error=_t("tls_cert.target_empty", context.lang))
         host, _, port_s = target.partition(":")
         try:
             port = int(port_s) if port_s else 443
@@ -104,7 +105,7 @@ class TLSCertConnector(BaseConnector):
         cert = _fetch_cert_with_meta(host, port, context.timeout)
         if not cert:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Impossibile ottenere cert TLS da {host}:{port}.")
+                                   error=_t("tls_cert.cert_unavailable", context.lang, host=host, port=port))
 
         der_info = _parse_der(cert.get("der", b""))
         fp = der_info["sha256_fingerprint"]
@@ -123,7 +124,7 @@ class TLSCertConnector(BaseConnector):
                 value=name,
                 confidence=0.95, source_reliability="A", info_credibility=1,
                 evidence=ev,
-                notes=f"Subject Alt Name presente nel certificato di {host}:{port}",
+                notes=_t("tls_cert.san", context.lang, host=host, port=port),
             ))
 
         # Issuer / Subject
@@ -137,7 +138,7 @@ class TLSCertConnector(BaseConnector):
                 kind="tls_issuer", value=issuer,
                 confidence=0.95, source_reliability="A", info_credibility=1,
                 evidence=ev,
-                notes=f"CA emittente del cert di {host}:{port}",
+                notes=_t("tls_cert.issuer", context.lang, host=host, port=port),
             ))
         if subject:
             findings.append(Finding(
@@ -163,7 +164,7 @@ class TLSCertConnector(BaseConnector):
             kind="tls_fingerprint_sha256", value=fp,
             confidence=1.0, source_reliability="A", info_credibility=1,
             evidence=ev,
-            notes="SHA-256 del cert DER (identificatore univoco).",
+            notes=_t("tls_cert.fingerprint", context.lang),
         ))
 
         raw = {k: v for k, v in cert.items() if k != "der"}

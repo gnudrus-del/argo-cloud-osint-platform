@@ -4,6 +4,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PII_GATED,
     BaseConnector,
@@ -20,7 +21,7 @@ _SPEC = ConnectorSpec(
     output_categories=("identity_data",),
     required_key="hunter", cache_ttl=86400,
     rate_limit=RateLimit(per_minute=6, per_day=25, burst=2),
-    legal_note="Hunter.io Domain Search — solo per domini di propria competenza o con autorizzazione scritta.",
+    legal_note="hunter.legal_note",
     health_check_url="https://api.hunter.io/v2/account",
 )
 _BASE = "https://api.hunter.io/v2"
@@ -57,7 +58,7 @@ class HunterConnector(BaseConnector):
                 confidence=0.85,
                 source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes=f"Formato email predominante per {t}: {pattern}. Usabile per generare indirizzi target.",
+                notes=_t("hunter.email_pattern", ctx.lang, domain=t, pattern=pattern),
             ))
         if org:
             findings.append(Finding(
@@ -66,7 +67,7 @@ class HunterConnector(BaseConnector):
                 confidence=0.80,
                 source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes=f"Nome organizzazione da Hunter.io: {org}.",
+                notes=_t("hunter.org_name", ctx.lang, org=org),
             ))
         for entry in emails:
             email_val = entry.get("value", "")
@@ -81,10 +82,10 @@ class HunterConnector(BaseConnector):
                     confidence=confidence,
                     severity="medium",
                     attck_ttps=["T1589.002"],
-                    remediation="Trattare come PII. Non usare per phishing. Informare l'interessato se richiesto da DSAR.",
+                    remediation=_t("hunter.email_remediation", ctx.lang),
                     source_reliability="B", info_credibility=3,
                     evidence=ev,
-                    notes=f"Email trovata da Hunter.io: {first} {last} — {position}.",
+                    notes=_t("hunter.email_found", ctx.lang, first=first, last=last, position=position),
                 ))
 
         return ConnectorResult(connector=self.spec.name, status="ok", findings=findings,

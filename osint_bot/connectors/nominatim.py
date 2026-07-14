@@ -10,6 +10,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -29,10 +30,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86400,
     rate_limit=RateLimit(per_minute=30, per_day=2000, burst=2),
-    legal_note=(
-        "Nominatim free tier richiede User-Agent identificativo e ~1 req/s. "
-        "Rispetta le linee guida OSM."
-    ),
+    legal_note="nominatim.legal_note",
     health_check_url="https://nominatim.openstreetmap.org/status",
 )
 
@@ -44,7 +42,7 @@ class NominatimConnector(BaseConnector):
         q = context.target.strip()
         if not q:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Nominatim: query vuota.")
+                                   error=_t("nominatim.empty_query", context.lang))
         url = (
             "https://nominatim.openstreetmap.org/search?"
             + urllib.parse.urlencode({"q": q, "format": "json", "limit": 5,
@@ -54,7 +52,8 @@ class NominatimConnector(BaseConnector):
             results = _safe_http.get_json(url, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Nominatim: {exc}")
+                                   error=_t("generic.error", context.lang,
+                                            service="Nominatim", error=exc))
 
         findings: list[Finding] = []
         for r in (results or [])[:3]:
@@ -69,7 +68,7 @@ class NominatimConnector(BaseConnector):
                     value=f"{lat},{lon}",
                     confidence=0.75, source_reliability="B", info_credibility=3,
                     evidence=ev,
-                    notes=f"OSM Nominatim: {display}",
+                    notes=_t("nominatim.result", context.lang, display=display),
                 ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings, raw={"hits": len(results)})

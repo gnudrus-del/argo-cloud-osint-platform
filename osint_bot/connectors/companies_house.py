@@ -10,6 +10,7 @@ import base64
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -29,7 +30,7 @@ _SPEC = ConnectorSpec(
     required_key="companies_house",
     cache_ttl=86400,
     rate_limit=RateLimit(per_minute=20, per_day=600, burst=3),
-    legal_note="Companies House: registro ufficiale aziende UK.",
+    legal_note="companies_house.legal_note",
     health_check_url="https://api.company-information.service.gov.uk/",
 )
 
@@ -40,7 +41,7 @@ class CompaniesHouseConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         if not context.api_key:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="Companies House richiede API key (free).")
+                                   error=_t("companies_house.no_key", context.lang))
         q = urllib.parse.quote(context.target.strip())
         url = f"https://api.company-information.service.gov.uk/search/companies?q={q}&items_per_page=5"
         auth = base64.b64encode(f"{context.api_key}:".encode("ascii")).decode("ascii")
@@ -49,7 +50,8 @@ class CompaniesHouseConnector(BaseConnector):
             "Authorization": f"Basic {auth}", "Accept": "application/json"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Companies House: {exc}")
+                                   error=_t("generic.error", context.lang,
+                                            service="Companies House", error=exc))
         items = (data or {}).get("items") or []
         findings: list[Finding] = []
         for it in items[:5]:
@@ -62,9 +64,10 @@ class CompaniesHouseConnector(BaseConnector):
                 kind="company_record", value=f"{name} (UK {num})",
                 confidence=0.95, source_reliability="A", info_credibility=1,
                 evidence=ev,
-                notes=f"Companies House: status={it.get('company_status', '?')}, "
-                      f"creata={it.get('date_of_creation', '?')}, "
-                      f"address={it.get('address_snippet', '')}",
+                notes=_t("companies_house.record_details", context.lang,
+                         status=it.get("company_status", "?"),
+                         created=it.get("date_of_creation", "?"),
+                         address=it.get("address_snippet", "")),
             ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings, raw={"total": len(items)})

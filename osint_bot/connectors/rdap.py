@@ -11,6 +11,7 @@ Output: ``whois_registrar``, ``whois_nameserver``, ``whois_status``,
 from __future__ import annotations
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -70,7 +71,7 @@ class RdapConnector(BaseConnector):
         parts = target.split(".")
         if len(parts) < 2:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target non è un dominio valido.")
+                                   error=_t("rdap.invalid_domain", context.lang))
         tld = parts[-1]
 
         # Try rdap.org as a universal fallback first (avoids bootstrap round-trip)
@@ -81,7 +82,7 @@ class RdapConnector(BaseConnector):
                 data = _safe_get(f"{base.rstrip('/')}/domain/{target}", context.timeout)
         if data is None:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"RDAP non disponibile per '{target}'.")
+                                   error=_t("rdap.unavailable", context.lang, target=target))
 
         findings: list[Finding] = []
         ev = [Evidence(url=f"https://rdap.org/domain/{target}", title="RDAP")]
@@ -102,7 +103,7 @@ class RdapConnector(BaseConnector):
                             source_reliability="B",
                             info_credibility=2,
                             evidence=ev,
-                            notes="Registrar ufficiale dal registro RDAP.",
+                            notes=_t("rdap.registrar", context.lang),
                         ))
                         break
 
@@ -117,7 +118,7 @@ class RdapConnector(BaseConnector):
                     source_reliability="B",
                     info_credibility=2,
                     evidence=ev,
-                    notes="Nameserver dal registro RDAP.",
+                    notes=_t("rdap.nameserver", context.lang),
                 ))
 
         # Status
@@ -129,7 +130,7 @@ class RdapConnector(BaseConnector):
                 source_reliability="B",
                 info_credibility=2,
                 evidence=ev,
-                notes=f"Stato del dominio: {s}.",
+                notes=_t("rdap.status", context.lang, status=s),
             ))
 
         # Dates
@@ -144,7 +145,7 @@ class RdapConnector(BaseConnector):
                     source_reliability="B",
                     info_credibility=2,
                     evidence=ev,
-                    notes="Data di registrazione del dominio.",
+                    notes=_t("rdap.created", context.lang),
                 ))
             elif action == "expiration" and date:
                 findings.append(Finding(
@@ -154,7 +155,7 @@ class RdapConnector(BaseConnector):
                     source_reliability="B",
                     info_credibility=2,
                     evidence=ev,
-                    notes="Data di scadenza del dominio.",
+                    notes=_t("rdap.expiry", context.lang),
                 ))
 
         return ConnectorResult(

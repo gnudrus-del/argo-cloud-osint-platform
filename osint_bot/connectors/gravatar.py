@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -57,7 +58,7 @@ class GravatarConnector(BaseConnector):
         email = (context.target or "").strip()
         if not email or "@" not in email:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Email non valida.")
+                                   error=_t("generic.invalid_email", context.lang))
         md5 = _md5_email(email)
         avatar_url = f"https://www.gravatar.com/avatar/{md5}?d=404"
         profile = _fetch_profile(md5, context.timeout)
@@ -69,21 +70,21 @@ class GravatarConnector(BaseConnector):
             return ConnectorResult(
                 connector=self.spec.name, status="ok",
                 findings=[], raw={"md5": md5, "profile": None,
-                                  "note": "Nessun profilo Gravatar pubblico."},
+                                  "note": _t("gravatar.no_profile", context.lang)},
             )
 
         findings.append(Finding(
             kind="gravatar_profile", value=profile.get("profileUrl") or f"https://www.gravatar.com/{md5}",
             confidence=0.95, source_reliability="A", info_credibility=1,
             evidence=ev,
-            notes=f"Profilo Gravatar pubblico associato a {email}.",
+            notes=_t("gravatar.profile", context.lang, email=email),
         ))
         if profile.get("preferredUsername"):
             findings.append(Finding(
                 kind="username", value=profile["preferredUsername"],
                 confidence=0.9, source_reliability="A", info_credibility=2,
                 evidence=ev,
-                notes="Username preferito dichiarato dall'utente su Gravatar.",
+                notes=_t("gravatar.username", context.lang),
             ))
         if profile.get("displayName"):
             findings.append(Finding(
@@ -99,7 +100,7 @@ class GravatarConnector(BaseConnector):
                     kind="social_account", value=url,
                     confidence=0.85, source_reliability="A", info_credibility=2,
                     evidence=ev,
-                    notes=f"Account {shortname} collegato al profilo Gravatar.",
+                    notes=_t("gravatar.account", context.lang, shortname=shortname),
                 ))
         findings.append(Finding(
             kind="avatar_url", value=avatar_url,

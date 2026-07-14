@@ -24,6 +24,7 @@ import re
 import subprocess
 import tempfile
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -43,7 +44,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=4, per_day=150, burst=1),
-    legal_note="Usa l'API Telegram con le credenziali dell'investigatore. Solo dati pubblici del profilo.",
+    legal_note="telegram_checker.legal_note",
     health_check_url="",
 )
 
@@ -67,16 +68,16 @@ class TelegramCheckerConnector(BaseConnector):
         cfg = _config()
         if not cfg["cmd"]:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="telegram-checker non configurato (TELEGRAM_CMD).")
+                                   error=_t("telegram_checker.not_configured", context.lang))
         if not (cfg["api_id"] and cfg["api_hash"] and cfg["phone"]):
             return ConnectorResult(
                 connector=self.spec.name, status="missing_key",
-                error="Credenziali Telegram mancanti (TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_PHONE).")
+                error=_t("telegram_checker.missing_credentials", context.lang))
 
         num = (context.target or "").strip().replace(" ", "")
         if not _E164_RE.match(num):
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Numero non valido (usa E.164, es. +39...).")
+                                   error=_t("telegram_checker.invalid_number", context.lang))
 
         env = dict(os.environ)
         env["PYTHONUTF8"] = "1"; env["PYTHONIOENCODING"] = "utf-8"
@@ -94,10 +95,10 @@ class TelegramCheckerConnector(BaseConnector):
                                text=True, encoding="utf-8", errors="replace",
                                timeout=cfg["timeout_s"], check=False)
             except subprocess.TimeoutExpired:
-                return ConnectorResult(connector=self.spec.name, status="error", error="telegram-checker timeout.")
+                return ConnectorResult(connector=self.spec.name, status="error", error=_t("telegram_checker.timeout", context.lang))
             except (OSError, ValueError) as exc:
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error=f"Esecuzione telegram-checker fallita: {exc}")
+                                       error=_t("telegram_checker.exec_failed", context.lang, error=exc))
 
             data = {}
             for path in glob.glob(os.path.join(tmp, "*.json")):

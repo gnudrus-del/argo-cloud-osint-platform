@@ -12,6 +12,7 @@ import json
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -31,7 +32,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=21_600,
     rate_limit=RateLimit(per_minute=6, per_day=200, burst=1),
-    legal_note="Indice pubblico Common Crawl (Apache 2.0). No dati personali inviati.",
+    legal_note="common_crawl.legal_note",
     health_check_url="http://index.commoncrawl.org/collinfo.json",
 )
 
@@ -81,12 +82,12 @@ class CommonCrawlConnector(BaseConnector):
         target = (context.target or "").strip().lower().rstrip(".")
         if not target or "/" in target:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target deve essere un dominio (no schema, no path).")
+                                   error=_t("common_crawl.invalid_target", context.lang))
 
         indexes = _list_indexes(context.timeout)
         if not indexes:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Impossibile leggere collinfo.json da Common Crawl.")
+                                   error=_t("common_crawl.collinfo_failed", context.lang))
 
         # Provo i due indici piu' recenti (se il primo e' vuoto)
         rows: list[dict] = []
@@ -112,8 +113,8 @@ class CommonCrawlConnector(BaseConnector):
                 kind="archived_url", value=url,
                 confidence=0.9, source_reliability="A", info_credibility=1,
                 evidence=ev,
-                notes=(f"URL indicizzata da Common Crawl {used_index}. "
-                       f"HTTP {status}, MIME {mime}."),
+                notes=_t("common_crawl.archived_url", context.lang,
+                         index=used_index, status=status, mime=mime),
             ))
         return ConnectorResult(
             connector=self.spec.name, status="ok",

@@ -22,6 +22,7 @@ import re
 import subprocess
 import tempfile
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -41,7 +42,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=6, per_day=200, burst=1),
-    legal_note="Interroga API Google con le credenziali dell'investigatore. Solo dati pubblici del profilo.",
+    legal_note="ghunt.legal_note",
     health_check_url="",
 )
 
@@ -64,13 +65,14 @@ class GHuntConnector(BaseConnector):
         cfg = _config()
         if not cfg["cmd"] and not cfg["python"]:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="GHunt non configurato (GHUNT_CMD/GHUNT_PYTHON).")
+                                   error=_t("ghunt.not_configured", context.lang))
         if not cfg["home"]:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="GHUNT_HOME non impostata: servono le cred (ghunt login).")
+                                   error=_t("ghunt.home_missing", context.lang))
         email = (context.target or "").strip().lower()
         if not _EMAIL_RE.match(email):
-            return ConnectorResult(connector=self.spec.name, status="error", error="Email non valida.")
+            return ConnectorResult(connector=self.spec.name, status="error",
+                                   error=_t("generic.invalid_email", context.lang))
 
         env = dict(os.environ)
         env["PYTHONUTF8"] = "1"; env["PYTHONIOENCODING"] = "utf-8"
@@ -85,10 +87,11 @@ class GHuntConnector(BaseConnector):
                                       text=True, encoding="utf-8", errors="replace",
                                       timeout=cfg["timeout_s"], check=False)
             except subprocess.TimeoutExpired:
-                return ConnectorResult(connector=self.spec.name, status="error", error="GHunt timeout.")
+                return ConnectorResult(connector=self.spec.name, status="error",
+                                       error=_t("ghunt.timeout", context.lang))
             except (OSError, ValueError) as exc:
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error=f"Esecuzione GHunt fallita: {exc}")
+                                       error=_t("ghunt.exec_failed", context.lang, error=str(exc)))
 
             data = {}
             files = glob.glob(os.path.join(tmp, "*.json"))
@@ -102,9 +105,9 @@ class GHuntConnector(BaseConnector):
                 low = (proc.stdout + proc.stderr).lower()
                 if "login" in low or "cookies" in low or "creds" in low:
                     return ConnectorResult(connector=self.spec.name, status="error",
-                                           error="GHunt: credenziali mancanti/scadute (rifai ghunt login).")
+                                           error=_t("ghunt.creds_expired", context.lang))
                 return ConnectorResult(connector=self.spec.name, status="ok", findings=[],
-                                       raw={"note": "Nessun dato Google per l'email."})
+                                       raw={"note": _t("ghunt.no_data", context.lang)})
 
         findings: list[Finding] = []
         ev = [Evidence(url="https://mail.google.com", title="Google account")]

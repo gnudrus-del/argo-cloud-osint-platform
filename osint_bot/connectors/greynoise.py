@@ -8,6 +8,7 @@ Action class: passive. Input: ``ip``.
 from __future__ import annotations
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -27,7 +28,7 @@ _SPEC = ConnectorSpec(
     required_key="greynoise",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=20, per_day=10_000, burst=3),
-    legal_note="GreyNoise: contesto su scanner Internet. Solo IP, no PII.",
+    legal_note="greynoise.legal_note",
     health_check_url="https://api.greynoise.io/ping",
 )
 
@@ -38,14 +39,14 @@ class GreyNoiseConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         if not context.api_key:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="GreyNoise richiede API key (BYOK).")
+                                   error=_t("greynoise.needs_key", context.lang))
         url = f"https://api.greynoise.io/v3/community/{context.target}"
         try:
             data = _safe_http.get_json(url, headers={
             "key": context.api_key, "Accept": "application/json"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"GreyNoise: {exc}")
+                                   error=_t("generic.error", context.lang, service="GreyNoise", error=str(exc)))
         if not data.get("noise"):
             return ConnectorResult(connector=self.spec.name, status="ok", findings=[],
                                    raw={"noise": False})
@@ -57,8 +58,7 @@ class GreyNoiseConnector(BaseConnector):
                 kind="ip_known_scanner", value=context.target,
                 confidence=0.90, source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes=f"GreyNoise: classification={data.get('classification', '?')}, "
-                      f"name={data.get('name', '?')}",
+                notes=_t("greynoise.classification", context.lang, classification=data.get('classification', '?'), name=data.get('name', '?')),
             )],
             raw=data,
         )

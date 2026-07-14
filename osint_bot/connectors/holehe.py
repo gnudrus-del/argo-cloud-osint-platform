@@ -25,6 +25,7 @@ import re
 import subprocess
 import tempfile
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -44,7 +45,7 @@ _SPEC = ConnectorSpec(
     required_key="",  # tool locale via env, non BYOK
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=6, per_day=300, burst=1),
-    legal_note="Esegue holehe in locale su endpoint pubblici. Nessuna email inviata; solo check di registrazione.",
+    legal_note="holehe.legal_note",
     health_check_url="",
 )
 
@@ -116,13 +117,12 @@ class HoleheConnector(BaseConnector):
         if not cfg["cmd"] and not cfg["python"]:
             return ConnectorResult(
                 connector=self.spec.name, status="missing_key",
-                error=("holehe non configurato. Setta HOLEHE_CMD (o HOLEHE_PYTHON) "
-                       "nel .env. Fallback: holehe_native."),
+                error=_t("holehe.not_configured", context.lang),
             )
         email = (context.target or "").strip().lower()
         if not _EMAIL_RE.match(email):
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Email non valida.")
+                                   error=_t("generic.invalid_email", context.lang))
 
         env = dict(os.environ)
         env["PYTHONUTF8"] = "1"
@@ -139,10 +139,10 @@ class HoleheConnector(BaseConnector):
                 )
             except subprocess.TimeoutExpired:
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error="holehe timeout.")
+                                       error=_t("holehe.timeout", context.lang))
             except (OSError, ValueError) as exc:
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error=f"Esecuzione holehe fallita: {exc}")
+                                       error=_t("holehe.execution_failed", context.lang, error=str(exc)))
 
             domains = _parse_stdout(proc.stdout)
             recovery = _parse_recovery_csv(tmp)  # dentro il with: il CSV è in tmp
@@ -152,20 +152,22 @@ class HoleheConnector(BaseConnector):
             findings.append(Finding(
                 kind="email_registered", value=d,
                 confidence=0.85, source_reliability="B", info_credibility=2,
-                evidence=[Evidence(url=f"https://{d}", title=f"{d} (email registrata)")],
-                notes=(f"holehe: l'email risulta REGISTRATA su {d} "
-                       f"(rilevato via endpoint pubblico). Possibili FP/rate-limit."),
-                why_linked=[f"holehe ha marcato '{email}' come usata su {d}"],
+                evidence=[Evidence(url=f"https://{d}", title=_t("holehe.evidence_title_registered", context.lang, domain=d))],
+                notes=_t("holehe.registered_notes", context.lang, domain=d),
+                why_linked=[_t("holehe.registered_why_linked", context.lang, email=email, domain=d)],
             ))
         # Hint di recupero (email/telefono mascherati esposti da alcuni siti).
         for h in recovery:
+            if "email" in h["kind"]:
+                notes_text = _t("holehe.recovery_hint_email_notes", context.lang, domain=h["domain"], email=email)
+            else:
+                notes_text = _t("holehe.recovery_hint_phone_notes", context.lang, domain=h["domain"], email=email)
             findings.append(Finding(
                 kind=h["kind"], value=f"{h['value']} (via {h['domain']})",
                 confidence=0.7, source_reliability="B", info_credibility=2,
                 evidence=[Evidence(url=f"https://{h['domain']}", title=h["domain"])],
-                notes=(f"holehe: hint di recupero {('email' if 'email' in h['kind'] else 'telefono')} "
-                       f"mascherato esposto da {h['domain']} per {email}."),
-                why_linked=[f"{h['domain']} espone un dato di recupero collegato a {email}"],
+                notes=notes_text,
+                why_linked=[_t("holehe.recovery_why_linked", context.lang, domain=h["domain"], email=email)],
             ))
         return ConnectorResult(
             connector=self.spec.name, status="ok",

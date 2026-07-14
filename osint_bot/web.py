@@ -1134,6 +1134,9 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         target = str(payload.get("target") or "").strip()
         target_type = str(payload.get("target_type") or "auto").strip()
         case_id = str(payload.get("case_id") or "").strip()
+        lang = str(payload.get("lang") or "it").strip().lower()
+        if lang not in ("it", "en"):
+            lang = "it"
         if not connector_name or not target:
             raise WebError(HTTPStatus.BAD_REQUEST, "Parametri 'connector' e 'target' obbligatori.")
         api_key = resolve_api_key(connector_name, actor)
@@ -1144,6 +1147,7 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
             case_id=case_id,
             api_key=api_key,
             timeout=20,
+            lang=lang,
         )
         from dataclasses import asdict
         result = CONNECTOR_REGISTRY.run(connector_name, ctx)

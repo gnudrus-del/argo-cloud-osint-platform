@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "osint_bot.web", "--port", "8765"],
       "port": 8765
+    },
+    {
+      "name": "landing-static",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8899", "--directory", "osint_bot/web_static"],
+      "port": 8899
     }
   ]
 }

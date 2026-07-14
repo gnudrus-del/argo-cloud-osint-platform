@@ -15,6 +15,7 @@ import ipaddress
 import shutil
 import subprocess
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -34,7 +35,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86_400,
     rate_limit=RateLimit(per_minute=60, per_day=20_000, burst=5),
-    legal_note="Servizio pubblico gratuito Team Cymru (DNS TXT). No PII.",
+    legal_note="asn_lookup.legal_note",
     health_check_url="",
 )
 
@@ -96,17 +97,17 @@ class ASNLookupConnector(BaseConnector):
         rev = _reverse_ip(ip)
         if not rev:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="IP non valido o IPv6 (non supportato).")
+                                   error=_t("asn_lookup.invalid_ip", context.lang))
 
         origin_host = f"{rev}.origin.asn.cymru.com"
         origin_txt = _dig_txt(origin_host, context.timeout)
         if not origin_txt:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Team Cymru TXT vuoto (dig mancante o network fail).")
+                                   error=_t("asn_lookup.empty_txt", context.lang))
         origin = _parse_origin(origin_txt)
         if not origin.get("asn"):
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Risposta Team Cymru non parsabile: {origin_txt}")
+                                   error=_t("asn_lookup.unparsable", context.lang, origin_txt=origin_txt))
 
         # Secondo lookup per il nome AS
         asname_host = f"AS{origin['asn']}.asn.cymru.com"

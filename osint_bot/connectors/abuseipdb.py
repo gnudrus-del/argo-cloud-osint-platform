@@ -4,6 +4,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -44,7 +45,7 @@ class AbuseIPDBConnector(BaseConnector):
 
         body = data.get("data") or {}
         if not body:
-            return ConnectorResult(connector=self.spec.name, status="error", error="AbuseIPDB nessun dato.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("abuseipdb.no_data", ctx.lang))
 
         score = body.get("abuseConfidenceScore", 0)
         reports = body.get("totalReports", 0)
@@ -65,13 +66,14 @@ class AbuseIPDBConnector(BaseConnector):
             confidence=min(0.95, 0.40 + score / 100),
             severity=sev,
             attck_ttps=["T1071"] if score >= 40 else [],
-            remediation="Bloccare IP su firewall se score > 40. Investigare log per connessioni da/verso questo IP." if score >= 40 else "",
+            remediation=_t("abuseipdb.remediation_high_score", ctx.lang) if score >= 40 else "",
             source_reliability="B", info_credibility=2,
             evidence=ev,
-            notes=(
-                f"AbuseIPDB score: {score}/100 ({reports} report da {distinct} utenti). "
-                f"ISP: {isp}. Paese: {country}. Tipo: {usage}."
-                + (" [TOR EXIT NODE]" if is_tor else "")
+            notes=_t(
+                "abuseipdb.score", ctx.lang,
+                score=score, reports=reports, distinct=distinct,
+                isp=isp, country=country, usage=usage,
+                tor_suffix=(" [TOR EXIT NODE]" if is_tor else ""),
             ),
         ))
 
@@ -82,10 +84,10 @@ class AbuseIPDBConnector(BaseConnector):
                 confidence=0.90,
                 severity="medium",
                 attck_ttps=["T1090.003"],
-                remediation="IP è un nodo TOR. Considerare blocco selettivo o monitoraggio aumentato.",
+                remediation=_t("abuseipdb.remediation_tor", ctx.lang),
                 source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes=f"L'IP {ip} è un exit node TOR noto secondo AbuseIPDB.",
+                notes=_t("abuseipdb.tor_note", ctx.lang, ip=ip),
             ))
 
         if reports > 0:
@@ -102,7 +104,7 @@ class AbuseIPDBConnector(BaseConnector):
                         confidence=0.60,
                         source_reliability="C", info_credibility=3,
                         evidence=ev,
-                        notes=f"Report AbuseIPDB del {reported_at}: categorie {cats}.",
+                        notes=_t("abuseipdb.report", ctx.lang, reported_at=reported_at, cats=cats),
                     ))
 
         return ConnectorResult(connector=self.spec.name, status="ok", findings=findings,

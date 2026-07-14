@@ -13,6 +13,7 @@ import json
 import re
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -32,7 +33,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86_400,
     rate_limit=RateLimit(per_minute=10, per_day=1000, burst=2),
-    legal_note="Dati geografici pubblici OpenStreetMap (ODbL). Nessun dato personale inviato.",
+    legal_note="overpass.legal_note",
     health_check_url="https://overpass-api.de/api/status",
 )
 
@@ -80,12 +81,12 @@ class OverpassConnector(BaseConnector):
         parsed = _parse_geo(context.target or "")
         if not parsed:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target deve essere 'lat,lon' (opz. ',raggio_m').")
+                                   error=_t("overpass.invalid_target", context.lang))
         lat, lon, radius = parsed
         data = _query(lat, lon, radius, context.timeout)
         if data is None:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Overpass API non raggiungibile o query fallita.")
+                                   error=_t("overpass.unreachable", context.lang))
 
         ev_base = f"https://www.openstreetmap.org/#map=18/{lat}/{lon}"
         findings: list[Finding] = []
@@ -102,7 +103,7 @@ class OverpassConnector(BaseConnector):
                 value=f"{name} ({kind_label})",
                 confidence=0.7, source_reliability="B", info_credibility=2,
                 evidence=[Evidence(url=osm_url, title=f"OSM {el.get('type')}/{el.get('id')}")],
-                notes=f"Feature OSM entro {radius}m da {lat},{lon}.",
+                notes=_t("overpass.feature", context.lang, radius=radius, lat=lat, lon=lon),
             ))
 
         return ConnectorResult(

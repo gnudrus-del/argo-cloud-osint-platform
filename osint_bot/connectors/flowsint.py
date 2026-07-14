@@ -32,6 +32,7 @@ import json
 import os
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -52,10 +53,7 @@ _SPEC = ConnectorSpec(
     required_key="",  # credentials in env, not in BYOK panel
     cache_ttl=300,
     rate_limit=RateLimit(per_minute=10, per_day=500, burst=2),
-    legal_note=(
-        "FlowSINT gira in locale (Docker). Nessun dato lascia la VM. La "
-        "'investigation' creata rispetta il caso Argo di origine."
-    ),
+    legal_note="flowsint.legal_note",
     health_check_url=os.getenv("FLOWSINT_URL", "http://127.0.0.1:5001") + "/health",
 )
 
@@ -155,8 +153,7 @@ class FlowSINTConnector(BaseConnector):
         if not cfg["base_url"] or not cfg["username"] or not cfg["password"]:
             return ConnectorResult(
                 connector=self.spec.name, status="missing_key",
-                error=("FlowSINT non configurato. Setta FLOWSINT_URL, "
-                       "FLOWSINT_USER, FLOWSINT_PASSWORD nel .env sulla VM."),
+                error=_t("flowsint.not_configured", context.lang),
             )
 
         token = _get_token(cfg["base_url"], cfg["username"], cfg["password"],
@@ -164,7 +161,7 @@ class FlowSINTConnector(BaseConnector):
         if not token:
             return ConnectorResult(
                 connector=self.spec.name, status="error",
-                error="Autenticazione FlowSINT fallita.",
+                error=_t("flowsint.auth_failed", context.lang),
             )
 
         target = (context.target or "").strip()
@@ -180,7 +177,7 @@ class FlowSINTConnector(BaseConnector):
         if not inv or not inv.get("id"):
             return ConnectorResult(
                 connector=self.spec.name, status="error",
-                error="Impossibile creare investigation su FlowSINT.",
+                error=_t("flowsint.investigation_failed", context.lang),
             )
 
         inv_id = inv["id"]
@@ -201,11 +198,10 @@ class FlowSINTConnector(BaseConnector):
                 evidence=[Evidence(url=ui_url,
                                    title=f"FlowSINT — {target}")],
                 notes=(
-                    "Investigation FlowSINT preconfigurata. Apri il link per "
-                    "esplorare il grafo con enricher graph-based. "
-                    f"Rilevanti per {ttype}: "
-                    + ", ".join(relevant[:6]) if relevant
-                    else "Nessun enricher specifico per questo target_type."
+                    _t("flowsint.notes_with_relevant", context.lang,
+                       ttype=ttype, relevant=", ".join(relevant[:6]))
+                    if relevant
+                    else _t("flowsint.no_relevant_enrichers", context.lang)
                 ),
             )],
             raw={

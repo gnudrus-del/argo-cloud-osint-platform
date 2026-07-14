@@ -9,6 +9,7 @@ from __future__ import annotations
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -28,7 +29,7 @@ _SPEC = ConnectorSpec(
     required_key="brave",
     cache_ttl=600,
     rate_limit=RateLimit(per_minute=20, per_day=2000, burst=3),
-    legal_note="Brave Search API: BYOK richiesto. ToS Brave applicabile.",
+    legal_note="brave_search_api.legal_note",
     health_check_url="https://api.search.brave.com/res/v1/web/search?q=test",
 )
 
@@ -39,7 +40,7 @@ class BraveSearchAPIConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         if not context.api_key:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="Brave Search richiede API key (BYOK).")
+                                   error=_t("brave_search_api.missing_key", context.lang))
         url = ("https://api.search.brave.com/res/v1/web/search?"
                + urllib.parse.urlencode({"q": context.target, "count": 10}))
         try:
@@ -49,7 +50,7 @@ class BraveSearchAPIConnector(BaseConnector):
         }, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Brave Search: {exc}")
+                                   error=_t("generic.error", context.lang, service="Brave Search", error=exc))
         results = (((data or {}).get("web") or {}).get("results") or [])[:10]
         findings: list[Finding] = []
         for r in results:
@@ -58,7 +59,8 @@ class BraveSearchAPIConnector(BaseConnector):
                 kind="web_presence", value=r.get("url", ""),
                 confidence=0.60, source_reliability="C", info_credibility=3,
                 evidence=ev,
-                notes=f"Brave Search: {r.get('description', '')[:140]}",
+                notes=_t("brave_search_api.result_note", context.lang,
+                         description=r.get('description', '')[:140]),
             ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings, raw={"results": len(results)})

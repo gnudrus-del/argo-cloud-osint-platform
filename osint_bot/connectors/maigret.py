@@ -26,6 +26,7 @@ import re
 import subprocess
 import tempfile
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -45,7 +46,7 @@ _SPEC = ConnectorSpec(
     required_key="",  # tool locale via env, non BYOK
     cache_ttl=86_400,
     rate_limit=RateLimit(per_minute=4, per_day=200, burst=1),
-    legal_note="Esegue Maigret in locale su URL pubbliche. Nessun login. Solo profili 'Claimed'.",
+    legal_note="maigret.legal_note",
     health_check_url="",
 )
 

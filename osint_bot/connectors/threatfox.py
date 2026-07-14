@@ -10,6 +10,7 @@ Input: ``ip`` | ``domain`` | ``url`` | ``file_hash``.
 from __future__ import annotations
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -29,7 +30,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=30, per_day=5000, burst=3),
-    legal_note="Feed IOC community abuse.ch (CC0). Consultazione passiva di reputation nota.",
+    legal_note="threatfox.legal_note",
     health_check_url="https://threatfox-api.abuse.ch/api/v1/",
 )
 
@@ -53,12 +54,12 @@ class ThreatFoxConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         ioc = (context.target or "").strip()
         if not ioc:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Target vuoto.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("threatfox.empty_target", context.lang))
 
         data = _search(ioc, context.timeout)
         if data is None:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="ThreatFox non raggiungibile.")
+                                   error=_t("generic.no_response", context.lang, service="ThreatFox"))
 
         status = data.get("query_status")
         if status == "no_result":
@@ -68,7 +69,7 @@ class ThreatFoxConnector(BaseConnector):
                     kind="reputation_clean", value=ioc,
                     confidence=0.6, source_reliability="B", info_credibility=2,
                     evidence=[Evidence(url="https://threatfox.abuse.ch/", title="ThreatFox")],
-                    notes="Nessun IOC ThreatFox per questo target (non prova assenza di rischio).",
+                    notes=_t("threatfox.no_ioc", context.lang),
                 )],
                 raw={"query_status": status},
             )
@@ -82,6 +83,8 @@ class ThreatFoxConnector(BaseConnector):
             conf = entry.get("confidence_level")
             conf_f = (float(conf) / 100.0) if isinstance(conf, (int, float)) else 0.7
             ioc_id = entry.get("id")
+            first_seen = entry.get("first_seen", "?")
+            tags_str = ", ".join(entry.get("tags") or []) or "—"
             findings.append(Finding(
                 kind="threat_ioc",
                 value=f"{malware}: {entry.get('ioc', ioc)}",
@@ -90,9 +93,7 @@ class ThreatFoxConnector(BaseConnector):
                 evidence=[Evidence(
                     url=f"https://threatfox.abuse.ch/ioc/{ioc_id}/" if ioc_id else "https://threatfox.abuse.ch/",
                     title=f"ThreatFox {malware}")],
-                notes=(f"IOC malevolo associato a {malware}. "
-                       f"Primo avvistamento: {entry.get('first_seen', '?')}. "
-                       f"Tag: {', '.join(entry.get('tags') or []) or '—'}."),
+                notes=_t("threatfox.ioc_found", context.lang, malware=malware, first_seen=first_seen, tags=tags_str),
                 severity="high",
             ))
         return ConnectorResult(

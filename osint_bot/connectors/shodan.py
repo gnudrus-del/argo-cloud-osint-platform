@@ -14,6 +14,7 @@ import ipaddress
 import socket
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -76,7 +77,7 @@ class ShodanConnector(BaseConnector):
                 return ConnectorResult(
                     connector=self.spec.name,
                     status="error",
-                    error=f"Impossibile risolvere '{target}' in IP per query Shodan.",
+                    error=_t("shodan.resolve_failed", context.lang, target=target),
                 )
             ip = resolved
 
@@ -85,12 +86,12 @@ class ShodanConnector(BaseConnector):
             ipaddress.ip_address(ip)
         except ValueError:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"IP non valido: {ip}")
+                                   error=_t("shodan.invalid_ip", context.lang, ip=ip))
 
         data = _api_get(f"/shodan/host/{ip}", api_key, context.timeout)
         if data is None:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Shodan non ha dati per {ip}.")
+                                   error=_t("shodan.no_data", context.lang, ip=ip))
         if "error" in data:
             return ConnectorResult(connector=self.spec.name, status="error",
                                    error=data["error"])
@@ -119,7 +120,7 @@ class ShodanConnector(BaseConnector):
                     source_reliability="B",
                     info_credibility=2,
                     evidence=ev,
-                    notes=f"Porta aperta rilevata da Shodan: {svc_label}.",
+                    notes=_t("shodan.open_port", context.lang, service=svc_label),
                 ))
 
             # CPEs
@@ -131,7 +132,7 @@ class ShodanConnector(BaseConnector):
                     source_reliability="B",
                     info_credibility=3,
                     evidence=ev,
-                    notes=f"Tecnologia rilevata via Shodan su {ip}:{port}.",
+                    notes=_t("shodan.cpe", context.lang, ip=ip, port=port),
                 ))
 
             # Vulns
@@ -143,7 +144,7 @@ class ShodanConnector(BaseConnector):
                     source_reliability="B",
                     info_credibility=3,
                     evidence=ev,
-                    notes=f"Vulnerabilità segnalata da Shodan su {ip}:{port} — verificare manualmente.",
+                    notes=_t("shodan.vuln", context.lang, ip=ip, port=port),
                 ))
 
         # Hostnames
@@ -155,7 +156,7 @@ class ShodanConnector(BaseConnector):
                 source_reliability="B",
                 info_credibility=2,
                 evidence=ev,
-                notes=f"Hostname associato all'IP {ip} da Shodan.",
+                notes=_t("shodan.hostname", context.lang, ip=ip),
             ))
 
         # OS
@@ -168,7 +169,7 @@ class ShodanConnector(BaseConnector):
                 source_reliability="B",
                 info_credibility=3,
                 evidence=ev,
-                notes=f"Sistema operativo rilevato da Shodan su {ip}.",
+                notes=_t("shodan.os", context.lang, ip=ip),
             ))
 
         return ConnectorResult(

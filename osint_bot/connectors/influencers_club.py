@@ -16,6 +16,7 @@ import json
 import urllib.error
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -35,9 +36,7 @@ _SPEC = ConnectorSpec(
     required_key="influencers_club",   # cablato al catalogo
     cache_ttl=86_400,
     rate_limit=RateLimit(per_minute=15, per_day=500, burst=2),
-    legal_note=(
-        "Servizio SaaS a pagamento (influencers.club). Restituisce email di "
-        "creator/business associate a un username. BYOK dell'analista."),
+    legal_note="influencers_club.legal_note",
     health_check_url="https://influencers.club/",
 )
 
@@ -74,24 +73,26 @@ class InfluencersClubConnector(BaseConnector):
         # BYOK: la chiave è già iniettata da run() (spec.required_key non vuoto).
         if not context.api_key:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="INFLUENCERS_CLUB_API_KEY non configurata.")
+                                   error=_t("influencers_club.missing_key", context.lang))
         username = (context.target or "").strip().lstrip("@")
         if not username or "/" in username or " " in username:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Username non valido.")
+            return ConnectorResult(connector=self.spec.name, status="error",
+                                   error=_t("influencers_club.invalid_username", context.lang))
 
         status, data = _post_json(_ENDPOINT, {"username": username}, context.api_key, context.timeout)
         if status in (401, 403):
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Chiave Influencers Club non valida o quota esaurita.")
+                                   error=_t("influencers_club.auth_or_quota", context.lang))
         if status == 429:
             return ConnectorResult(connector=self.spec.name, status="rate_limited",
-                                   error="Rate limit Influencers Club.")
+                                   error=_t("influencers_club.rate_limit", context.lang))
         if status == 0 or data is None:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Influencers Club non raggiungibile.")
+                                   error=_t("influencers_club.unreachable", context.lang))
         if status == 404 or (isinstance(data, dict) and data.get("error") == "not_found"):
             return ConnectorResult(connector=self.spec.name, status="ok", findings=[],
-                                   raw={"note": f"Nessun match per @{username}.", "http": status})
+                                   raw={"note": _t("influencers_club.no_match", context.lang, username=username),
+                                        "http": status})
 
         ev = [Evidence(url=f"https://www.instagram.com/{username}/", title=f"IG @{username}")]
         findings: list[Finding] = []
@@ -103,8 +104,8 @@ class InfluencersClubConnector(BaseConnector):
             findings.append(Finding(
                 kind="email", value=str(email), confidence=0.9,
                 source_reliability="B", info_credibility=2, evidence=ev,
-                notes=f"Email pubblica di @{username} (Influencers Club).",
-                why_linked=[f"Influencers Club ha collegato @{username} all'email"],
+                notes=_t("influencers_club.email_public", context.lang, username=username),
+                why_linked=[_t("influencers_club.email_why", context.lang, username=username)],
             ))
         for k, kind in [("full_name", "display_name"), ("category", "creator_category"),
                         ("followers", "followers_count"), ("phone", "phone")]:
@@ -114,7 +115,7 @@ class InfluencersClubConnector(BaseConnector):
                 findings.append(Finding(
                     kind=kind, value=str(v)[:200], confidence=0.85,
                     source_reliability="B", info_credibility=2, evidence=ev,
-                    notes=f"Campo '{k}' da Influencers Club per @{username}."))
+                    notes=_t("influencers_club.field_note", context.lang, field=k, username=username)))
         return ConnectorResult(connector=self.spec.name, status="ok", findings=findings,
                                raw={"engine": "influencers_club", "http": status})
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 import urllib.error
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -31,7 +32,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=1800,
     rate_limit=RateLimit(per_minute=10, per_day=1000, burst=2),
-    legal_note="Scarica contenuto pubblico e cerca pattern di segreti. Solo GET, nessuna modifica.",
+    legal_note="secret_scan.legal_note",
     health_check_url="",
 )
 
@@ -105,7 +106,7 @@ class SecretScanConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         target = (context.target or "").strip()
         if not target:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Target vuoto.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("secret_scan.empty_target", context.lang))
         base = _to_url(target)
 
         # Scarica la pagina + un po' di JS referenziato (dove finiscono i leak).
@@ -140,8 +141,7 @@ class SecretScanConnector(BaseConnector):
                         confidence=0.85 if severity in ("critical", "high") else 0.6,
                         source_reliability="A", info_credibility=2,
                         evidence=[Evidence(url=src_url, title=f"{name} in {src_url}")],
-                        notes=(f"Pattern '{name}' trovato in {src_url}. "
-                               f"Valore redatto. Verificare validità e revocare se reale."),
+                        notes=_t("secret_scan.pattern_found", context.lang, name=name, src_url=src_url),
                         severity=severity,
                     ))
         return ConnectorResult(

@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -28,7 +29,7 @@ _SPEC = ConnectorSpec(
     required_key="etherscan",
     cache_ttl=600,
     rate_limit=RateLimit(per_minute=5, per_day=100_000, burst=2),
-    legal_note="Etherscan: dati pubblici on-chain Ethereum. Solo lettura.",
+    legal_note="etherscan.legal_note",
     health_check_url="https://api.etherscan.io/api",
 )
 
@@ -42,10 +43,10 @@ class EtherscanConnector(BaseConnector):
         target = context.target.strip()
         if not _ETH_ADDR_RE.match(target):
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Etherscan: indirizzo ETH non valido (0x + 40 hex).")
+                                   error=_t("etherscan.invalid_address", context.lang))
         if not context.api_key:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="Etherscan richiede API key (free).")
+                                   error=_t("etherscan.missing_key", context.lang))
         findings: list[Finding] = []
         ev = [Evidence(url=f"https://etherscan.io/address/{target}", title="Etherscan")]
         for module, action, kind in [
@@ -58,7 +59,8 @@ class EtherscanConnector(BaseConnector):
                 data = _safe_http.get_json(url, timeout=context.timeout)
             except Exception as exc:
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error=f"Etherscan: {exc}")
+                                       error=_t("generic.error", context.lang,
+                                                service="Etherscan", error=exc))
             if action == "balance":
                 wei = int(data.get("result", "0") or 0)
                 eth = wei / 1e18
@@ -66,7 +68,8 @@ class EtherscanConnector(BaseConnector):
                     kind=kind, value=f"{eth:.6f} ETH",
                     confidence=0.95, source_reliability="A", info_credibility=1,
                     evidence=ev,
-                    notes=f"Etherscan: balance corrente = {eth:.6f} ETH ({wei} wei)",
+                    notes=_t("etherscan.balance", context.lang,
+                             eth=f"{eth:.6f}", wei=wei),
                 ))
             else:
                 result = data.get("result") or []
@@ -74,7 +77,8 @@ class EtherscanConnector(BaseConnector):
                     kind=kind, value=str(len(result) > 0),
                     confidence=0.90, source_reliability="A", info_credibility=1,
                     evidence=ev,
-                    notes=f"Etherscan: wallet ha {'transazioni' if result else 'NESSUNA transazione'}.",
+                    notes=(_t("etherscan.has_tx", context.lang)
+                           if result else _t("etherscan.no_tx", context.lang)),
                 ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings, raw={})

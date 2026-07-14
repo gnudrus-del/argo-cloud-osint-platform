@@ -9,6 +9,7 @@ Input: ``phone`` (E.164 preferibilmente, con prefisso).
 """
 from __future__ import annotations
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -28,7 +29,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=86_400,
     rate_limit=RateLimit(per_minute=120, per_day=100_000, burst=20),
-    legal_note="Elaborazione locale via libphonenumber. Nessun dato inviato in rete.",
+    legal_note="phone_meta.legal_note",
     health_check_url="",
 )
 
@@ -44,21 +45,20 @@ class PhoneMetaConnector(BaseConnector):
         except ImportError:
             return ConnectorResult(
                 connector=self.spec.name, status="error",
-                error=("Modulo 'phonenumbers' non installato. "
-                       "Installa con: pip install phonenumbers"),
+                error=_t("phone_meta.module_missing", context.lang),
             )
 
         raw_target = (context.target or "").strip()
         if not raw_target:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Numero vuoto.")
+                                   error=_t("phone_meta.empty_number", context.lang))
 
         try:
             # Se non ha prefisso, prova con IT default
             parsed = phonenumbers.parse(raw_target, "IT")
         except Exception as e:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"Parsing fallito: {e}")
+                                   error=_t("phone_meta.parse_failed", context.lang, error=str(e)))
 
         if not phonenumbers.is_valid_number(parsed):
             return ConnectorResult(
@@ -67,7 +67,7 @@ class PhoneMetaConnector(BaseConnector):
                     kind="phone_valid", value="false",
                     confidence=0.99, source_reliability="A", info_credibility=1,
                     evidence=[],
-                    notes="Numero sintatticamente non valido secondo libphonenumber.",
+                    notes=_t("phone_meta.invalid_syntax", context.lang),
                 )],
                 raw={"input": raw_target, "valid": False},
             )
@@ -111,14 +111,14 @@ class PhoneMetaConnector(BaseConnector):
             Finding(kind="phone_type", value=ntype,
                     confidence=0.95, source_reliability="A", info_credibility=1,
                     evidence=ev,
-                    notes="Tipologia inferita dal piano di numerazione."),
+                    notes=_t("phone_meta.type_inferred", context.lang)),
         ]
         if carrier_name:
             findings.append(Finding(
                 kind="phone_carrier", value=carrier_name,
                 confidence=0.85, source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes="Carrier storico assegnato al prefisso. Portabilita' non tracciata.",
+                notes=_t("phone_meta.carrier_historic", context.lang),
             ))
         if location:
             findings.append(Finding(

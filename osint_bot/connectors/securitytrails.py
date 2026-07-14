@@ -7,6 +7,7 @@ Action class: passive. Input: ``domain``.
 from __future__ import annotations
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -26,7 +27,7 @@ _SPEC = ConnectorSpec(
     required_key="securitytrails",
     cache_ttl=86400,
     rate_limit=RateLimit(per_minute=2, per_day=50, burst=1),
-    legal_note="SecurityTrails: lookup passivi su dati DNS storici. ToS standard.",
+    legal_note="securitytrails.legal_note",
     health_check_url="https://api.securitytrails.com/v1/ping",
 )
 
@@ -37,14 +38,14 @@ class SecurityTrailsConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         if not context.api_key:
             return ConnectorResult(connector=self.spec.name, status="missing_key",
-                                   error="SecurityTrails richiede API key (BYOK).")
+                                   error=_t("securitytrails.missing_key", context.lang))
         url = f"https://api.securitytrails.com/v1/domain/{context.target}/subdomains?children_only=false"
         try:
             data = _safe_http.get_json(url, headers={
             "APIKEY": context.api_key, "Accept": "application/json"}, timeout=context.timeout)
         except Exception as exc:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error=f"SecurityTrails: {exc}")
+                                   error=_t("generic.error", context.lang, service="SecurityTrails", error=exc))
         subs = (data or {}).get("subdomains") or []
         findings: list[Finding] = []
         for sub in subs[:30]:
@@ -56,7 +57,7 @@ class SecurityTrailsConnector(BaseConnector):
                 kind="related_domain", value=fqdn,
                 confidence=0.85, source_reliability="B", info_credibility=2,
                 evidence=ev,
-                notes="Sottodominio rilevato da SecurityTrails (DNS history).",
+                notes=_t("securitytrails.subdomain", context.lang),
             ))
         return ConnectorResult(connector=self.spec.name, status="ok",
                                findings=findings,

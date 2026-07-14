@@ -17,6 +17,7 @@ import urllib.error
 import urllib.parse
 
 from .. import _safe_http
+from ..i18n import t as _t
 from ..connector import (
     ACTION_ACTIVE_GATED,
     BaseConnector,
@@ -36,7 +37,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=600,
     rate_limit=RateLimit(per_minute=6, per_day=200, burst=1),
-    legal_note="Attivo: invia molte richieste HTTP al target. Solo con scope autorizzato.",
+    legal_note="content_discovery.legal_note",
     health_check_url="",
 )
 
@@ -58,13 +59,13 @@ _PATHS = [
 ]
 
 _INTERESTING_HINT = {
-    ".env": "possibile leak di segreti/ambiente",
-    ".git/config": "repository Git esposto",
-    ".git/HEAD": "repository Git esposto",
-    "actuator/env": "Spring Actuator: possibile leak configurazione",
-    "phpinfo.php": "phpinfo esposto",
-    "id_rsa": "chiave privata SSH esposta",
-    "dump.sql": "dump database esposto",
+    ".env": "content_discovery.hint_env",
+    ".git/config": "content_discovery.hint_git",
+    ".git/HEAD": "content_discovery.hint_git",
+    "actuator/env": "content_discovery.hint_actuator_env",
+    "phpinfo.php": "content_discovery.hint_phpinfo",
+    "id_rsa": "content_discovery.hint_id_rsa",
+    "dump.sql": "content_discovery.hint_dump_sql",
 }
 
 
@@ -112,7 +113,7 @@ class ContentDiscoveryConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         target = (context.target or "").strip()
         if not target:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Target vuoto.")
+            return ConnectorResult(connector=self.spec.name, status="error", error=_t("content_discovery.target_empty", context.lang))
         base = _base_url(target)
         per_req_timeout = min(context.timeout, 6)
         baseline = _baseline_404_len(base, per_req_timeout)
@@ -130,14 +131,18 @@ class ContentDiscoveryConnector(BaseConnector):
 
         findings: list[Finding] = []
         for h in sorted(hits, key=lambda x: x["path"]):
-            hint = _INTERESTING_HINT.get(h["path"], "")
-            sev = "high" if hint else ("low" if h["status"] == 200 else "info")
+            hint_key = _INTERESTING_HINT.get(h["path"], "")
+            sev = "high" if hint_key else ("low" if h["status"] == 200 else "info")
+            notes = (
+                _t(hint_key, context.lang) if hint_key
+                else _t("content_discovery.path_reachable", context.lang, status=h["status"])
+            )
             findings.append(Finding(
                 kind="web_path", value=f"{h['url']} [{h['status']}]",
                 confidence=0.8 if h["status"] == 200 else 0.6,
                 source_reliability="A", info_credibility=2,
                 evidence=[Evidence(url=h["url"], title=f"HTTP {h['status']}")],
-                notes=hint or f"Path raggiungibile (HTTP {h['status']}).",
+                notes=notes,
                 severity=sev,
             ))
         return ConnectorResult(

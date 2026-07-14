@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import urllib.error
 
+from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -33,7 +34,7 @@ _SPEC = ConnectorSpec(
     required_key="",
     cache_ttl=3600,
     rate_limit=RateLimit(per_minute=20, per_day=2000, burst=3),
-    legal_note="Un GET verso una URL pubblica di profilo. Estrae metadata già esposti dalla piattaforma.",
+    legal_note="socid_extractor.legal_note",
     health_check_url="",
 )
 
@@ -80,11 +81,11 @@ class SocidExtractorConnector(BaseConnector):
             import socid_extractor
         except ImportError:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Libreria 'socid-extractor' non installata (pip install socid-extractor).")
+                                   error=_t("socid_extractor.not_installed", context.lang))
         url = (context.target or "").strip()
         if not url.startswith(("http://", "https://")):
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target deve essere una URL di profilo (http/https).")
+                                   error=_t("socid_extractor.bad_target", context.lang))
 
         info: dict = {}
         # 1) API nativa parse(): applica mutate_url per-piattaforma (endpoint giusto).
@@ -105,10 +106,10 @@ class SocidExtractorConnector(BaseConnector):
                     info = socid_extractor.extract(html) or {}
                 except Exception as exc:
                     return ConnectorResult(connector=self.spec.name, status="error",
-                                           error=f"socid-extractor parsing fallito: {exc}")
+                                           error=_t("socid_extractor.parse_failed", context.lang, error=exc))
         if not info:
             return ConnectorResult(connector=self.spec.name, status="ok", findings=[],
-                                   raw={"note": "Nessun identificatore estratto dalla pagina."})
+                                   raw={"note": _t("socid_extractor.no_ids", context.lang)})
 
         ev = [Evidence(url=url, title="profilo social")]
         findings: list[Finding] = []
@@ -120,7 +121,7 @@ class SocidExtractorConnector(BaseConnector):
                 kind=kind, value=str(value)[:300],
                 confidence=0.85, source_reliability="A", info_credibility=2,
                 evidence=ev,
-                notes=f"Estratto da {url} via socid-extractor (campo '{key}').",
+                notes=_t("socid_extractor.field_extracted", context.lang, url=url, key=key),
                 why_linked=[f"socid-extractor ha letto '{key}' dalla pagina del profilo"],
             ))
         return ConnectorResult(connector=self.spec.name, status="ok", findings=findings,
