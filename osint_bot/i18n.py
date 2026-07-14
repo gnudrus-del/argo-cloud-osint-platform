@@ -533,6 +533,11 @@ CATALOG: dict[str, dict[str, str]] = {
 
     # -- holehe_native ------------------------------------------------------
     "holehe_native.legal_note": {"it": "Controlli passivi su email (Gravatar, MX, disposable). Nessun invio di posta.", "en": "Passive email checks (Gravatar, MX, disposable). No mail is sent."},
+    "holehe_native.disposable": {"it": "Dominio email 'usa e getta': bassa affidabilità dell'identità.", "en": "Disposable email domain: low identity reliability."},
+    "holehe_native.domain_valid": {"it": "Il dominio risolve: l'email è plausibilmente recapitabile.", "en": "The domain resolves: the email is plausibly deliverable."},
+    "holehe_native.gravatar_profile": {"it": "Profilo Gravatar pubblico ({url}).", "en": "Public Gravatar profile ({url})."},
+    "holehe_native.gravatar_account": {"it": "Account {shortname} collegato via Gravatar.", "en": "Account {shortname} linked via Gravatar."},
+    "holehe_native.gmail_canonical": {"it": "Forma canonica Gmail (dot-trick/plus rimossi): stessa casella.", "en": "Canonical Gmail form (dot-trick/plus removed): same mailbox."},
 
     # -- hunter -------------------------------------------------------------
     "hunter.legal_note": {"it": "Hunter.io Domain Search — solo per domini di propria competenza o con autorizzazione scritta.", "en": "Hunter.io Domain Search — only for domains you own or have written authorization for."},
@@ -567,6 +572,12 @@ CATALOG: dict[str, dict[str, str]] = {
 
     # -- maigret ------------------------------------------------------------
     "maigret.legal_note": {"it": "Esegue Maigret in locale su URL pubbliche. Nessun login. Solo profili 'Claimed'.", "en": "Runs Maigret locally against public URLs. No login. 'Claimed' profiles only."},
+    "maigret.not_configured": {"it": "Maigret non configurato. Setta MAIGRET_PYTHON (o MAIGRET_CMD) nel .env. Fallback: sherlock_lite.", "en": "Maigret not configured. Set MAIGRET_PYTHON (or MAIGRET_CMD) in the .env file. Fallback: sherlock_lite."},
+    "maigret.invalid_username": {"it": "Username non valido.", "en": "Invalid username."},
+    "maigret.exec_failed": {"it": "Esecuzione Maigret fallita: {error}", "en": "Maigret execution failed: {error}"},
+    "maigret.profile_confirmed": {"it": "Profilo confermato da Maigret su {site} (detection per-sito).{tag_note}", "en": "Profile confirmed by Maigret on {site} (per-site detection).{tag_note}"},
+    "maigret.tag_suffix": {"it": " Tag: {tags}.", "en": " Tags: {tags}."},
+    "maigret.why_linked": {"it": "Maigret ha marcato '{username}' come Claimed su {site}", "en": "Maigret marked '{username}' as Claimed on {site}"},
 
     # -- misp ---------------------------------------------------------------
     "misp.legal_note": {"it": "Interroga un MISP privato configurato dall'operatore. Nessun dato lascia il perimetro.", "en": "Queries a private MISP instance configured by the operator. No data leaves the perimeter."},
@@ -672,6 +683,9 @@ CATALOG: dict[str, dict[str, str]] = {
 
     # -- url_harvest --------------------------------------------------------
     "url_harvest.legal_note": {"it": "Solo archivi pubblici (Wayback CDX, Common Crawl). Nessun contatto col target.", "en": "Public archives only (Wayback CDX, Common Crawl). No contact with the target."},
+    "url_harvest.invalid_target": {"it": "Target deve essere un dominio o URL.", "en": "Target must be a domain or URL."},
+    "url_harvest.interesting_endpoint": {"it": "Endpoint potenzialmente interessante (parametri/api/file sensibili).", "en": "Potentially interesting endpoint (parameters/api/sensitive files)."},
+    "url_harvest.archived_url": {"it": "URL storica indicizzata da Wayback.", "en": "Historical URL indexed by Wayback."},
 
     # -- urlscan ------------------------------------------------------------
     "urlscan.domain_observed": {"it": "Dominio osservato in scansione urlscan.io del {date}.", "en": "Domain observed in a urlscan.io scan on {date}."},

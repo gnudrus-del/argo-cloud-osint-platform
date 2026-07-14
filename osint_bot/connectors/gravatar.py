@@ -11,7 +11,6 @@ from __future__ import annotations
 import hashlib
 
 from .. import _safe_http
-from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -20,6 +19,7 @@ from ..connector import (
     ConnectorSpec,
     RateLimit,
 )
+from ..i18n import t as _t
 from ..models import Evidence, Finding
 
 _SPEC = ConnectorSpec(

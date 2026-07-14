@@ -16,7 +16,7 @@ Le SaaS OSINT esistenti funzionano bene finché non puoi inviare i dati del caso
 - **Target handling privacy-by-design** — target personali richiedono base giuridica esplicita; i contatti sono redatti di default.
 - **Modello BYOK** — 15 provider opzionali (Shodan, VirusTotal, HIBP, SecurityTrails, ecc.) usano *le tue* chiavi, mai intermediati. Altri 3 (EmailRep, IPinfo, OpenCorporates) funzionano anche senza chiave, ma la sfruttano se configurata.
 - **59 connettori nativi** — 44 key-free + 15 BYOK.
-- **HTTP outbound hardened SSRF** — ogni connettore passa da `_safe_http`: blocco cloud metadata, loopback, RFC1918, schemi non-HTTP e redirect cross-boundary. Enforced in CI.
+- **HTTP outbound hardened SSRF** — ogni connettore, più il fetcher usato da CLI e job queue (campo `seed_urls`), passa da `_safe_http`: blocco cloud metadata, loopback, RFC1918, schemi non-HTTP e redirect cross-boundary (inclusa la risoluzione di `robots.txt`). Enforced in CI.
 - **DSAR reale (GDPR Art. 15 / Art. 17)** — l'endpoint di cancellazione esegue una transazione atomica con prova hash-chained `dsar_tombstoned`.
 - **Finding con fonte** — ogni finding porta URL di evidenza, timestamp e confidence.
 - **Catena audit (SHA-256)** — ogni evento è appeso a un log hash-chained. Modificare un evento passato invalida tutti gli hash successivi.

@@ -15,7 +15,6 @@ import hashlib
 import socket
 
 from .. import _safe_http
-from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -24,6 +23,7 @@ from ..connector import (
     ConnectorSpec,
     RateLimit,
 )
+from ..i18n import t as _t
 from ..models import Evidence, Finding
 
 _SPEC = ConnectorSpec(
@@ -74,7 +74,8 @@ class HoleheNativeConnector(BaseConnector):
     def _fetch(self, context: ConnectorContext) -> ConnectorResult:
         email = (context.target or "").strip().lower()
         if "@" not in email:
-            return ConnectorResult(connector=self.spec.name, status="error", error="Email non valida.")
+            return ConnectorResult(connector=self.spec.name, status="error",
+                                   error=_t("generic.invalid_email", context.lang))
         local, _, domain = email.partition("@")
         findings: list[Finding] = []
         ev_gr = [Evidence(url="https://www.gravatar.com/", title="Gravatar")]
@@ -85,7 +86,7 @@ class HoleheNativeConnector(BaseConnector):
                 kind="email_disposable", value=domain,
                 confidence=0.95, source_reliability="A", info_credibility=1,
                 evidence=[Evidence(url=f"https://{domain}", title=domain)],
-                notes="Dominio email 'usa e getta': bassa affidabilità dell'identità.",
+                notes=_t("holehe_native.disposable", context.lang),
                 severity="low",
             ))
 
@@ -95,7 +96,7 @@ class HoleheNativeConnector(BaseConnector):
                 kind="email_domain_valid", value=domain,
                 confidence=0.8, source_reliability="A", info_credibility=2,
                 evidence=[Evidence(url=f"https://{domain}", title=domain)],
-                notes="Il dominio risolve: l'email è plausibilmente recapitabile.",
+                notes=_t("holehe_native.domain_valid", context.lang),
             ))
 
         # 3) Gravatar profile
@@ -105,7 +106,8 @@ class HoleheNativeConnector(BaseConnector):
                 kind="email_service", value="Gravatar",
                 confidence=0.95, source_reliability="A", info_credibility=1,
                 evidence=ev_gr,
-                notes=f"Profilo Gravatar pubblico ({profile.get('profileUrl', '')}).",
+                notes=_t("holehe_native.gravatar_profile", context.lang,
+                        url=profile.get('profileUrl', '')),
             ))
             for acc in (profile.get("accounts") or [])[:15]:
                 if acc.get("url"):
@@ -113,7 +115,8 @@ class HoleheNativeConnector(BaseConnector):
                         kind="social_account", value=acc["url"],
                         confidence=0.85, source_reliability="A", info_credibility=2,
                         evidence=ev_gr,
-                        notes=f"Account {acc.get('shortname', '')} collegato via Gravatar.",
+                        notes=_t("holehe_native.gravatar_account", context.lang,
+                                shortname=acc.get('shortname', '')),
                     ))
 
         # 4) Normalizzazioni note (utile per correlazione)
@@ -124,7 +127,7 @@ class HoleheNativeConnector(BaseConnector):
                     kind="email_canonical", value=canonical,
                     confidence=0.9, source_reliability="A", info_credibility=1,
                     evidence=[],
-                    notes="Forma canonica Gmail (dot-trick/plus rimossi): stessa casella.",
+                    notes=_t("holehe_native.gmail_canonical", context.lang),
                 ))
 
         return ConnectorResult(

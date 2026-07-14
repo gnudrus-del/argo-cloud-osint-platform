@@ -13,7 +13,6 @@ from __future__ import annotations
 import concurrent.futures as _cf
 import socket
 
-from ..i18n import t as _t
 from ..connector import (
     ACTION_ACTIVE_GATED,
     BaseConnector,
@@ -22,6 +21,7 @@ from ..connector import (
     ConnectorSpec,
     RateLimit,
 )
+from ..i18n import t as _t
 from ..models import Evidence, Finding
 
 _SPEC = ConnectorSpec(

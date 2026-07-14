@@ -14,7 +14,6 @@ import re
 import urllib.parse
 
 from .. import _safe_http
-from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -23,6 +22,7 @@ from ..connector import (
     ConnectorSpec,
     RateLimit,
 )
+from ..i18n import t as _t
 from ..models import Evidence, Finding
 
 _SPEC = ConnectorSpec(
@@ -74,7 +74,7 @@ class URLHarvestConnector(BaseConnector):
         domain = _domain_of(context.target or "")
         if not domain or "." not in domain:
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Target deve essere un dominio o URL.")
+                                   error=_t("url_harvest.invalid_target", context.lang))
 
         urls = _wayback(domain, context.timeout)
         seen: set[str] = set()
@@ -99,8 +99,8 @@ class URLHarvestConnector(BaseConnector):
                 source_reliability="A", info_credibility=2,
                 evidence=[Evidence(url=f"http://web.archive.org/web/*/{u}",
                                    title="Wayback snapshot")],
-                notes=("Endpoint potenzialmente interessante (parametri/api/file sensibili)."
-                       if is_interesting else "URL storica indicizzata da Wayback."),
+                notes=(_t("url_harvest.interesting_endpoint", context.lang) if is_interesting
+                       else _t("url_harvest.archived_url", context.lang)),
                 severity="low" if is_interesting else "info",
             ))
         return ConnectorResult(

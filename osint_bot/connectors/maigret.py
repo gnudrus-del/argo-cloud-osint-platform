@@ -26,7 +26,6 @@ import re
 import subprocess
 import tempfile
 
-from ..i18n import t as _t
 from ..connector import (
     ACTION_PASSIVE,
     BaseConnector,
@@ -35,6 +34,7 @@ from ..connector import (
     ConnectorSpec,
     RateLimit,
 )
+from ..i18n import t as _t
 from ..models import Evidence, Finding
 
 _SPEC = ConnectorSpec(
@@ -114,13 +114,12 @@ class MaigretConnector(BaseConnector):
         if not cfg["python"] and not cfg["cmd"]:
             return ConnectorResult(
                 connector=self.spec.name, status="missing_key",
-                error=("Maigret non configurato. Setta MAIGRET_PYTHON (o MAIGRET_CMD) "
-                       "nel .env. Fallback: sherlock_lite."),
+                error=_t("maigret.not_configured", context.lang),
             )
         username = (context.target or "").strip()
         if not _USERNAME_RE.match(username):
             return ConnectorResult(connector=self.spec.name, status="error",
-                                   error="Username non valido.")
+                                   error=_t("maigret.invalid_username", context.lang))
 
         env = dict(os.environ)
         env["PYTHONUTF8"] = "1"          # evita il crash cp1252 su Windows/console
@@ -140,7 +139,7 @@ class MaigretConnector(BaseConnector):
                 pass
             except (OSError, ValueError) as exc:
                 return ConnectorResult(connector=self.spec.name, status="error",
-                                       error=f"Esecuzione Maigret fallita: {exc}")
+                                       error=_t("maigret.exec_failed", context.lang, error=exc))
 
             reports = glob.glob(os.path.join(outdir, "report_*_simple.json"))
             if not reports:
@@ -154,14 +153,16 @@ class MaigretConnector(BaseConnector):
         for c in claimed:
             if not c["url"]:
                 continue
-            tag_note = f" Tag: {', '.join(c['tags'][:5])}." if c["tags"] else ""
+            tag_note = (_t("maigret.tag_suffix", context.lang, tags=', '.join(c['tags'][:5]))
+                       if c["tags"] else "")
             findings.append(Finding(
                 kind="social_account", value=c["url"],
                 confidence=0.9, source_reliability="A", info_credibility=1,
                 evidence=[Evidence(url=c["url"], title=f"{c['site']} — {username}")],
-                notes=(f"Profilo confermato da Maigret su {c['site']} "
-                       f"(detection per-sito).{tag_note}"),
-                why_linked=[f"Maigret ha marcato '{username}' come Claimed su {c['site']}"],
+                notes=_t("maigret.profile_confirmed", context.lang,
+                        site=c['site'], tag_note=tag_note),
+                why_linked=[_t("maigret.why_linked", context.lang,
+                              username=username, site=c['site'])],
             ))
         return ConnectorResult(
             connector=self.spec.name, status="ok",

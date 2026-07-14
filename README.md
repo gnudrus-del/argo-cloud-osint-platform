@@ -74,7 +74,7 @@ Existing OSINT SaaS tools work well until you cannot send your case data to a th
 - **59 native connectors** — 44 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, and more) + 15 BYOK.
 - **Sourced findings** — every finding carries evidence URLs, timestamps and confidence scoring.
 - **Audit chain (SHA-256)** — every event (login, search, finding, deletion) is appended to a hash-chained log. Tampering with a past event invalidates every subsequent hash. Same pattern as Certificate Transparency and Git.
-- **SSRF-hardened outbound HTTP** — every connector routes through a single `_safe_http` gateway that blocks cloud metadata (`169.254.169.254`), loopback, RFC1918, non-HTTP schemes and unfollowed cross-boundary redirects. Enforced in CI: no connector may import `urllib.request`/`httpx`/`requests`/`aiohttp` directly.
+- **SSRF-hardened outbound HTTP** — every connector, plus the seed-URL fetcher used by the CLI and the job queue's `seed_urls` field, routes through a single `_safe_http` gateway that blocks cloud metadata (`169.254.169.254`), loopback, RFC1918, non-HTTP schemes and unfollowed cross-boundary redirects (including on the redirect chain of the fetcher's own `robots.txt` lookup). Enforced in CI for every connector: no connector may import `urllib.request`/`httpx`/`requests`/`aiohttp` directly.
 - **Real DSAR (GDPR Art. 15 / Art. 17)** — the erasure endpoint runs an atomic transaction: redact audit events, append a `dsar_tombstoned` proof, delete business rows across all tables, all within one commit.
 - **Markdown / JSON / PDF exports** — for analyst reports.
 - **STIX 2.1 bundle + MISP event exports** — for TIP integration.
@@ -459,6 +459,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md). Highlights of the near-term plan.
 - Bilingual UI and connector output (Italian / English) with per-request `ConnectorContext.lang` — v0.2.
 - Centralised policy gate (Rules of Engagement + case-scope enforcement) in `BaseConnector.run` — hardening H1.
 - SSRF-hardened outbound HTTP: every connector routes through `_safe_http`, redirect-revalidated, cloud-metadata-blocked, CI-enforced — hardening H2.
+- SSRF hardening extended to the CLI/job-queue seed-URL fetcher (`osint_bot/fetch.py`, reachable from the web job queue's `seed_urls` field), including its `robots.txt` lookup — hardening H2 follow-up.
 - Real DSAR (GDPR Art. 17): atomic erasure transaction with hash-chained `dsar_tombstoned` proof — hardening H3.
 - Prebuilt Docker image published to GHCR (`:0.1.0`, `:latest`) with Sigstore build provenance.
 

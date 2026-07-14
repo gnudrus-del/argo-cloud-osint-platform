@@ -27,6 +27,17 @@ import sys
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 CONNECTORS_DIR = REPO_ROOT / "osint_bot" / "connectors"
 
+# Non-connector modules that also perform outbound HTTP against an
+# analyst-or-operator-supplied URL (as opposed to a fixed, internal
+# service endpoint) and must therefore be covered by the same guard.
+# Do NOT add internal-service clients here (neo4j_sync.py,
+# opensearch_index.py, provider_health.py, ...): those legitimately talk
+# to operator-configured private-network endpoints that guard_ssrf's
+# default RFC1918/loopback block would break.
+EXTRA_SCAN_FILES = [
+    REPO_ROOT / "osint_bot" / "fetch.py",
+]
+
 # Modules whose direct import from a connector triggers the guard.
 BANNED_MODULES = {
     "urllib.request",
@@ -59,6 +70,13 @@ def _iter_python_files(root: pathlib.Path):
         yield path
 
 
+def _iter_scan_targets():
+    yield from _iter_python_files(CONNECTORS_DIR)
+    for path in EXTRA_SCAN_FILES:
+        if path.is_file():
+            yield path
+
+
 def _module_imports(source: str) -> set[str]:
     """Return the set of fully-qualified module names imported."""
     try:
@@ -85,7 +103,7 @@ def check() -> int:
     violations: list[tuple[str, set[str]]] = []
     seed_candidates: set[str] = set()
 
-    for path in _iter_python_files(CONNECTORS_DIR):
+    for path in _iter_scan_targets():
         rel = _rel(path)
         if rel in ALLOWLIST_PATHS:
             continue
@@ -116,7 +134,7 @@ def check() -> int:
         print("issue against #H2 to plan its migration.", file=sys.stderr)
         return 1
 
-    print(f"SSRF guard: OK ({sum(1 for _ in _iter_python_files(CONNECTORS_DIR))} files scanned, "
+    print(f"SSRF guard: OK ({sum(1 for _ in _iter_scan_targets())} files scanned, "
           f"{len(GRANDFATHERED)} grandfathered).")
     return 0
 
@@ -124,7 +142,7 @@ def check() -> int:
 def _seed() -> int:
     """Print an initial GRANDFATHERED set. Used to bootstrap the check."""
     entries: set[str] = set()
-    for path in _iter_python_files(CONNECTORS_DIR):
+    for path in _iter_scan_targets():
         rel = _rel(path)
         if rel in ALLOWLIST_PATHS:
             continue

@@ -146,10 +146,15 @@ class _GuardedRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 
 def _build_opener(allow_private: bool,
-                  insecure_tls: bool = False) -> urllib.request.OpenerDirector:
+                  insecure_tls: bool = False,
+                  proxy_url: str = "") -> urllib.request.OpenerDirector:
     handler = _GuardedRedirectHandler()
     handler.allow_private = allow_private
     handlers: list = [handler]
+    if proxy_url:
+        handlers.append(
+            urllib.request.ProxyHandler({"http": proxy_url, "https": proxy_url})
+        )
     if insecure_tls:
         # Only used for operator-configured internal endpoints with a
         # self-signed certificate (e.g. a private MISP instance). The
@@ -177,6 +182,7 @@ def open_url(
     timeout: int = DEFAULT_TIMEOUT,
     allow_private: bool = False,
     insecure_tls: bool = False,
+    proxy_url: str = "",
 ) -> tuple[int, bytes, dict[str, str]]:
     """Esegue una richiesta HTTP(S) sanzionata e ritorna ``(status, body, headers)``.
 
@@ -188,13 +194,16 @@ def open_url(
     ``allow_private`` sblocca loopback + RFC1918 (per endpoint interni
     configurati dall'operatore, es. un MISP privato). ``insecure_tls``
     disabilita la verifica del certificato — usare SOLO per quegli stessi
-    endpoint interni con certificato self-signed.
+    endpoint interni con certificato self-signed. ``proxy_url`` instrada la
+    richiesta (e i suoi redirect) attraverso un outbound proxy operatore
+    (es. Tor/HTTP proxy egress) senza indebolire il guard: ogni hop, incluso
+    quello riscritto dal proxy, resta validato da ``guard_ssrf``.
     """
     guard_ssrf(url, allow_private=allow_private)
     req = urllib.request.Request(
         url, data=data, headers=_merge_headers(headers), method=method
     )
-    opener = _build_opener(allow_private, insecure_tls=insecure_tls)
+    opener = _build_opener(allow_private, insecure_tls=insecure_tls, proxy_url=proxy_url)
     with opener.open(req, timeout=timeout) as resp:
         body = resp.read(MAX_RESPONSE_BYTES + 1)
         if len(body) > MAX_RESPONSE_BYTES:

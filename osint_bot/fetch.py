@@ -3,10 +3,10 @@ from __future__ import annotations
 import time
 import urllib.error
 import urllib.parse
-import urllib.request
 import urllib.robotparser
 from dataclasses import dataclass, field
 
+from . import _safe_http
 from .extract import EMAIL_RE, extract_html, normalize_url
 from .models import Page
 
@@ -22,9 +22,15 @@ class RobotsCache:
         origin = f"{parsed.scheme}://{parsed.netloc}"
         if origin not in self.parsers:
             parser = urllib.robotparser.RobotFileParser()
-            parser.set_url(urllib.parse.urljoin(origin, "/robots.txt"))
+            robots_url = urllib.parse.urljoin(origin, "/robots.txt")
+            parser.set_url(robots_url)
+            # Fetched through the SSRF-guarded gateway rather than
+            # RobotFileParser.read() (which would open a raw, unguarded
+            # urllib connection) so a redirect from a public robots.txt to
+            # an internal target is still caught on every hop.
             try:
-                parser.read()
+                _, body, _ = _safe_http.open_url(robots_url, timeout=self.timeout)
+                parser.parse(body.decode("utf-8", errors="replace").splitlines())
             except Exception:
                 return True
             self.parsers[origin] = parser
@@ -45,31 +51,38 @@ class Fetcher:
         self.config = config
         self.robots = RobotsCache(config.user_agent, config.timeout)
         self.last_seen_by_host: dict[str, float] = {}
-        if config.proxy_url:
-            self.opener = urllib.request.build_opener(
-                urllib.request.ProxyHandler({"http": config.proxy_url, "https": config.proxy_url})
-            )
-        else:
-            self.opener = urllib.request.build_opener()
 
     def fetch(self, url: str) -> Page:
         normalized = normalize_url(url)
         if not normalized:
             return Page(url=url, status=0, error="URL non supportato.")
+        try:
+            _safe_http.guard_ssrf(normalized)
+        except _safe_http.SSRFBlocked as exc:
+            return Page(url=normalized, status=0, error=f"Bloccato da SSRF guard: {exc}")
         if not self.robots.allowed(normalized):
             return Page(url=normalized, status=0, error="Bloccato da robots.txt.")
 
         self._respect_rate_limit(normalized)
-        request = urllib.request.Request(normalized, headers={"User-Agent": self.config.user_agent})
         try:
-            with self.opener.open(request, timeout=self.config.timeout) as response:
-                status = getattr(response, "status", 200)
-                content_type = response.headers.get("Content-Type", "")
-                raw = response.read(self.config.max_bytes)
+            status, raw, resp_headers = _safe_http.open_url(
+                normalized,
+                headers={"User-Agent": self.config.user_agent},
+                timeout=self.config.timeout,
+                proxy_url=self.config.proxy_url,
+            )
+        except _safe_http.SSRFBlocked as exc:
+            return Page(url=normalized, status=0, error=f"Bloccato da SSRF guard: {exc}")
         except urllib.error.HTTPError as exc:
             return Page(url=normalized, status=exc.code, error=f"HTTP {exc.code}: {exc.reason}")
         except urllib.error.URLError as exc:
             return Page(url=normalized, status=0, error=f"Errore rete: {exc.reason}")
+
+        # _safe_http caps a single response at 25 MiB (SSRFBlocked above
+        # that); re-apply the fetcher's own tighter budget for the parts we
+        # actually keep.
+        raw = raw[: self.config.max_bytes]
+        content_type = resp_headers.get("content-type", "")
 
         if "text/html" not in content_type and "application/xhtml" not in content_type:
             if is_text_content(content_type, normalized):
