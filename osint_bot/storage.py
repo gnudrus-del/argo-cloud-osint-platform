@@ -15,13 +15,16 @@ analyst artifacts, not state.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from . import secrets_crypto
 from .audit import event_hash
 
 _SCHEMA = """
@@ -148,6 +151,73 @@ CREATE TABLE IF NOT EXISTS dsar_tombstones (
     audit_hash TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS tombstones_by_selector ON dsar_tombstones(selector_sha256);
+
+-- Agenti IA (LLM, opt-in) — ogni chiamata a un provider LLM (sintesi
+-- narrativa / entity-resolution / triage) lascia una riga qui, successo o
+-- fallimento. input_summary/output_json sono JSON di metadati/risultato
+-- strutturato — MAI il prompt grezzo o la api_key.
+CREATE TABLE IF NOT EXISTS ai_runs (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL,
+    input_summary TEXT NOT NULL DEFAULT '{}',
+    output_json TEXT NOT NULL DEFAULT '{}',
+    error TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ai_runs_by_case ON ai_runs(case_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ai_runs_by_case_kind ON ai_runs(case_id, kind, created_at DESC);
+
+-- Decisioni umane su coppie di entità suggerite dall'IA come possibile
+-- stesso soggetto. Annotazione fuori-banda: non tocca mai il grafo
+-- deterministico di link_analysis.resolve_entities() né l'Investigation JSON
+-- salvata — i merge non sono mai applicati automaticamente.
+CREATE TABLE IF NOT EXISTS entity_merge_decisions (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL,
+    entity_id_a TEXT NOT NULL,
+    entity_id_b TEXT NOT NULL,
+    decision TEXT NOT NULL,
+    decided_by TEXT NOT NULL,
+    decided_at TEXT NOT NULL,
+    ai_run_id TEXT,
+    ai_confidence REAL,
+    ai_rationale TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS entity_merge_decisions_pair
+    ON entity_merge_decisions(case_id, entity_id_a, entity_id_b);
+
+-- Sigilli dei report: firma Ed25519 locale (sempre presente, calcolata al
+-- completamento di ogni job) + timestamp RFC3161 opzionale su una TSA esterna
+-- configurata dall'operatore (colonne tsa_* vuote finché non richiesto).
+-- manifest_hash copre sia le evidenze raccolte sia i file di report finali
+-- (vedi custody.py: register_report_artifacts + export_case_manifest).
+CREATE TABLE IF NOT EXISTS report_seals (
+    id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL,
+    job_id TEXT NOT NULL,
+    manifest_hash TEXT NOT NULL,
+    artifact_count INTEGER NOT NULL DEFAULT 0,
+    signature_b64 TEXT NOT NULL,
+    signing_pubkey_b64 TEXT NOT NULL,
+    signing_pubkey_fingerprint TEXT NOT NULL,
+    sealed_at TEXT NOT NULL,
+    sealed_by TEXT NOT NULL,
+    tsa_url_host TEXT NOT NULL DEFAULT '',
+    tsa_status TEXT NOT NULL DEFAULT '',
+    tsa_token_der_b64 TEXT NOT NULL DEFAULT '',
+    tsa_gen_time TEXT NOT NULL DEFAULT '',
+    tsa_requested_at TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS report_seals_by_job ON report_seals(job_id);
+CREATE INDEX IF NOT EXISTS report_seals_by_case ON report_seals(case_id, sealed_at DESC);
 """
 
 
@@ -166,6 +236,9 @@ class Storage:
     def __init__(self, db_path: Path):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Master key for BYOK API key encryption lives here by default —
+        # sibling to the DB file, never a row inside it. See secrets_crypto.py.
+        self._job_root = self.db_path.parent
         self._local = threading.local()
         self._write_lock = threading.Lock()
         self._connections: list[sqlite3.Connection] = []
@@ -180,6 +253,7 @@ class Storage:
             _migrate_jobs_case_id(boot)
             _migrate_users_email_verified(boot)
             _migrate_cases_allowed_targets(boot)
+            _migrate_cases_ai_enrichment(boot)
         finally:
             boot.close()
 
@@ -343,15 +417,16 @@ class Storage:
             "updated_at": _now_iso(),
             "notes": case.get("notes", ""),
             "allowed_targets": json.dumps(case.get("allowed_targets") or [], ensure_ascii=False),
+            "ai_enrichment_enabled": 1 if case.get("ai_enrichment_enabled") else 0,
         }
         self._conn().execute(
             """
             INSERT INTO cases (id, tenant_id, owner, title, status, legal_basis, purpose,
                                retention_until, collaborators, created_at, updated_at, notes,
-                               allowed_targets)
+                               allowed_targets, ai_enrichment_enabled)
             VALUES (:id, :tenant_id, :owner, :title, :status, :legal_basis, :purpose,
                     :retention_until, :collaborators, :created_at, :updated_at, :notes,
-                    :allowed_targets)
+                    :allowed_targets, :ai_enrichment_enabled)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
                 status = excluded.status,
@@ -361,9 +436,18 @@ class Storage:
                 collaborators = excluded.collaborators,
                 updated_at = excluded.updated_at,
                 notes = excluded.notes,
-                allowed_targets = excluded.allowed_targets
+                allowed_targets = excluded.allowed_targets,
+                ai_enrichment_enabled = excluded.ai_enrichment_enabled
             """,
             record,
+        )
+
+    def set_case_ai_enrichment(self, case_id: str, enabled: bool) -> None:
+        """Toggle mirato — evita di dover ripassare l'intero record da put_case
+        per un singolo flag di consenso."""
+        self._conn().execute(
+            "UPDATE cases SET ai_enrichment_enabled = ?, updated_at = ? WHERE id = ?",
+            (1 if enabled else 0, _now_iso(), case_id),
         )
 
     def get_case(self, case_id: str) -> dict | None:
@@ -535,17 +619,398 @@ class Storage:
         cur = self._conn().execute("DELETE FROM jobs WHERE id = ?", (job_id,))
         return cur.rowcount or 0
 
+    # ------------------------------------------------------------- ai agents
+
+    def put_ai_run(self, run: dict) -> None:
+        """Insert-only: un run IA non viene mai aggiornato dopo la scrittura
+        (successo o fallimento sono lo stato finale)."""
+        self._conn().execute(
+            """
+            INSERT INTO ai_runs (id, case_id, kind, actor, provider, model,
+                                 created_at, status, input_summary, output_json, error)
+            VALUES (:id, :case_id, :kind, :actor, :provider, :model,
+                    :created_at, :status, :input_summary, :output_json, :error)
+            """,
+            {
+                "id": run["id"],
+                "case_id": run["case_id"],
+                "kind": run["kind"],
+                "actor": run.get("actor", "system"),
+                "provider": run.get("provider", ""),
+                "model": run.get("model", ""),
+                "created_at": run.get("created_at", _now_iso()),
+                "status": run.get("status", "error"),
+                "input_summary": json.dumps(run.get("input_summary") or {}, ensure_ascii=False),
+                "output_json": json.dumps(run.get("output_json") or {}, ensure_ascii=False),
+                "error": run.get("error", ""),
+            },
+        )
+
+    def get_ai_run(self, run_id: str) -> dict | None:
+        row = self._conn().execute(
+            "SELECT * FROM ai_runs WHERE id = ?", (run_id,)
+        ).fetchone()
+        return _row_to_ai_run(row) if row else None
+
+    def list_ai_runs(self, case_id: str, kind: str = "", limit: int = 50) -> list[dict]:
+        if kind:
+            rows = self._conn().execute(
+                "SELECT * FROM ai_runs WHERE case_id = ? AND kind = ? "
+                "ORDER BY created_at DESC LIMIT ?",
+                (case_id, kind, limit),
+            ).fetchall()
+        else:
+            rows = self._conn().execute(
+                "SELECT * FROM ai_runs WHERE case_id = ? ORDER BY created_at DESC LIMIT ?",
+                (case_id, limit),
+            ).fetchall()
+        return [_row_to_ai_run(r) for r in rows]
+
+    def latest_ai_run(self, case_id: str, kind: str) -> dict | None:
+        row = self._conn().execute(
+            "SELECT * FROM ai_runs WHERE case_id = ? AND kind = ? "
+            "ORDER BY created_at DESC LIMIT 1",
+            (case_id, kind),
+        ).fetchone()
+        return _row_to_ai_run(row) if row else None
+
+    def put_entity_merge_decision(self, decision: dict) -> dict:
+        """Upsert su (case_id, entity_id_a, entity_id_b) — ridecidere una
+        coppia sostituisce la decisione precedente. Gli id vengono ordinati
+        canonicamente (a < b) dal chiamante (entity_resolution_ai.py) prima
+        di arrivare qui, così l'unique index non permette righe duplicate
+        per la stessa coppia in ordine invertito."""
+        record = {
+            "id": decision.get("id") or uuid.uuid4().hex,
+            "case_id": decision["case_id"],
+            "entity_id_a": decision["entity_id_a"],
+            "entity_id_b": decision["entity_id_b"],
+            "decision": decision["decision"],
+            "decided_by": decision["decided_by"],
+            "decided_at": decision.get("decided_at", _now_iso()),
+            "ai_run_id": decision.get("ai_run_id"),
+            "ai_confidence": decision.get("ai_confidence"),
+            "ai_rationale": decision.get("ai_rationale", ""),
+        }
+        self._conn().execute(
+            """
+            INSERT INTO entity_merge_decisions
+                (id, case_id, entity_id_a, entity_id_b, decision, decided_by,
+                 decided_at, ai_run_id, ai_confidence, ai_rationale)
+            VALUES
+                (:id, :case_id, :entity_id_a, :entity_id_b, :decision, :decided_by,
+                 :decided_at, :ai_run_id, :ai_confidence, :ai_rationale)
+            ON CONFLICT(case_id, entity_id_a, entity_id_b) DO UPDATE SET
+                decision = excluded.decision,
+                decided_by = excluded.decided_by,
+                decided_at = excluded.decided_at,
+                ai_run_id = excluded.ai_run_id,
+                ai_confidence = excluded.ai_confidence,
+                ai_rationale = excluded.ai_rationale
+            """,
+            record,
+        )
+        # ON CONFLICT non tocca la colonna id: su un update la riga mantiene
+        # il suo id originale, diverso dal uuid4 appena generato in `record`.
+        # Rileggiamo la riga vera invece di restituire il dict fabbricato,
+        # altrimenti il chiamante riceverebbe un id che non esiste su disco.
+        row = self._conn().execute(
+            "SELECT * FROM entity_merge_decisions WHERE case_id = ? AND entity_id_a = ? AND entity_id_b = ?",
+            (record["case_id"], record["entity_id_a"], record["entity_id_b"]),
+        ).fetchone()
+        return _row_to_entity_merge_decision(row)
+
+    def list_entity_merge_decisions(self, case_id: str) -> list[dict]:
+        rows = self._conn().execute(
+            "SELECT * FROM entity_merge_decisions WHERE case_id = ? ORDER BY decided_at DESC",
+            (case_id,),
+        ).fetchall()
+        return [_row_to_entity_merge_decision(r) for r in rows]
+
+    # ----------------------------------------------------------- report seals
+
+    def put_report_seal(self, seal: dict) -> dict:
+        """Upsert su job_id (un solo sigillo per job — risigillare sostituisce
+        firma/manifest_hash precedenti). L'id non cambia su un conflitto,
+        stesso motivo di put_entity_merge_decision: si rilegge la riga vera
+        invece di restituire il dict fabbricato."""
+        record = {
+            "id": seal.get("id") or uuid.uuid4().hex,
+            "case_id": seal["case_id"],
+            "job_id": seal["job_id"],
+            "manifest_hash": seal["manifest_hash"],
+            "artifact_count": seal.get("artifact_count", 0),
+            "signature_b64": seal["signature_b64"],
+            "signing_pubkey_b64": seal["signing_pubkey_b64"],
+            "signing_pubkey_fingerprint": seal["signing_pubkey_fingerprint"],
+            "sealed_at": seal.get("sealed_at", _now_iso()),
+            "sealed_by": seal.get("sealed_by", "system"),
+        }
+        self._conn().execute(
+            """
+            INSERT INTO report_seals
+                (id, case_id, job_id, manifest_hash, artifact_count, signature_b64,
+                 signing_pubkey_b64, signing_pubkey_fingerprint, sealed_at, sealed_by)
+            VALUES
+                (:id, :case_id, :job_id, :manifest_hash, :artifact_count, :signature_b64,
+                 :signing_pubkey_b64, :signing_pubkey_fingerprint, :sealed_at, :sealed_by)
+            ON CONFLICT(job_id) DO UPDATE SET
+                manifest_hash = excluded.manifest_hash,
+                artifact_count = excluded.artifact_count,
+                signature_b64 = excluded.signature_b64,
+                signing_pubkey_b64 = excluded.signing_pubkey_b64,
+                signing_pubkey_fingerprint = excluded.signing_pubkey_fingerprint,
+                sealed_at = excluded.sealed_at,
+                sealed_by = excluded.sealed_by
+            """,
+            record,
+        )
+        return self.get_report_seal(record["job_id"])
+
+    def get_report_seal(self, job_id: str) -> dict | None:
+        row = self._conn().execute(
+            "SELECT * FROM report_seals WHERE job_id = ?", (job_id,)
+        ).fetchone()
+        return _row_to_report_seal(row) if row else None
+
+    def list_report_seals(self, case_id: str) -> list[dict]:
+        rows = self._conn().execute(
+            "SELECT * FROM report_seals WHERE case_id = ? ORDER BY sealed_at DESC",
+            (case_id,),
+        ).fetchall()
+        return [_row_to_report_seal(r) for r in rows]
+
+    def update_report_seal_tsa(
+        self, job_id: str, *, tsa_url_host: str, tsa_status: str,
+        tsa_token_der_b64: str = "", tsa_gen_time: str = "", tsa_requested_at: str = "",
+    ) -> dict | None:
+        """Attacca l'esito di una richiesta di timestamp RFC3161 a un sigillo
+        già esistente. Chiamata sia su successo che su fallimento (tsa_status
+        riporta l'esito, mai silenzioso)."""
+        self._conn().execute(
+            """
+            UPDATE report_seals SET
+                tsa_url_host = :tsa_url_host,
+                tsa_status = :tsa_status,
+                tsa_token_der_b64 = :tsa_token_der_b64,
+                tsa_gen_time = :tsa_gen_time,
+                tsa_requested_at = :tsa_requested_at
+            WHERE job_id = :job_id
+            """,
+            {
+                "job_id": job_id, "tsa_url_host": tsa_url_host, "tsa_status": tsa_status,
+                "tsa_token_der_b64": tsa_token_der_b64, "tsa_gen_time": tsa_gen_time,
+                "tsa_requested_at": tsa_requested_at,
+            },
+        )
+        return self.get_report_seal(job_id)
+
+    # ------------------------------------------------------------ privacy/dsar
+
+    _PRIVACY_OWNERSHIP_COLUMNS = ("owner", "actor", "signed_by", "tenant_id", "username")
+    _PRIVACY_ERASABLE_TABLES = ("artifacts", "roes", "jobs", "cases", "api_keys", "privacy_requests")
+
+    def ensure_privacy_table(self) -> None:
+        self._conn().execute(
+            """
+            CREATE TABLE IF NOT EXISTS privacy_requests (
+                id TEXT PRIMARY KEY,
+                owner TEXT NOT NULL,
+                type TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                reason TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                processed_at TEXT
+            )
+            """
+        )
+
+    def log_privacy_request(self, record: dict) -> None:
+        self.ensure_privacy_table()
+        self._conn().execute(
+            "INSERT OR IGNORE INTO privacy_requests (id, owner, type, status, reason, created_at) "
+            "VALUES (:id, :owner, :type, :status, :reason, :created_at)",
+            record,
+        )
+
+    def list_privacy_requests(self, owner: str, limit: int = 50) -> list[dict]:
+        self.ensure_privacy_table()
+        rows = self._conn().execute(
+            "SELECT id, type, status, reason, created_at, processed_at FROM privacy_requests "
+            "WHERE owner = ? ORDER BY created_at DESC LIMIT ?",
+            (owner, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def mark_privacy_request_processed(self, request_id: str) -> None:
+        self._conn().execute(
+            "UPDATE privacy_requests SET status = ?, processed_at = ? WHERE id = ?",
+            ("processed", _now_iso(), request_id),
+        )
+
+    def table_columns(self, table: str) -> list[str]:
+        """Nomi colonna di *table*, o [] se assente. Usato per rendere il
+        collettore DSAR tollerante allo schema (tabelle create con schema
+        diverso da versioni precedenti/future)."""
+        try:
+            rows = self._conn().execute(f"PRAGMA table_info({table})").fetchall()
+            return [r["name"] for r in rows]
+        except Exception:
+            return []
+
+    def select_owned_columns(self, table: str, owner_col: str, owner: str, wanted: list[str]) -> list[dict]:
+        """SELECT solo le colonne *wanted* che esistono davvero su *table*,
+        filtrate per proprietario. [] su qualunque fallimento."""
+        cols = [c for c in wanted if c in self.table_columns(table)]
+        if not cols:
+            return []
+        query = f"SELECT {', '.join(cols)} FROM {table} WHERE {owner_col} = ?"
+        try:
+            rows = self._conn().execute(query, (owner,)).fetchall()
+        except Exception:
+            return []
+        return [dict(zip(cols, tuple(r), strict=False)) for r in rows]
+
+    def erase_actor_data(self, actor: str, *, request_id: str, redacted_placeholder: str) -> dict:
+        """GDPR Art. 17 — cancellazione reale, atomica (singola transazione,
+        tutto o niente).
+
+        1. Redige gli identificativi dell'attore da ogni riga di audit_events
+           che lo menziona.
+        2. Appende un evento account_erased_dsar nella STESSA transazione,
+           con lo stesso event_hash() usato da append_audit_event — prima di
+           questo fix, il codice calcolava un hash diverso (stringa pipe-
+           concatenata inclusiva di seq) che non corrispondeva mai a quello
+           ricalcolato da verify_audit_chain(): il risultato era che OGNI
+           cancellazione GDPR rompeva silenziosamente l'indicatore di
+           integrità della catena audit. Bug reale, non solo un problema di
+           portabilità Postgres — verificato empiricamente prima del fix.
+        3. Tombstone con il selettore SHA-256 del soggetto.
+        4. Cancella le righe dell'attore da cases/jobs/artifacts/roes/
+           api_keys/privacy_requests e infine users — tollerante allo schema
+           (sonda le colonne di proprietà presenti prima di cancellare).
+
+        Ritorna tombstone_id, selector_sha256, erased_at, redacted_events_count,
+        deleted_counts. Solleva su qualunque fallimento — l'intera transazione
+        va in rollback, l'account resta intatto (garanzia invariata rispetto
+        al comportamento precedente).
+        """
+        ts = _now_iso()
+        selector_hash = hashlib.sha256(f"user:{actor.lower()}".encode()).hexdigest()
+        tomb_id = "TOMB-" + uuid.uuid4().hex[:12]
+
+        conn = self._conn()
+        with self._write_lock:
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+
+                rows = conn.execute(
+                    "SELECT seq, actor, details FROM audit_events WHERE actor = ? OR details LIKE ?",
+                    (actor, f"%{actor}%"),
+                ).fetchall()
+                redacted_seqs: list[int] = []
+                for row in rows:
+                    seq, ev_actor, details = row["seq"], row["actor"], row["details"]
+                    new_actor = redacted_placeholder if ev_actor == actor else ev_actor
+                    new_details = details or ""
+                    if actor in new_details:
+                        new_details = new_details.replace(actor, redacted_placeholder)
+                    if new_actor != ev_actor or new_details != (details or ""):
+                        conn.execute(
+                            "UPDATE audit_events SET actor = ?, details = ? WHERE seq = ?",
+                            (new_actor, new_details, seq),
+                        )
+                        redacted_seqs.append(seq)
+
+                last = conn.execute("SELECT hash FROM audit_events ORDER BY seq DESC LIMIT 1").fetchone()
+                prev_hash = last["hash"] if last else ""
+                event_details = {
+                    "subject_hash": selector_hash,
+                    "tombstone_id": tomb_id,
+                    "privacy_request_id": request_id,
+                    "reason": "GDPR art. 17 erasure",
+                    "redacted_seqs_count": len(redacted_seqs),
+                }
+                record = {
+                    "timestamp": ts, "actor": "system", "action": "account_erased_dsar",
+                    "details": event_details, "previous_hash": prev_hash,
+                }
+                record["hash"] = event_hash(record)
+                conn.execute(
+                    """
+                    INSERT INTO audit_events (timestamp, actor, action, details, previous_hash, hash)
+                    VALUES (:timestamp, :actor, :action, :details, :previous_hash, :hash)
+                    """,
+                    {**record, "details": json.dumps(event_details, ensure_ascii=False, sort_keys=True)},
+                )
+
+                conn.execute(
+                    "INSERT INTO dsar_tombstones (id, selector_sha256, erased_at, actor, scope, audit_hash) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        tomb_id, selector_hash, ts, "system",
+                        json.dumps({
+                            "subject_kind": "user_account",
+                            "redacted_audit_events": len(redacted_seqs),
+                            # Elenco esplicito dei seq redatti (non solo il
+                            # conteggio) — verify_audit_chain lo usa per
+                            # distinguere una redazione GDPR documentata da
+                            # una manomissione vera. Il nuovo evento
+                            # account_erased_dsar appena creato NON è qui:
+                            # il suo hash è corretto per costruzione, non è
+                            # mai stato redatto.
+                            "redacted_seqs": redacted_seqs,
+                            "privacy_request_id": request_id,
+                        }, sort_keys=True),
+                        record["hash"],
+                    ),
+                )
+
+                counts: dict[str, int] = {}
+                for table in self._PRIVACY_ERASABLE_TABLES:
+                    cols_present = [c for c in self._PRIVACY_OWNERSHIP_COLUMNS if c in self.table_columns(table)]
+                    if not cols_present:
+                        counts[table] = 0
+                        continue
+                    where = " OR ".join(f"{c} = ?" for c in cols_present)
+                    try:
+                        cur = conn.execute(f"DELETE FROM {table} WHERE {where}", tuple([actor] * len(cols_present)))
+                        counts[table] = cur.rowcount
+                    except sqlite3.OperationalError:
+                        counts[table] = 0
+
+                cur = conn.execute("DELETE FROM users WHERE username = ?", (actor,))
+                counts["users"] = cur.rowcount
+
+                conn.execute("COMMIT")
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+
+        return {
+            "tombstone_id": tomb_id,
+            "selector_sha256": selector_hash,
+            "erased_at": ts,
+            "redacted_events_count": len(redacted_seqs),
+            "deleted_counts": counts,
+        }
+
     # --------------------------------------------------------------- api keys
 
     def put_api_key(self, username: str, service: str, value: str) -> None:
-        """Upsert one secret for one user/service pair.
+        """Upsert one secret for one user/service pair, encrypted at rest.
 
         Empty value means "delete" — keeps the wire protocol simple from
-        the UI side: PUT with empty input removes the key.
+        the UI side: PUT with empty input removes the key. The value is
+        envelope-encrypted (secrets_crypto.py) before it ever reaches SQL —
+        a row in ``api_keys`` never holds plaintext from this call onward,
+        including for keys that predate this feature (a plaintext legacy row
+        is silently upgraded the next time it is written).
         """
         if not value:
             self.delete_api_key(username, service)
             return
+        encrypted = secrets_crypto.encrypt_secret(value, secrets_crypto.get_master_key(self._job_root))
         self._conn().execute(
             """
             INSERT INTO api_keys (username, service, value, updated_at)
@@ -557,28 +1022,39 @@ class Storage:
             {
                 "username": username,
                 "service": service,
-                "value": value,
+                "value": encrypted,
                 "updated_at": _now_iso(),
             },
         )
+        self.append_audit_event(username, "api_key_stored", {"service": service})
 
     def get_api_key(self, username: str, service: str) -> str | None:
         row = self._conn().execute(
             "SELECT value FROM api_keys WHERE username = ? AND service = ?",
             (username, service),
         ).fetchone()
-        return row["value"] if row else None
+        if not row:
+            return None
+        plaintext = secrets_crypto.decrypt_secret(row["value"], secrets_crypto.get_master_key(self._job_root))
+        self.append_audit_event(username, "api_key_accessed", {"service": service})
+        return plaintext
 
     def list_api_keys(self, username: str) -> list[dict]:
-        """Return the user's keys as {service, masked, updated_at} — never plain."""
+        """Return the user's keys as {service, masked, updated_at} — never plain.
+
+        Does not emit an access audit event: a masked preview for the "Chiavi
+        API" tab is not the key being *used*, only ``get_api_key`` (an actual
+        connector resolving a key to make a request) is.
+        """
         rows = self._conn().execute(
             "SELECT service, value, updated_at FROM api_keys WHERE username = ? ORDER BY service",
             (username,),
         ).fetchall()
+        master_key = secrets_crypto.get_master_key(self._job_root)
         return [
             {
                 "service": row["service"],
-                "masked": _mask(row["value"]),
+                "masked": _mask(secrets_crypto.decrypt_secret(row["value"], master_key)),
                 "updated_at": row["updated_at"],
             }
             for row in rows
@@ -588,6 +1064,37 @@ class Storage:
         self._conn().execute(
             "DELETE FROM api_keys WHERE username = ? AND service = ?",
             (username, service),
+        )
+        self.append_audit_event(username, "api_key_deleted", {"service": service})
+
+    def all_api_keys(self) -> list[dict]:
+        """Every (username, service, raw encrypted value) row across every
+        user — master-key rotation only, never exposed through a user-facing
+        API route (a per-user scope check belongs at the web layer for
+        everything else; this is intentionally instance-admin-only)."""
+        rows = self._conn().execute(
+            "SELECT username, service, value FROM api_keys ORDER BY username, service"
+        ).fetchall()
+        return [{"username": r["username"], "service": r["service"], "value": r["value"]} for r in rows]
+
+    def set_api_key_encrypted(self, username: str, service: str, encrypted_value: str) -> None:
+        """Write an already-encrypted blob verbatim, bypassing ``encrypt_secret``.
+
+        Used only by the master-key rotation routine, which must write values
+        re-wrapped under the *new* key without re-running them through the
+        (now stale-cached) default key lookup, and without emitting one
+        ``api_key_stored`` audit event per row during a bulk rotation (the
+        rotation itself logs a single summary event instead).
+        """
+        self._conn().execute(
+            "UPDATE api_keys SET value = :value, updated_at = :updated_at "
+            "WHERE username = :username AND service = :service",
+            {
+                "username": username,
+                "service": service,
+                "value": encrypted_value,
+                "updated_at": _now_iso(),
+            },
         )
 
     # ------------------------------------------------------------------ audit
@@ -660,14 +1167,55 @@ class Storage:
             )
         return events
 
+    def _redacted_seqs_from_tombstones(self) -> set[int]:
+        """Numeri di seq degli eventi audit redatti da una cancellazione GDPR
+        documentata (tombstoned) — usati da verify_audit_chain per distinguere
+        una redazione legittima da una manomissione vera."""
+        redacted: set[int] = set()
+        rows = self._conn().execute("SELECT scope FROM dsar_tombstones").fetchall()
+        for row in rows:
+            try:
+                scope = json.loads(row["scope"] or "{}")
+            except json.JSONDecodeError:
+                continue
+            redacted.update(scope.get("redacted_seqs") or [])
+        return redacted
+
     def verify_audit_chain(self) -> bool:
+        """Verifica la catena hash.
+
+        Le righe redatte da una cancellazione GDPR documentata (presenti in
+        ``dsar_tombstones.scope.redacted_seqs``) sono escluse dal controllo
+        di auto-hash — il loro contenuto è cambiato legittimamente e in modo
+        tracciato (il tombstone stesso è la prova), non è manomissione. Il
+        collegamento previous_hash → hash resta invece verificato SEMPRE,
+        anche per le righe redatte: una redazione cambia solo actor/details,
+        mai l'hash memorizzato, quindi l'integrità dell'ordinamento non è mai
+        indebolita da una redazione legittima — solo una riga NON tombstonata
+        con hash che non torna è manomissione vera.
+        """
+        redacted_seqs = self._redacted_seqs_from_tombstones()
         previous = ""
-        for record in self.all_audit_events():
-            stored_hash = record["hash"]
+        rows = self._conn().execute(
+            "SELECT seq, timestamp, actor, action, details, previous_hash, hash "
+            "FROM audit_events ORDER BY seq ASC"
+        ).fetchall()
+        for row in rows:
+            try:
+                details = json.loads(row["details"]) if row["details"] else {}
+            except json.JSONDecodeError:
+                return False  # details corrotto/non-JSON: manomissione, non un chain-break silenzioso
+            record = {
+                "timestamp": row["timestamp"],
+                "actor": row["actor"],
+                "action": row["action"],
+                "details": details,
+                "previous_hash": row["previous_hash"],
+            }
+            stored_hash = row["hash"]
             if record["previous_hash"] != previous:
                 return False
-            # event_hash ignores the "hash" key, so passing the full record is fine.
-            if event_hash(record) != stored_hash:
+            if row["seq"] not in redacted_seqs and event_hash(record) != stored_hash:
                 return False
             previous = stored_hash
         return True
@@ -780,6 +1328,16 @@ def _migrate_cases_allowed_targets(conn: sqlite3.Connection) -> None:
         )
 
 
+def _migrate_cases_ai_enrichment(conn: sqlite3.Connection) -> None:
+    """Add cases.ai_enrichment_enabled — consenso per-caso alle capability IA
+    opt-in (indipendente dal kill-switch OSINT_AI_AGENTS_ENABLED)."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(cases)").fetchall()}
+    if "ai_enrichment_enabled" not in cols:
+        conn.execute(
+            "ALTER TABLE cases ADD COLUMN ai_enrichment_enabled INTEGER NOT NULL DEFAULT 0"
+        )
+
+
 def _mask(value: str) -> str:
     """Return a UI-safe redacted preview: 4 last chars after a fixed dot run."""
     if not value:
@@ -850,6 +1408,9 @@ def _row_to_case(row: sqlite3.Row) -> dict:
                 allowed_targets = []
         except (json.JSONDecodeError, TypeError):
             allowed_targets = []
+    # Stesso trattamento difensivo di allowed_targets: colonna assente su DB
+    # non ancora migrati -> default sicuro (IA disattivata).
+    ai_enrichment_enabled = bool(row["ai_enrichment_enabled"]) if "ai_enrichment_enabled" in keys else False
     return {
         "id": row["id"],
         "tenant_id": row["tenant_id"],
@@ -864,6 +1425,7 @@ def _row_to_case(row: sqlite3.Row) -> dict:
         "updated_at": row["updated_at"],
         "notes": row["notes"],
         "allowed_targets": allowed_targets,
+        "ai_enrichment_enabled": ai_enrichment_enabled,
     }
 
 
@@ -885,4 +1447,63 @@ def _row_to_artifact(row: sqlite3.Row) -> dict:
         "job_id": row["job_id"],
         "case_id": row["case_id"],
         "finding_id": row["finding_id"],
+    }
+
+
+def _row_to_ai_run(row: sqlite3.Row) -> dict:
+    try:
+        input_summary = json.loads(row["input_summary"] or "{}")
+    except json.JSONDecodeError:
+        input_summary = {}
+    try:
+        output_json = json.loads(row["output_json"] or "{}")
+    except json.JSONDecodeError:
+        output_json = {}
+    return {
+        "id": row["id"],
+        "case_id": row["case_id"],
+        "kind": row["kind"],
+        "actor": row["actor"],
+        "provider": row["provider"],
+        "model": row["model"],
+        "created_at": row["created_at"],
+        "status": row["status"],
+        "input_summary": input_summary,
+        "output_json": output_json,
+        "error": row["error"],
+    }
+
+
+def _row_to_entity_merge_decision(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "case_id": row["case_id"],
+        "entity_id_a": row["entity_id_a"],
+        "entity_id_b": row["entity_id_b"],
+        "decision": row["decision"],
+        "decided_by": row["decided_by"],
+        "decided_at": row["decided_at"],
+        "ai_run_id": row["ai_run_id"],
+        "ai_confidence": row["ai_confidence"],
+        "ai_rationale": row["ai_rationale"],
+    }
+
+
+def _row_to_report_seal(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "case_id": row["case_id"],
+        "job_id": row["job_id"],
+        "manifest_hash": row["manifest_hash"],
+        "artifact_count": row["artifact_count"],
+        "signature_b64": row["signature_b64"],
+        "signing_pubkey_b64": row["signing_pubkey_b64"],
+        "signing_pubkey_fingerprint": row["signing_pubkey_fingerprint"],
+        "sealed_at": row["sealed_at"],
+        "sealed_by": row["sealed_by"],
+        "tsa_url_host": row["tsa_url_host"],
+        "tsa_status": row["tsa_status"],
+        "tsa_token_der_b64": row["tsa_token_der_b64"],
+        "tsa_gen_time": row["tsa_gen_time"],
+        "tsa_requested_at": row["tsa_requested_at"],
     }

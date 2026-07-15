@@ -24,7 +24,12 @@ def migrate(sqlite_path: str, dsn: str) -> dict[str, int]:
     from .storage_postgres import PostgresStorage
 
     src = Storage(Path(sqlite_path))
-    dst = PostgresStorage(dsn)
+    # Same job_root as the source: the master key that decrypts src's API
+    # keys must be the one dst re-encrypts them under, or a live web.py
+    # process reading OSINT_JOB_DIR after the migration decrypts with a key
+    # that never wrapped these values (silent failure, not an error at
+    # migration time -- this must match by construction, not by convention).
+    dst = PostgresStorage(dsn, job_root=Path(sqlite_path).parent)
     counts = {"users": 0, "cases": 0, "jobs": 0, "roes": 0,
               "artifacts": 0, "api_keys": 0, "audit": 0}
     try:

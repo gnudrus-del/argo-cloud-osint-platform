@@ -59,6 +59,23 @@ class PrivacyExportTests(unittest.TestCase):
         self.assertGreaterEqual(len(export["data"]["jobs"]), 1)
         self.assertIn("request_id", export)
 
+    def test_export_includes_configured_api_keys(self):
+        """Regression: prima del fix, la query interrogava 'WHERE owner = ?'
+        su api_keys, tabella che non ha colonna owner (solo username) — la
+        select falliva silenziosamente e l'export non rivelava mai le chiavi
+        configurate, anche quando l'attore ne aveva. Verificato
+        empiricamente sul codice originale prima di questo fix."""
+        from osint_bot.web import handle_privacy_export
+
+        with _isolated_storage() as (_, stor):
+            stor.put_user({"username": "alice", "password": "x", "created_at": "now"})
+            stor.put_api_key("alice", "shodan", "sk-test-123")
+            result = handle_privacy_export("alice")
+
+        self.assertEqual(result["status"], "ok")
+        services = [k["service"] for k in result["export"]["data"]["api_keys_configured"]]
+        self.assertEqual(services, ["shodan"])
+
     def test_export_isolates_per_user(self):
         from osint_bot.web import create_case, create_job, handle_privacy_export
 
@@ -143,13 +160,20 @@ class PrivacyLogIsolationTests(unittest.TestCase):
         with _isolated_storage():
             handle_privacy_export("alice")
             handle_privacy_erase("alice", {"reason": "x"})
+            # erase_actor_data cancella anche le privacy_requests dell'attore
+            # (export + erase stessa) insieme al resto dell'account: tenerle
+            # in vita dopo una cancellazione GDPR sarebbe dato personale
+            # residuo che l'erasure dovrebbe rimuovere — la prova durevole
+            # che la cancellazione e' avvenuta e' il tombstone, non il log
+            # operativo delle richieste. Solo la dsar successiva, fatta DOPO
+            # l'erasure su un attore ormai cancellato, sopravvive.
             handle_privacy_dsar("alice")
             handle_privacy_export("bob")
             alice_log = get_privacy_log("alice")
             bob_log = get_privacy_log("bob")
 
-        # Alice ha 3 richieste (export+erase+dsar), Bob 1 (export).
-        self.assertEqual(len(alice_log["requests"]), 3)
+        self.assertEqual(len(alice_log["requests"]), 1)
+        self.assertEqual(alice_log["requests"][0]["type"], "dsar")
         self.assertEqual(len(bob_log["requests"]), 1)
         # Nessuno degli ID di Bob compare nel log di Alice.
         alice_ids = {r["id"] for r in alice_log["requests"]}

@@ -7,6 +7,7 @@ from osint_bot.custody import (
     artifact_sha256,
     command_hash,
     export_case_manifest,
+    register_report_artifacts,
     save_artifact,
 )
 from osint_bot.storage import Storage
@@ -133,6 +134,95 @@ class ManifestTests(unittest.TestCase):
             save_artifact(artifact_type="tool_output", content="b", case_id=case_id, storage=store)
             m2 = export_case_manifest(case_id, store, Path(tmp))
             self.assertNotEqual(m1["manifest_hash"], m2["manifest_hash"])
+        self._run_with_store(run)
+
+
+class RegisterReportArtifactsTests(unittest.TestCase):
+    def _run_with_store(self, func):
+        tmp_obj = tempfile.TemporaryDirectory()
+        store = _store(tmp_obj.name)
+        try:
+            func(Path(tmp_obj.name), store)
+        finally:
+            store.close()
+            tmp_obj.cleanup()
+
+    def test_registers_existing_files_as_report_output(self):
+        def run(job_root, store):
+            reports_dir = job_root / "job1" / "reports"
+            reports_dir.mkdir(parents=True)
+            md_path = reports_dir / "report.md"
+            json_path = reports_dir / "report.json"
+            md_path.write_text("# Report", encoding="utf-8")
+            json_path.write_text('{"findings": []}', encoding="utf-8")
+
+            registered = register_report_artifacts(
+                job_id="job1", case_id="case-001",
+                report_paths={"markdown_path": str(md_path), "json_path": str(json_path)},
+                storage=store, job_root=job_root,
+            )
+            self.assertEqual(len(registered), 2)
+            self.assertTrue(all(r["artifact_type"] == "report_output" for r in registered))
+            self.assertEqual(
+                {r["content_sha256"] for r in registered},
+                {artifact_sha256(md_path.read_bytes()), artifact_sha256(json_path.read_bytes())},
+            )
+        self._run_with_store(run)
+
+    def test_missing_and_empty_paths_are_skipped_not_fatal(self):
+        def run(job_root, store):
+            registered = register_report_artifacts(
+                job_id="job1", case_id="case-001",
+                report_paths={
+                    "markdown_path": "",
+                    "pdf_path": str(job_root / "does-not-exist.pdf"),
+                },
+                storage=store, job_root=job_root,
+            )
+            self.assertEqual(registered, [])
+        self._run_with_store(run)
+
+    def test_manifest_covers_report_outputs_after_registration(self):
+        """La scoperta chiave del piano: una volta registrati, i file di
+        report finiscono nello stesso manifest delle evidenze in ingresso —
+        nessun meccanismo di manifest parallelo."""
+        def run(job_root, store):
+            case_id = "case-seal"
+            reports_dir = job_root / "job1" / "reports"
+            reports_dir.mkdir(parents=True)
+            md_path = reports_dir / "report.md"
+            md_path.write_text("# Report finale", encoding="utf-8")
+
+            # un'evidenza raccolta a monte, come oggi via plugins.py
+            save_artifact(artifact_type="tool_output", content="raw stdout",
+                           case_id=case_id, tool_name="sherlock", storage=store)
+            register_report_artifacts(
+                job_id="job1", case_id=case_id,
+                report_paths={"markdown_path": str(md_path)},
+                storage=store, job_root=job_root,
+            )
+            manifest = export_case_manifest(case_id, store, job_root)
+            self.assertEqual(manifest["artifact_count"], 2)
+            self.assertTrue(manifest["all_verified"])
+            types = {a["artifact_type"] for a in manifest["artifacts"]}
+            self.assertEqual(types, {"tool_output", "report_output"})
+        self._run_with_store(run)
+
+    def test_tampering_a_registered_report_file_is_detected(self):
+        def run(job_root, store):
+            case_id = "case-tamper"
+            reports_dir = job_root / "job1" / "reports"
+            reports_dir.mkdir(parents=True)
+            md_path = reports_dir / "report.md"
+            md_path.write_text("original report", encoding="utf-8")
+            register_report_artifacts(
+                job_id="job1", case_id=case_id,
+                report_paths={"markdown_path": str(md_path)},
+                storage=store, job_root=job_root,
+            )
+            self.assertTrue(export_case_manifest(case_id, store, job_root)["all_verified"])
+            md_path.write_text("TAMPERED after sealing", encoding="utf-8")
+            self.assertFalse(export_case_manifest(case_id, store, job_root)["all_verified"])
         self._run_with_store(run)
 
 

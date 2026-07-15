@@ -720,6 +720,15 @@ CATALOG: dict[str, dict[str, str]] = {
     "influencers_club.email_public": {"it": "Email pubblica di @{username} (Influencers Club).", "en": "Public email of @{username} (Influencers Club)."},
     "influencers_club.email_why": {"it": "Influencers Club ha collegato @{username} all'email", "en": "Influencers Club linked @{username} to the email"},
     "influencers_club.field_note": {"it": "Campo '{field}' da Influencers Club per @{username}.", "en": "Field '{field}' from Influencers Club for @{username}."},
+
+    # -- ai_agents (LLM, opt-in) ----------------------------------------
+    "ai_agents.disclaimer": {"it": "Generato da AI — non verificato. Verifica ogni citazione contro la tabella evidenze.", "en": "AI-generated — unverified. Verify every citation against the evidence table."},
+    "ai_agents.not_enabled": {"it": "Arricchimento AI non abilitato per questo caso.", "en": "AI enrichment is not enabled for this case."},
+    "ai_agents.no_key": {"it": "Nessuna chiave AI configurata (Anthropic/OpenAI/endpoint locale).", "en": "No AI key configured (Anthropic/OpenAI/local endpoint)."},
+    "ai_agents.triage_fallback_rationale": {"it": "(fallback: nessuna valutazione AI ricevuta)", "en": "(fallback: no AI assessment received)"},
+    "ai_agents.hallucinated_dropped": {"it": "{n} elementi scartati: l'AI ha citato ID non esistenti.", "en": "{n} items dropped: the AI referenced non-existent IDs."},
+    "ai_agents.narrative_failed": {"it": "Generazione narrativa fallita: {error}", "en": "Narrative generation failed: {error}"},
+    "ai_agents.truncated_note": {"it": "Nota: {sent} finding su {total} inviati (troncato per dimensione).", "en": "Note: {sent} of {total} findings sent (truncated for size)."},
 }
 
 

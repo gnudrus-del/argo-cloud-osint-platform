@@ -36,6 +36,8 @@ CONNECTORS_DIR = REPO_ROOT / "osint_bot" / "connectors"
 # default RFC1918/loopback block would break.
 EXTRA_SCAN_FILES = [
     REPO_ROOT / "osint_bot" / "fetch.py",
+    REPO_ROOT / "osint_bot" / "llm_client.py",
+    REPO_ROOT / "osint_bot" / "tsa_client.py",
 ]
 
 # Modules whose direct import from a connector triggers the guard.

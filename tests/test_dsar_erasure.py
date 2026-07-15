@@ -117,6 +117,48 @@ class DsarErasureTests(unittest.TestCase):
             expected = hashlib.sha256(b"user:alice").hexdigest()
             self.assertEqual(res["selector_sha256"], expected)
 
+    def test_erase_preserves_audit_chain_integrity(self):
+        """Regression: prima del fix, ogni cancellazione GDPR rompeva
+        silenziosamente verify_audit_chain() — l'evento account_erased_dsar
+        veniva hashato con uno schema diverso (stringa pipe-concatenata) da
+        quello ricalcolato in fase di verifica (event_hash su dict
+        JSON-canonico), e la redazione di eventi passati non aggiornava il
+        loro hash memorizzato. Verificato empiricamente sul codice originale
+        prima di questo fix — non un problema ipotetico."""
+        from osint_bot.web import create_case, handle_privacy_erase
+
+        with _isolated_storage() as (_, stor):
+            create_case({"title": "X", "legal_basis": {"type": "consent"}}, actor="alice")
+            stor.append_audit_event("alice", "login_success", {"note": "alice logged in"})
+            stor.append_audit_event("bob", "login_success", {"note": "bob logged in too"})
+            self.assertTrue(stor.verify_audit_chain())
+
+            res = handle_privacy_erase("alice", {"reason": "test"})
+            self.assertEqual(res["status"], "ok")
+
+            self.assertTrue(
+                stor.verify_audit_chain(),
+                "la catena audit deve restare valida dopo una cancellazione GDPR legittima",
+            )
+
+    def test_verify_audit_chain_still_detects_real_tampering(self):
+        """Il fix non deve indebolire la rilevazione di manomissione vera:
+        solo le righe redatte da un tombstone documentato sono escluse dal
+        controllo di auto-hash."""
+        from osint_bot.web import create_case, handle_privacy_erase
+
+        with _isolated_storage() as (_, stor):
+            create_case({"title": "X", "legal_basis": {"type": "consent"}}, actor="alice")
+            stor.append_audit_event("bob", "login_success", {"note": "bob logged in"})
+            handle_privacy_erase("alice", {"reason": "test"})
+            self.assertTrue(stor.verify_audit_chain())
+
+            # manomissione vera, mai passata da erase_actor_data/un tombstone
+            stor._conn().execute(
+                "UPDATE audit_events SET actor = 'mallory' WHERE action = 'login_success' AND actor = 'bob'"
+            )
+            self.assertFalse(stor.verify_audit_chain())
+
 
 if __name__ == "__main__":
     unittest.main()

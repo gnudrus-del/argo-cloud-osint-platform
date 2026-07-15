@@ -4781,3 +4781,139 @@ table tbody tr:hover { background: var(--amber-tint); }
 @media (prefers-reduced-motion: reduce) {
   .langPickOverlay, .langPickCard { animation: none; }
 }
+
+/* ---------------------------------------------------- Agenti IA (opt-in) */
+
+.caseAiToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted-strong);
+  cursor: pointer;
+}
+.caseAiToggle input[type="checkbox"] { margin: 0; }
+
+.aiTrigger {
+  border-color: color-mix(in srgb, var(--accent), transparent 40%);
+  color: var(--accent);
+}
+
+.aiNarrativePanel {
+  margin-top: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 55%);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  overflow: hidden;
+}
+.aiDisclaimer {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #0b1a30;
+  background: var(--accent);
+}
+.aiNarrativeBody {
+  padding: 14px 16px;
+  line-height: 1.6;
+  color: var(--muted-strong);
+}
+.aiNarrativeBody h4 { margin: 14px 0 6px; color: var(--text, #e6edf6); }
+.aiNarrativeBody .aiCaveats { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+
+.aiCitation {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent), transparent 80%);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: help;
+}
+
+.aiSuggestionsIntro { margin-bottom: 14px; }
+.aiSuggestionsList { display: flex; flex-direction: column; gap: 10px; }
+.aiSuggestionCard {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  padding: 12px 14px;
+}
+.aiSuggestionCard.aiConfirmed { border-color: color-mix(in srgb, #34d399, transparent 30%); }
+.aiSuggestionCard.aiRejected { opacity: 0.55; }
+.aiSuggestionHead { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 8px; }
+.aiSuggestionCard .confTrack { margin-bottom: 8px; }
+.aiSuggestionCard .aiDecisionMsg { font-size: 12px; color: var(--muted); margin: 6px 0 0; min-height: 1em; }
+
+.triageRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--line);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  cursor: help;
+}
+.triageBadge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #0b1a30;
+}
+.triageLabel { color: var(--muted-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.triageCritical { border-left-color: #f43f5e; }
+.triageCritical .triageBadge { background: #f43f5e; }
+.triageHigh { border-left-color: #fb923c; }
+.triageHigh .triageBadge { background: #fb923c; }
+.triageMedium { border-left-color: #facc15; }
+.triageMedium .triageBadge { background: #facc15; }
+.triageLow { border-left-color: #94a3b8; }
+.triageLow .triageBadge { background: #94a3b8; }
+.triageNoise { border-left-color: #4b5568; opacity: 0.75; }
+.triageNoise .triageBadge { background: #4b5568; color: #e6edf6; }
+
+.triageNoiseGroup { margin-top: 8px; }
+.triageNoiseGroup summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 0;
+}
+
+.sealRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line), transparent 40%);
+  font-size: 13px;
+}
+.sealRow:last-of-type { border-bottom: none; }
+.sealLabel { color: var(--muted); flex: 0 0 auto; }
+.sealValue {
+  color: var(--text, #e6edf6);
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-size: 12px;
+}
+.sealHint {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--panel-soft), black 10%);
+  color: var(--muted);
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

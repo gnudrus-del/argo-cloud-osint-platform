@@ -260,3 +260,13 @@ def distribution(findings) -> dict[str, int]:
         code = f"{finding.source_reliability}{finding.info_credibility}"
         bucket[code] = bucket.get(code, 0) + 1
     return bucket
+
+
+_SEVERITY_RANK = {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1}
+
+
+def severity_rank(severity: str) -> int:
+    """Sort key for Finding.severity, highest first (5=critical .. 1=info,
+    0=unset). Single source of truth — forensic_report.py and ai_context.py
+    both import this instead of duplicating the ranking table."""
+    return _SEVERITY_RANK.get(severity, 0)

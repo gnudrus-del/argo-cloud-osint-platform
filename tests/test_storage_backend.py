@@ -3,14 +3,17 @@
 I test Postgres end-to-end richiederebbero un'istanza reale; qui verifichiamo
 che (a) il default sia SQLite, (b) il factory degradi su SQLite quando Postgres
 è richiesto ma psycopg manca, (c) il modulo Postgres si importi senza psycopg,
-(d) il backend SQLite soddisfi il Protocol StorageBackend a runtime.
+(d) il backend SQLite soddisfi il Protocol StorageBackend a runtime, (e) con
+OSINT_STORAGE_STRICT=1 il fallback silenzioso diventa un errore fatale.
 """
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from osint_bot.storage import Storage
-from osint_bot.storage_base import StorageBackend, create_storage
+from osint_bot.storage_base import StorageBackend, StoragePostgresRequiredError, create_storage
 
 
 class StorageBackendTests(unittest.TestCase):
@@ -62,6 +65,32 @@ class StorageBackendTests(unittest.TestCase):
         # Importare il modulo NON deve richiedere psycopg (import ritardato in __init__).
         import osint_bot.storage_postgres as sp
         self.assertTrue(hasattr(sp, "PostgresStorage"))
+
+    def test_strict_mode_raises_instead_of_falling_back(self):
+        """OSINT_STORAGE_STRICT=1: Postgres richiesto ma irraggiungibile deve
+        far fallire l'avvio invece di degradare silenziosamente su SQLite."""
+        with patch.dict(os.environ, {"OSINT_STORAGE_STRICT": "1"}):
+            with self.assertRaises(StoragePostgresRequiredError):
+                create_storage(Path(self.tmp), database_url="postgresql://invalid:5432/none")
+
+    def test_strict_mode_does_not_affect_default_sqlite_usage(self):
+        """OSINT_STORAGE_STRICT=1 senza DATABASE_URL non deve mai far
+        fallire chi non ha mai chiesto Postgres — resta SQLite normalmente."""
+        with patch.dict(os.environ, {"OSINT_STORAGE_STRICT": "1"}):
+            backend = create_storage(Path(self.tmp))
+            try:
+                self.assertIsInstance(backend, Storage)
+            finally:
+                backend.close()
+
+    def test_strict_mode_off_by_default_still_falls_back(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("OSINT_STORAGE_STRICT", None)
+            backend = create_storage(Path(self.tmp), database_url="postgresql://invalid:5432/none")
+        try:
+            self.assertIsInstance(backend, Storage)
+        finally:
+            backend.close()
 
     def test_sqlite_roundtrip_through_factory(self):
         backend = create_storage(Path(self.tmp))

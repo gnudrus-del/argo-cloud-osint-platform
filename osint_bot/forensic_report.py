@@ -42,6 +42,7 @@ import time
 from dataclasses import asdict, dataclass, field
 
 from .contact_discovery import Contact, ContactReport
+from .grading import severity_rank as _severity_rank
 from .models import Finding, Investigation
 from .ranking import RankedResult
 from .scope import CaseScope
@@ -86,6 +87,11 @@ class ReportContext:
     methodology: list[str] = field(default_factory=list)
     extra_findings: list[Finding] = field(default_factory=list)
     generated_at: str = ""
+    # Fase 2 hook (non ancora popolato da nessun caller): output validato di
+    # narrative_synthesis.py, nella stessa forma di LLMResponse.parsed. Quando
+    # un chiamante lo passerà, _section_8_executive_summary lo userà al posto
+    # del riepilogo template — vedi il branch lì sotto.
+    ai_narrative: dict | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -284,6 +290,22 @@ def _section_8_executive_summary(ctx: ReportContext) -> ReportSection:
         ]
 
     body = "\n".join(lines)
+
+    # Fase 2 hook: se un chiamante ha popolato ctx.ai_narrative (output
+    # validato di narrative_synthesis.py), lo si antepone al riepilogo
+    # template invece di sostituirlo — le evidenze puntuali restano sempre
+    # visibili, la prosa IA è un livello aggiuntivo, mai l'unica fonte.
+    # Nessun caller lo popola oggi: campo predisposto, non attivo.
+    if ctx.ai_narrative:
+        summary = str(ctx.ai_narrative.get("summary_paragraph") or "").strip()
+        caveats = list(ctx.ai_narrative.get("caveats") or [])
+        ai_lines = ["> **Generato da AI — non verificato.** Verifica ogni citazione contro la tabella evidenze."]
+        if summary:
+            ai_lines.append(f"\n{summary}")
+        if caveats:
+            ai_lines.append("\n" + "\n".join(f"- {c}" for c in caveats))
+        body = "\n".join(ai_lines) + "\n\n---\n\n" + body
+
     return ReportSection(number=8, title="Executive summary", body_markdown=body)
 
 
@@ -539,10 +561,6 @@ def _render_finding_line(f: Finding) -> str:
 def _short(text: str, n: int) -> str:
     text = (text or "").strip()
     return text if len(text) <= n else text[: n - 1] + "…"
-
-
-def _severity_rank(s: str) -> int:
-    return {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1}.get(s, 0)
 
 
 def _severity_counts(ctx: ReportContext) -> dict[str, int]:

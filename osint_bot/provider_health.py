@@ -287,6 +287,55 @@ def _unsupported_check(api_key: str) -> tuple[str, str, int | None]:
     return STATE_UNTESTED, "Health-check non implementato per questo provider; chiave salvata.", None
 
 
+# -- AI agent (LLM, opt-in) --------------------------------------------------
+# Questi 3 provider sono usati SOLO dalle capability IA opt-in
+# (narrative_synthesis / entity_resolution_ai / triage_ai), mai da un
+# connettore. Import locale di llm_client per evitare un import a livello
+# modulo che non serve al resto di questo file.
+
+def check_llm_anthropic(api_key: str) -> tuple[str, str, int | None]:
+    if not api_key:
+        return STATE_NOT_CONFIGURED, "Chiave non configurata.", None
+    from .llm_client import health_check
+    state, msg, http_status = health_check("anthropic", api_key)
+    return _STATE_MAP.get(state, STATE_NETWORK_ERROR), msg, http_status
+
+
+def check_llm_openai(api_key: str) -> tuple[str, str, int | None]:
+    if not api_key:
+        return STATE_NOT_CONFIGURED, "Chiave non configurata.", None
+    from .llm_client import health_check
+    state, msg, http_status = health_check("openai", api_key)
+    return _STATE_MAP.get(state, STATE_NETWORK_ERROR), msg, http_status
+
+
+def check_llm_local(value: str) -> tuple[str, str, int | None]:
+    """`value` è 'base_url' o 'base_url|bearer_token' (stessa convenzione di
+    google_pse per 'apikey|cx'), non una singola api_key — vedi
+    llm_client.parse_local_value."""
+    if not value:
+        return STATE_NOT_CONFIGURED, "Endpoint locale non configurato.", None
+    from .llm_client import health_check, parse_local_value
+    base_url, token = parse_local_value(value)
+    if not base_url:
+        return STATE_NOT_CONFIGURED, "Endpoint locale non configurato.", None
+    state, msg, http_status = health_check("local", token, base_url=base_url)
+    return _STATE_MAP.get(state, STATE_NETWORK_ERROR), msg, http_status
+
+
+# llm_client.health_check usa una nomenclatura di stato leggermente diversa
+# (es. "unsupported" per provider ignoti) — mappata sugli stessi STATE_* di
+# questo modulo così ProviderStatus resta uniforme in tutta la UI.
+_STATE_MAP: dict[str, str] = {
+    "ok": STATE_OK,
+    "not_configured": STATE_NOT_CONFIGURED,
+    "auth_error": STATE_AUTH_ERROR,
+    "quota_exceeded": STATE_QUOTA_EXCEEDED,
+    "network_error": STATE_NETWORK_ERROR,
+    "unsupported": STATE_UNSUPPORTED,
+}
+
+
 # Registry of provider checks. Keys must match API_KEY_CATALOG service names.
 PROVIDER_CHECKS: dict[str, Callable[[str], tuple[str, str, int | None]]] = {
     "brave": check_brave,
@@ -301,6 +350,9 @@ PROVIDER_CHECKS: dict[str, Callable[[str], tuple[str, str, int | None]]] = {
     "leakix": check_leakix,
     "intelx": check_intelx,
     "fullhunt": check_fullhunt,
+    "llm_anthropic": check_llm_anthropic,
+    "llm_openai": check_llm_openai,
+    "llm_local": check_llm_local,
 }
 
 

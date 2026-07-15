@@ -6,10 +6,27 @@ the job and optionally to the finding that cites it.  The export_case_manifest
 function produces a manifest over all artifacts in a case so an external
 verifier can confirm that nothing was altered after collection.
 
+register_report_artifacts extends this to the OUTPUT side: the final report
+files (report.md/json/pdf, forensic.*, redteam.*) are registered the same way
+as collection-time evidence, as artifact_type="report_output" — so a single
+call to export_case_manifest, once report_signing.py signs its manifest_hash,
+covers both "what evidence did we collect" and "what did we hand to the
+analyst", with no second/parallel manifest mechanism.
+
+Note: export_case_manifest is CASE-scoped, not job-scoped (list_artifacts'
+job_id filter is only usable when case_id is absent — evidence artifacts
+recorded from plugins.py never carry a job_id today). web.handle_seal_job
+triggers a seal at the completion of one job, but the manifest_hash it signs
+covers every artifact of the whole CASE as of that moment — a later job in
+the same case produces a new, larger, cumulative seal. This is intentional,
+not a workaround: a verifier cares about the case's integrity, not an
+arbitrary job boundary.
+
 Public API:
   artifact_sha256(content)          -> hex digest
   command_hash(argv)                -> hex digest of JSON-encoded argv
   save_artifact(...)                -> artifact dict (also upserted in storage)
+  register_report_artifacts(...)    -> registers report output files as artifacts
   export_case_manifest(case_id, storage, job_root) -> manifest dict
 """
 from __future__ import annotations
@@ -61,7 +78,9 @@ def save_artifact(
     Parameters
     ----------
     artifact_type : str
-        One of ``tool_output``, ``archive``, ``screenshot``, ``connector_json``.
+        One of ``tool_output``, ``archive``, ``screenshot``, ``connector_json``,
+        ``report_output`` (a final generated report file — see
+        :func:`register_report_artifacts`).
     content : str | bytes
         The raw content to hash and record.
     storage : optional
@@ -92,25 +111,54 @@ def save_artifact(
     return record
 
 
-def export_case_manifest(
+def register_report_artifacts(
+    *,
+    job_id: str,
     case_id: str,
+    report_paths: dict[str, str],
     storage,
     job_root: Path,
-) -> dict[str, Any]:
-    """Produce a verifiable manifest of all artifacts collected for *case_id*.
+    actor: str = "system",
+) -> list[dict[str, Any]]:
+    """Register a job's final report files as ``artifact_type="report_output"``.
 
-    For each artifact that has a ``storage_path``, the file on disk is re-hashed
-    and compared with the recorded ``content_sha256``.  A tampered or missing
-    file results in ``verified=False`` for that artifact.
+    *report_paths* is a ``{field_name: absolute_path}`` mapping, e.g. the job
+    dict's ``{"markdown_path": ..., "json_path": ..., "pdf_path": ...}``.
+    Missing/empty entries and files that no longer exist on disk are skipped
+    (best-effort — same principle as :func:`save_artifact`: never let custody
+    bookkeeping break the job pipeline). Paths are stored relative to
+    *job_root* so the manifest stays portable across a backup/restore to a
+    different install path.
 
-    Returns a dict with:
-    - ``case_id``
-    - ``artifacts``: list with a ``verified`` boolean per entry
-    - ``all_verified``: True only when every artifact with a storage path matches
-    - ``manifest_hash``: SHA-256 of the canonical artifact list (sorted by id),
-      suitable for RFC 3161 timestamping
+    Returns the list of artifact records that were actually registered.
     """
-    artifacts = storage.list_artifacts(case_id=case_id)
+    registered: list[dict[str, Any]] = []
+    for field_name, path_str in report_paths.items():
+        if not path_str:
+            continue
+        artifact_path = Path(path_str)
+        if not artifact_path.exists():
+            continue
+        try:
+            rel_path = artifact_path.relative_to(job_root)
+        except ValueError:
+            rel_path = artifact_path  # fuori da job_root: fallback al path assoluto
+        record = save_artifact(
+            artifact_type="report_output",
+            content=artifact_path.read_bytes(),
+            job_id=job_id,
+            case_id=case_id,
+            tool_name=field_name,
+            actor=actor,
+            storage_path=str(rel_path),
+            storage=storage,
+        )
+        registered.append(record)
+    return registered
+
+
+def _build_manifest(artifacts: list[dict[str, Any]], job_root: Path) -> dict[str, Any]:
+    """Shared verify-and-hash core for :func:`export_case_manifest`."""
     verified_artifacts: list[dict[str, Any]] = []
     for a in artifacts:
         verified: bool
@@ -134,10 +182,32 @@ def export_case_manifest(
         separators=(",", ":"),
     )
     return {
-        "case_id": case_id,
         "artifacts": verified_artifacts,
         "artifact_count": len(verified_artifacts),
         "all_verified": all(v["verified"] for v in verified_artifacts),
         "manifest_hash": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
         "generated_at": _now_iso(),
     }
+
+
+def export_case_manifest(
+    case_id: str,
+    storage,
+    job_root: Path,
+) -> dict[str, Any]:
+    """Produce a verifiable manifest of all artifacts collected for *case_id*
+    (every job in the case, cumulative).
+
+    For each artifact that has a ``storage_path``, the file on disk is re-hashed
+    and compared with the recorded ``content_sha256``.  A tampered or missing
+    file results in ``verified=False`` for that artifact.
+
+    Returns a dict with:
+    - ``case_id``
+    - ``artifacts``: list with a ``verified`` boolean per entry
+    - ``all_verified``: True only when every artifact with a storage path matches
+    - ``manifest_hash``: SHA-256 of the canonical artifact list (sorted by id),
+      suitable for RFC 3161 timestamping
+    """
+    manifest = _build_manifest(storage.list_artifacts(case_id=case_id), job_root)
+    return {"case_id": case_id, **manifest}

@@ -43,11 +43,13 @@ class StorageBackend(Protocol):
     def put_artifact(self, artifact: dict) -> None: ...
     def list_artifacts(self, case_id: str = "", job_id: str = "") -> list[dict]: ...
     def get_artifact(self, artifact_id: str) -> dict | None: ...
-    # api keys
+    # api keys (encrypted at rest — see secrets_crypto.py)
     def put_api_key(self, username: str, service: str, value: str) -> None: ...
     def get_api_key(self, username: str, service: str) -> str | None: ...
     def list_api_keys(self, username: str) -> list[dict]: ...
     def delete_api_key(self, username: str, service: str) -> None: ...
+    def all_api_keys(self) -> list[dict]: ...  # rotation-only, every user
+    def set_api_key_encrypted(self, username: str, service: str, encrypted_value: str) -> None: ...
     # audit
     def append_audit_event(self, actor: str, action: str,
                            details: dict[str, Any] | None = None) -> dict[str, Any]: ...
@@ -55,6 +57,11 @@ class StorageBackend(Protocol):
     def verify_audit_chain(self) -> bool: ...
     # lifecycle
     def close(self) -> None: ...
+
+
+class StoragePostgresRequiredError(RuntimeError):
+    """Postgres è stato richiesto esplicitamente (OSINT_STORAGE_STRICT=1) ma
+    non è raggiungibile. Sollevata invece di degradare silenziosamente."""
 
 
 def create_storage(job_root: Path, *, database_url: str = "", override: str = "") -> StorageBackend:
@@ -65,8 +72,15 @@ def create_storage(job_root: Path, *, database_url: str = "", override: str = ""
       2. ``database_url`` (o env ``DATABASE_URL``) postgres:// + psycopg presente.
       3. fallback: SQLite in ``job_root/gufo.sqlite3``.
 
-    Non solleva mai per assenza di psycopg: degrada su SQLite con un warning.
+    Di default, se Postgres è richiesto ma non raggiungibile (psycopg assente,
+    DSN sbagliato, server irraggiungibile), degrada silenziosamente su SQLite
+    con un log — un operatore può credere di essere su Postgres e non esserlo
+    mai, senza accorgersene. Con ``OSINT_STORAGE_STRICT=1`` questo fallback
+    diventa un errore fatale invece di un log facile da perdere: chi vuole la
+    garanzia "o Postgres o niente" la ottiene esplicitamente, senza cambiare
+    il comportamento di default per chi non l'ha mai richiesta.
     """
+    import logging
     import os
 
     from .storage import Storage  # SQLite backend (sempre disponibile)
@@ -75,15 +89,22 @@ def create_storage(job_root: Path, *, database_url: str = "", override: str = ""
     want_pg = override == "postgres" or (
         override != "sqlite" and url.startswith(("postgres://", "postgresql://"))
     )
+    strict = os.getenv("OSINT_STORAGE_STRICT", "0").strip() == "1"
 
     if want_pg:
         try:
             from .storage_postgres import PostgresStorage
-            return PostgresStorage(url)
+            return PostgresStorage(url, job_root=Path(job_root))
         except Exception as exc:  # psycopg assente o connessione fallita
-            import logging
-            logging.getLogger("osint_bot.storage").warning(
-                "Postgres richiesto ma non disponibile (%s); fallback su SQLite.", exc
+            if strict:
+                raise StoragePostgresRequiredError(
+                    f"OSINT_STORAGE_STRICT=1: Postgres richiesto ma non disponibile ({exc}). "
+                    "Avvio interrotto invece di degradare silenziosamente su SQLite."
+                ) from exc
+            logging.getLogger("osint_bot.storage").error(
+                "Postgres richiesto ma non disponibile (%s); fallback su SQLite. "
+                "Imposta OSINT_STORAGE_STRICT=1 per rendere questo un errore fatale.",
+                exc,
             )
 
     return Storage(Path(job_root) / "gufo.sqlite3")

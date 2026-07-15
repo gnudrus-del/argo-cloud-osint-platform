@@ -40,7 +40,7 @@
     "nav.start": { en: "Get started", it: "Inizia" },
 
     // hero
-    "hero.eyebrow": { en: "Open Source Intelligence · GDPR-oriented · court-ready", it: "Open Source Intelligence · GDPR-oriented · court-ready" },
+    "hero.eyebrow": { en: "Open Source Intelligence · GDPR-oriented · tamper-evident", it: "Open Source Intelligence · GDPR-oriented · inviolabile" },
     "hero.w1": { en: "Trace", it: "Traccia" },
     "hero.w2": { en: "every", it: "ogni" },
     "hero.w3": { en: "lead.", it: "indizio." },
@@ -48,8 +48,8 @@
     "hero.w5": { en: "no", it: "lasci" },
     "hero.w6": { en: "trace.", it: "traccia." },
     "hero.lead": {
-      en: "Argo is the privacy-by-design OSINT engine, built for GDPR from day one. 58 native connectors, aggregated search, court-ready reports. Zero data sent to third-party cloud services.",
-      it: "Argo è il motore OSINT italiano privacy-by-design. 58 connettori nativi, ricerca aggregata, report court-ready. Zero dati inviati a servizi cloud terzi."
+      en: "Argo is the privacy-by-design OSINT engine, built for GDPR from day one. 58 native connectors, aggregated search, audit-chained reports. Zero data sent to third-party cloud services by default.",
+      it: "Argo è il motore OSINT italiano privacy-by-design. 58 connettori nativi, ricerca aggregata, report con catena audit verificabile. Zero dati inviati a servizi cloud terzi di default."
     },
     "hero.cta.primary": { en: "Try it free", it: "Prova gratis" },
     "hero.cta.ghost": { en: "How it works", it: "Come funziona" },
@@ -69,7 +69,7 @@
     "why.c1.h": { en: "Nothing leaves your VM.", it: "Nulla lascia la tua VM." },
     "why.c1.p": { en: "We aggregate public sources locally. No target, no case, no query ever passes through a third-party provider.", it: "Aggreghiamo fonti pubbliche in locale. Nessun target, nessun caso, nessuna query passa da un provider esterno." },
     "why.c2.h": { en: "Prove every claim.", it: "Prova ogni claim." },
-    "why.c2.p": { en: "Every finding carries its provenance, SHA-256 hash, timestamp and a verifiable audit chain. Court-ready by default.", it: "Ogni finding porta con sé provenance, hash SHA-256, timestamp e catena audit verificabile. Court-ready per default." },
+    "why.c2.p": { en: "Every finding carries its provenance, SHA-256 hash, timestamp and a verifiable audit chain. Tamper-evident by design.", it: "Ogni finding porta con sé provenance, hash SHA-256, timestamp e catena audit verificabile. Inviolabile per design." },
     "why.c3.h": { en: "Compliance by design.", it: "Compliance nel design." },
     "why.c3.p": { en: "Rules of Engagement per case, documented legal basis, built-in DSAR, tombstoned erasure.", it: "Rules of Engagement per ogni caso, base giuridica documentata, DSAR built-in, cancellazione tombstonata." },
 
@@ -761,7 +761,60 @@
     "cs.created": { en: "Case created.", it: "Caso creato." },
     "cs.saving": { en: "Saving…", it: "Salvataggio…" },
     "cs.scopeUpdated": { en: "Scope updated: {n} entries.", it: "Scope aggiornato: {n} voci." },
-    "cs.titleRequired": { en: "Title required.", it: "Titolo obbligatorio." }
+    "cs.titleRequired": { en: "Title required.", it: "Titolo obbligatorio." },
+
+    "ai.caseSettings.toggle": { en: "Enable AI enrichment for this case (opt-in, sends data to your chosen provider)", it: "Abilita arricchimento AI per questo caso (opt-in, invia dati al provider scelto)" },
+    "ai.narrative.button": { en: "Generate AI narrative", it: "Genera narrativa AI" },
+    "ai.narrative.disclaimer": { en: "AI-generated — unverified. Verify every citation against the evidence table.", it: "Generato da AI — non verificato. Verifica ogni citazione contro la tabella evidenze." },
+    "ai.narrative.providerPrompt": { en: "Provider (anthropic / openai / local):", it: "Provider (anthropic / openai / local):" },
+    "ai.narrative.invalidProvider": { en: "Invalid provider. Use anthropic, openai or local.", it: "Provider non valido. Usa anthropic, openai o local." },
+    "ai.narrative.confirmSend": { en: "This sends this case's findings to the {provider} provider you configured. Continue?", it: "Questo invia i finding di questo caso al provider {provider} che hai configurato. Continuare?" },
+    "ai.narrative.failed": { en: "Narrative generation failed: {error}", it: "Generazione narrativa fallita: {error}" },
+    "ai.narrative.truncatedNote": { en: "Note: {sent} of {total} findings sent (truncated for size).", it: "Nota: {sent} finding su {total} inviati (troncato per dimensione)." },
+
+    "ai.entity.tab": { en: "AI suggestions", it: "Suggerimenti IA" },
+    "ai.entity.intro": { en: "The AI compares similar entities and suggests possible matches. Nothing is merged automatically — you confirm or reject each suggestion.", it: "L'IA confronta entità simili e suggerisce possibili corrispondenze. Nulla viene unito automaticamente — confermi o rifiuti ogni suggerimento." },
+    "ai.entity.generateBtn": { en: "Generate suggestions", it: "Genera suggerimenti" },
+    "ai.entity.confirmSend": { en: "This sends candidate entity pairs from this case to the {provider} provider you configured. Continue?", it: "Questo invia le coppie di entità candidate di questo caso al provider {provider} che hai configurato. Continuare?" },
+    "ai.entity.noCandidates": { en: "No ambiguous entity pairs found in this case.", it: "Nessuna coppia di entità ambigua trovata in questo caso." },
+    "ai.entity.noSuggestions": { en: "The AI returned no valid suggestions.", it: "L'IA non ha restituito suggerimenti validi." },
+    "ai.entity.confirm": { en: "Same entity", it: "Stessa entità" },
+    "ai.entity.reject": { en: "Not the same", it: "Non la stessa" },
+    "ai.entity.confirmedMsg": { en: "Marked as the same entity.", it: "Segnato come stessa entità." },
+    "ai.entity.rejectedMsg": { en: "Marked as not the same.", it: "Segnato come non la stessa." },
+
+    "ai.triage.button": { en: "AI priority", it: "Priorità AI" },
+    "ai.triage.disclaimer": { en: "AI-generated advisory priority — no finding is filtered or hidden.", it: "Priorità consultiva generata da AI — nessun finding è filtrato o nascosto." },
+    "ai.triage.confirmSend": { en: "This sends this job's findings to the {provider} provider you configured. Continue?", it: "Questo invia i finding di questo job al provider {provider} che hai configurato. Continuare?" },
+    "ai.triage.noRankings": { en: "The AI returned no rankings.", it: "L'IA non ha restituito nessuna priorità." },
+    "ai.triage.bucket.critical_now": { en: "Critical now", it: "Critico ora" },
+    "ai.triage.bucket.high": { en: "High", it: "Alta" },
+    "ai.triage.bucket.medium": { en: "Medium", it: "Media" },
+    "ai.triage.bucket.low": { en: "Low", it: "Bassa" },
+    "ai.triage.bucket.noise": { en: "Noise", it: "Rumore" },
+    "ai.triage.showMore": { en: "Show {n} low-priority findings", it: "Mostra {n} finding a bassa priorità" },
+    "ai.triage.fallbackRationale": { en: "(fallback: no AI assessment received)", it: "(fallback: nessuna valutazione AI ricevuta)" },
+    "ai.triage.coverageNote": { en: "Note: {ai} of {total} findings ranked by AI, the rest use the deterministic fallback.", it: "Nota: {ai} finding su {total} valutati dall'AI, gli altri usano il fallback deterministico." },
+
+    // -- report sealing (Ed25519 + RFC3161 opt-in) --
+    "seal.badge": { en: "🔒 Sealed", it: "🔒 Sigillo" },
+    "seal.disclaimer": {
+      en: "Local Ed25519 signature, computed automatically when the report completes. The RFC3161 timestamp (if requested) is issued by a third party outside Argo — verify it with your own tools.",
+      it: "Firma Ed25519 locale, calcolata automaticamente al completamento del report. Il timestamp RFC3161 (se richiesto) è emesso da una terza parte esterna a Argo — verificalo con i tuoi strumenti."
+    },
+    "seal.field.sealedAt": { en: "Sealed at", it: "Sigillato il" },
+    "seal.field.fingerprint": { en: "Signing key fingerprint", it: "Fingerprint chiave di firma" },
+    "seal.field.manifestHash": { en: "Manifest hash (SHA-256)", it: "Hash manifest (SHA-256)" },
+    "seal.field.artifactCount": { en: "Artifacts covered", it: "Artifact coperti" },
+    "seal.field.tsaHost": { en: "TSA", it: "TSA" },
+    "seal.field.tsaGenTime": { en: "TSA timestamp", it: "Timestamp TSA" },
+    "seal.field.tsaStatus": { en: "TSA status", it: "Stato TSA" },
+    "seal.tsa.button": { en: "Request RFC3161 timestamp", it: "Richiedi timestamp RFC3161" },
+    "seal.tsa.confirm": {
+      en: "This sends only a SHA-256 digest (32 bytes) of the report manifest to the TSA configured by your operator — never case content. Continue?",
+      it: "Questo invia solo un digest SHA-256 (32 byte) del manifest del report alla TSA configurata dal tuo operatore — mai il contenuto del caso. Continuare?"
+    },
+    "seal.tsa.failed": { en: "Timestamp request failed: {error}", it: "Richiesta di timestamp fallita: {error}" }
   };
 
   // ---- engine -----------------------------------------------------------

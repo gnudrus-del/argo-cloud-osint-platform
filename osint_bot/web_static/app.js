@@ -129,6 +129,10 @@ $("refreshJobs").addEventListener("click", loadJobs);
 if ($("mediaFile")) $("mediaFile").addEventListener("change", uploadMedia);
 if ($("mediaFileInline")) $("mediaFileInline").addEventListener("change", uploadMediaInline);
 if ($("caseCreateBtn")) $("caseCreateBtn").addEventListener("click", createCase);
+if ($("aiNarrativeBtn")) $("aiNarrativeBtn").addEventListener("click", generateAiNarrative);
+if ($("aiTriageBtn")) $("aiTriageBtn").addEventListener("click", generateAiTriage);
+if ($("sealBadge")) $("sealBadge").addEventListener("click", toggleSealPanel);
+if ($("tsaTimestampBtn")) $("tsaTimestampBtn").addEventListener("click", requestTsaTimestamp);
 document.querySelectorAll(".quickMode").forEach((button) => {
   button.addEventListener("click", () => applyMode(button.dataset.mode));
 });
@@ -410,6 +414,7 @@ function renderPlan(profile) {
 async function loadCapabilities() {
   try {
     const data = await api("/api/capabilities");
+    state.reportSealing = data.report_sealing || { always_on: true, tsa_configured: false };
     // Se non-admin: NON mostrare la lista, solo un placeholder col contatore
     // e un pulsante che apre il modal di sblocco (Ricerca aggressiva riusa lo stesso).
     if (!data.admin_unlocked) {
@@ -571,6 +576,8 @@ async function selectJobBase(id) {
   const job = await api(`/api/jobs/${id}`);
   state.currentJob = id;
   state.currentJobData = job;  // per messaggi contestuali (skip reasons, ecc.)
+  updateAiNarrativeButtonVisibility();
+  updateSealUI(id, job);
   renderHighRiskBanner(job);
   $("jsonLink").href = `/api/jobs/${id}/report.json`;
   $("mdLink").href = `/api/jobs/${id}/report.md`;
@@ -1663,6 +1670,23 @@ function renderCasesList(cases) {
     card.appendChild(scopeBtn);
     card.appendChild(useBtn);
 
+    // Consenso IA per-caso (opt-in, indipendente dal kill-switch server —
+    // vedi web.py:_require_ai_agents_enabled). Il toggle fallisce chiuso:
+    // se il deployment ha OSINT_AI_AGENTS_ENABLED=0 la chiamata risponde
+    // 404 e il checkbox torna allo stato precedente.
+    const aiRow = document.createElement("label");
+    aiRow.className = "caseAiToggle";
+    const aiCheckbox = document.createElement("input");
+    aiCheckbox.type = "checkbox";
+    aiCheckbox.checked = !!c.ai_enrichment_enabled;
+    aiRow.appendChild(aiCheckbox);
+    const aiLabelSpan = document.createElement("span");
+    aiLabelSpan.dataset.i18n = "ai.caseSettings.toggle";
+    aiLabelSpan.textContent = t("ai.caseSettings.toggle");
+    aiRow.appendChild(aiLabelSpan);
+    aiCheckbox.addEventListener("change", () => setCaseAiEnrichment(c.id, aiCheckbox.checked, aiCheckbox));
+    card.appendChild(aiRow);
+
     const scopeBox = document.createElement("div");
     scopeBox.className = "caseScopeBox hidden";
     const taId = `caseScope-${c.id}`;
@@ -1688,6 +1712,276 @@ function renderCasesList(cases) {
 
     list.appendChild(card);
   }
+}
+
+async function setCaseAiEnrichment(caseId, enabled, checkboxEl) {
+  try {
+    const updated = await api(`/api/cases/${caseId}/ai-settings`, {
+      method: "POST",
+      body: JSON.stringify({ ai_enrichment_enabled: enabled }),
+    });
+    const idx = state.cases.findIndex((c) => c.id === caseId);
+    if (idx >= 0) state.cases[idx] = updated;
+    updateAiNarrativeButtonVisibility();
+  } catch (exc) {
+    if (checkboxEl) checkboxEl.checked = !enabled;
+    console.error("setCaseAiEnrichment failed:", exc.message || exc);
+    if (checkboxEl) checkboxEl.title = t("err.generic") + (exc.message || exc);
+  }
+}
+
+function updateAiNarrativeButtonVisibility() {
+  const job = state.currentJobData;
+  const caseObj = job && job.case_id ? (state.cases || []).find((c) => c.id === job.case_id) : null;
+  const eligible = !!(job && job.status === "complete" && caseObj && caseObj.ai_enrichment_enabled);
+
+  const narrativeBtn = $("aiNarrativeBtn");
+  if (narrativeBtn) {
+    narrativeBtn.classList.toggle("hidden", !eligible);
+    if (!eligible) { const p = $("aiNarrativePanel"); if (p) p.classList.add("hidden"); }
+  }
+  const triageBtn = $("aiTriageBtn");
+  if (triageBtn) {
+    triageBtn.classList.toggle("hidden", !eligible);
+    if (!eligible) { const p = $("aiTriagePanel"); if (p) p.classList.add("hidden"); }
+  }
+}
+
+async function updateSealUI(jobId, job) {
+  const badge = $("sealBadge");
+  const tsaBtn = $("tsaTimestampBtn");
+  const panel = $("sealPanel");
+  if (!badge || !tsaBtn) return;
+  state.currentSeal = null;
+  if (!job || job.status !== "complete") {
+    badge.classList.add("hidden");
+    tsaBtn.classList.add("hidden");
+    if (panel) panel.classList.add("hidden");
+    return;
+  }
+  try {
+    const seal = await api(`/api/jobs/${jobId}/seal`);
+    state.currentSeal = seal;
+    badge.classList.remove("hidden");
+    const tsaConfigured = !!(state.reportSealing && state.reportSealing.tsa_configured);
+    const alreadyTimestamped = !!seal.tsa_gen_time;
+    tsaBtn.classList.toggle("hidden", !(tsaConfigured && !alreadyTimestamped));
+  } catch (exc) {
+    // Job appena completato: il sigillo automatico potrebbe non essere
+    // ancora scritto, o essere fallito (report_seal_failed in audit) — non
+    // e' un errore da mostrare all'analista, solo un badge assente.
+    badge.classList.add("hidden");
+    tsaBtn.classList.add("hidden");
+    if (panel) panel.classList.add("hidden");
+  }
+}
+
+function renderSealBody(seal) {
+  const body = $("sealBody");
+  if (!body) return;
+  const rows = [
+    [t("seal.field.sealedAt"), seal.sealed_at],
+    [t("seal.field.fingerprint"), seal.signing_pubkey_fingerprint],
+    [t("seal.field.manifestHash"), seal.manifest_hash],
+    [t("seal.field.artifactCount"), String(seal.artifact_count)],
+  ];
+  if (seal.tsa_gen_time) {
+    rows.push([t("seal.field.tsaHost"), seal.tsa_url_host]);
+    rows.push([t("seal.field.tsaGenTime"), seal.tsa_gen_time]);
+  }
+  if (seal.tsa_status) {
+    rows.push([t("seal.field.tsaStatus"), seal.tsa_status]);
+  }
+  const rowsHtml = rows.map(([label, value]) =>
+    `<div class="sealRow"><span class="sealLabel">${escapeHtml(label)}</span><code class="sealValue">${escapeHtml(String(value || ""))}</code></div>`
+  ).join("");
+  body.innerHTML = rowsHtml + `<pre class="sealHint">${escapeHtml(seal.verify_hint || "")}</pre>`;
+}
+
+function toggleSealPanel() {
+  const panel = $("sealPanel");
+  if (!panel) return;
+  panel.classList.toggle("hidden");
+  if (!panel.classList.contains("hidden") && state.currentSeal) renderSealBody(state.currentSeal);
+}
+
+async function requestTsaTimestamp() {
+  const job = state.currentJobData;
+  if (!job) return;
+  const btn = $("tsaTimestampBtn");
+  const panel = $("sealPanel");
+  const body = $("sealBody");
+  if (!btn || !panel || !body) return;
+  if (!window.confirm(t("seal.tsa.confirm"))) return;
+
+  btn.disabled = true;
+  panel.classList.remove("hidden");
+  body.textContent = t("common.loading");
+  try {
+    const seal = await api(`/api/jobs/${job.id}/seal/tsa-timestamp`, { method: "POST" });
+    state.currentSeal = seal;
+    renderSealBody(seal);
+    updateSealUI(job.id, job);
+  } catch (exc) {
+    body.textContent = t("seal.tsa.failed", { error: exc.message || String(exc) });
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function generateAiNarrative() {
+  const job = state.currentJobData;
+  if (!job || !job.case_id) return;
+  const btn = $("aiNarrativeBtn");
+  const panel = $("aiNarrativePanel");
+  const body = $("aiNarrativeBody");
+  if (!btn || !panel || !body) return;
+
+  const providerLabel = window.prompt(t("ai.narrative.providerPrompt"), "anthropic");
+  if (!providerLabel) return;
+  const provider = providerLabel.trim().toLowerCase();
+  if (!["anthropic", "openai", "local"].includes(provider)) {
+    alert(t("ai.narrative.invalidProvider"));
+    return;
+  }
+  if (!window.confirm(t("ai.narrative.confirmSend", { provider }))) return;
+
+  btn.disabled = true;
+  body.textContent = t("common.loading");
+  panel.classList.remove("hidden");
+  try {
+    const result = await api("/api/ai/narrative", {
+      method: "POST",
+      body: JSON.stringify({
+        case_id: job.case_id, job_id: job.id, provider,
+        lang: (window.I18N && window.I18N.get()) || "it",
+      }),
+    });
+    renderAiNarrative(result, body);
+  } catch (exc) {
+    body.textContent = t("ai.narrative.failed", { error: exc.message || String(exc) });
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderAiNarrative(result, bodyEl) {
+  const narrative = result.narrative || {};
+  const parts = [];
+  if (result.truncated) {
+    parts.push(`<p class="modeHint">${escapeHtml(t("ai.narrative.truncatedNote", {
+      sent: result.finding_count_sent, total: result.total_available,
+    }))}</p>`);
+  }
+  if (narrative.summary_paragraph) {
+    parts.push(`<p>${linkifyCitations(narrative.summary_paragraph)}</p>`);
+  }
+  for (const section of narrative.sections || []) {
+    parts.push(`<h4>${escapeHtml(section.heading || "")}</h4>`);
+    parts.push(`<p>${linkifyCitations(section.body || "")}</p>`);
+  }
+  if ((narrative.caveats || []).length) {
+    parts.push(`<ul class="aiCaveats">${narrative.caveats.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>`);
+  }
+  bodyEl.innerHTML = parts.join("\n");
+}
+
+function linkifyCitations(text) {
+  return escapeHtml(text).replace(/\[F#([\w.#-]+)\]/g, (match, fid) =>
+    `<span class="aiCitation" title="${escapeHtml(fid)}">[F#${escapeHtml(fid)}]</span>`);
+}
+
+const AI_TRIAGE_BUCKET_ORDER = ["critical_now", "high", "medium", "low", "noise"];
+const AI_TRIAGE_BUCKET_CLASS = {
+  critical_now: "triageCritical", high: "triageHigh", medium: "triageMedium",
+  low: "triageLow", noise: "triageNoise",
+};
+
+async function generateAiTriage() {
+  const job = state.currentJobData;
+  if (!job || !job.case_id) return;
+  const btn = $("aiTriageBtn");
+  const panel = $("aiTriagePanel");
+  const body = $("aiTriageBody");
+  if (!btn || !panel || !body) return;
+
+  const providerLabel = window.prompt(t("ai.narrative.providerPrompt"), "anthropic");
+  if (!providerLabel) return;
+  const provider = providerLabel.trim().toLowerCase();
+  if (!["anthropic", "openai", "local"].includes(provider)) {
+    alert(t("ai.narrative.invalidProvider"));
+    return;
+  }
+  if (!window.confirm(t("ai.triage.confirmSend", { provider }))) return;
+
+  btn.disabled = true;
+  body.textContent = t("common.loading");
+  panel.classList.remove("hidden");
+  try {
+    const result = await api("/api/ai/triage", {
+      method: "POST",
+      body: JSON.stringify({
+        case_id: job.case_id, job_id: job.id, provider,
+        lang: (window.I18N && window.I18N.get()) || "it",
+      }),
+    });
+    renderAiTriage(result, body, (state.lastReport && state.lastReport.findings) || []);
+  } catch (exc) {
+    body.textContent = t("ai.narrative.failed", { error: exc.message || String(exc) });
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderAiTriage(result, bodyEl, findings) {
+  const rankings = result.rankings || [];
+  const coverage = result.coverage || {};
+  if (!rankings.length) {
+    bodyEl.innerHTML = `<p class="modeHint">${escapeHtml(t("ai.triage.noRankings"))}</p>`;
+    return;
+  }
+
+  const byBucket = {};
+  AI_TRIAGE_BUCKET_ORDER.forEach((b) => { byBucket[b] = []; });
+  rankings.forEach((r) => { (byBucket[r.priority_bucket] || byBucket.noise).push(r); });
+
+  const findingLabel = (findingId) => {
+    const idx = Number(String(findingId).split("#").pop());
+    const f = Number.isInteger(idx) ? findings[idx] : null;
+    return f ? `${escapeHtml(f.kind)}: ${escapeHtml(String(f.value).slice(0, 100))}` : escapeHtml(findingId);
+  };
+
+  const renderRow = (r) => {
+    const rationale = r.fallback ? t("ai.triage.fallbackRationale") : r.rationale;
+    return `
+      <div class="triageRow ${AI_TRIAGE_BUCKET_CLASS[r.priority_bucket] || "triageNoise"}" title="${escapeHtml(rationale)}">
+        <span class="triageBadge">${escapeHtml(t("ai.triage.bucket." + r.priority_bucket))}</span>
+        <span class="triageLabel">${findingLabel(r.finding_id)}</span>
+      </div>`;
+  };
+
+  const sections = [];
+  for (const bucket of AI_TRIAGE_BUCKET_ORDER) {
+    const rows = byBucket[bucket];
+    if (!rows.length) continue;
+    if (bucket === "noise") {
+      sections.push(`
+        <details class="triageNoiseGroup">
+          <summary>${escapeHtml(t("ai.triage.showMore", { n: rows.length }))}</summary>
+          ${rows.map(renderRow).join("")}
+        </details>`);
+    } else {
+      sections.push(rows.map(renderRow).join(""));
+    }
+  }
+
+  const coverageNote = (coverage.fallback_ranked || coverage.dropped_hallucinated)
+    ? `<p class="modeHint">${escapeHtml(t("ai.triage.coverageNote", {
+        ai: coverage.ai_ranked || 0, total: coverage.total || 0,
+      }))}</p>`
+    : "";
+
+  bodyEl.innerHTML = coverageNote + sections.join("");
 }
 
 function populateCaseSelector(cases) {
@@ -2118,9 +2412,18 @@ function showEntityProfile(report) {
   // Render default tab
   renderEntityTab("overview", report);
   renderSuggestedActions(target, targetType, report);
+  updateEntityAiTabVisibility();
 
   // Navigate to entity panel
   document.querySelector('.nav[data-panel="entity"]').click();
+}
+
+function updateEntityAiTabVisibility() {
+  const tabBtn = document.querySelector('.entityTab[data-etab="ai-suggestions"]');
+  if (!tabBtn) return;
+  const job = state.currentJobData;
+  const caseObj = job && job.case_id ? (state.cases || []).find((c) => c.id === job.case_id) : null;
+  tabBtn.classList.toggle("hidden", !(caseObj && caseObj.ai_enrichment_enabled));
 }
 
 function renderEntityTab(tab, report) {
@@ -2178,9 +2481,114 @@ function renderEntityTab(tab, report) {
     case "audit":
       body.innerHTML = renderAuditTab(report);
       break;
+    case "ai-suggestions":
+      body.innerHTML = renderAiSuggestionsTabShell();
+      wireAiSuggestionsTab(report);
+      break;
     default:
       body.innerHTML = `<div class="entityTabEmpty">${t("en.tabUnavailable")}</div>`;
   }
+}
+
+function renderAiSuggestionsTabShell() {
+  return `
+    <div class="aiSuggestionsIntro">
+      <p class="modeHint">${escapeHtml(t("ai.entity.intro"))}</p>
+      <button type="button" id="aiEntitySuggestBtn" class="smallAction aiTrigger">${escapeHtml(t("ai.entity.generateBtn"))}</button>
+    </div>
+    <div id="aiEntitySuggestionsList" class="aiSuggestionsList"></div>
+  `;
+}
+
+function wireAiSuggestionsTab(report) {
+  const btn = $("aiEntitySuggestBtn");
+  const list = $("aiEntitySuggestionsList");
+  if (!btn || !list) return;
+  btn.addEventListener("click", async () => {
+    const job = state.currentJobData;
+    if (!job || !job.case_id) return;
+    const providerLabel = window.prompt(t("ai.narrative.providerPrompt"), "anthropic");
+    if (!providerLabel) return;
+    const provider = providerLabel.trim().toLowerCase();
+    if (!["anthropic", "openai", "local"].includes(provider)) {
+      alert(t("ai.narrative.invalidProvider"));
+      return;
+    }
+    if (!window.confirm(t("ai.entity.confirmSend", { provider }))) return;
+    btn.disabled = true;
+    list.textContent = t("common.loading");
+    try {
+      const result = await api("/api/ai/entity-suggestions", {
+        method: "POST",
+        body: JSON.stringify({
+          case_id: job.case_id, provider,
+          lang: (window.I18N && window.I18N.get()) || "it",
+        }),
+      });
+      renderAiSuggestionsList(result, list, report.entities || [], job.case_id);
+    } catch (exc) {
+      list.textContent = t("ai.narrative.failed", { error: exc.message || String(exc) });
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+function renderAiSuggestionsList(result, listEl, entities, caseId) {
+  const verdicts = result.verdicts || [];
+  if (!verdicts.length) {
+    const note = result.candidates_total === 0 ? t("ai.entity.noCandidates") : t("ai.entity.noSuggestions");
+    listEl.innerHTML = `<p class="modeHint">${escapeHtml(note)}</p>`;
+    return;
+  }
+  const byId = {};
+  entities.forEach((e) => { byId[e.id] = e; });
+  const labelFor = (id) => {
+    const e = byId[id];
+    return e ? `${escapeHtml(e.display_value || e.value)} (${escapeHtml(e.type)})` : escapeHtml(id.slice(0, 8));
+  };
+
+  listEl.innerHTML = verdicts.map((v, idx) => `
+    <div class="aiSuggestionCard" data-idx="${idx}">
+      <div class="aiSuggestionHead">
+        <span>${labelFor(v.entity_id_a)}</span>
+        <span aria-hidden="true">&harr;</span>
+        <span>${labelFor(v.entity_id_b)}</span>
+      </div>
+      <div class="confTrack"><div class="confFill ${v.confidence >= 0.7 ? "high" : v.confidence >= 0.4 ? "medium" : "low"}" style="width:${Math.round(v.confidence * 100)}%"></div></div>
+      <p>${escapeHtml(v.rationale || "")}</p>
+      <div class="actions">
+        <button type="button" class="smallAction" data-decision="confirmed">${escapeHtml(t("ai.entity.confirm"))}</button>
+        <button type="button" class="smallAction secondary" data-decision="rejected">${escapeHtml(t("ai.entity.reject"))}</button>
+      </div>
+      <p class="aiDecisionMsg"></p>
+    </div>
+  `).join("");
+
+  listEl.querySelectorAll(".aiSuggestionCard").forEach((card) => {
+    const idx = Number(card.dataset.idx);
+    const v = verdicts[idx];
+    card.querySelectorAll("[data-decision]").forEach((decideBtn) => {
+      decideBtn.addEventListener("click", async () => {
+        const msg = card.querySelector(".aiDecisionMsg");
+        try {
+          await api("/api/ai/entity-suggestions/decide", {
+            method: "POST",
+            body: JSON.stringify({
+              case_id: caseId, entity_id_a: v.entity_id_a, entity_id_b: v.entity_id_b,
+              decision: decideBtn.dataset.decision, ai_run_id: result.run_id,
+              ai_confidence: v.confidence, ai_rationale: v.rationale,
+            }),
+          });
+          card.classList.add(decideBtn.dataset.decision === "confirmed" ? "aiConfirmed" : "aiRejected");
+          if (msg) msg.textContent = decideBtn.dataset.decision === "confirmed"
+            ? t("ai.entity.confirmedMsg") : t("ai.entity.rejectedMsg");
+        } catch (exc) {
+          if (msg) msg.textContent = t("err.generic") + (exc.message || exc);
+        }
+      });
+    });
+  });
 }
 
 function renderEntityOverview(report, entities, findings) {

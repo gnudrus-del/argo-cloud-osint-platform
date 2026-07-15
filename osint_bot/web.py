@@ -10,7 +10,6 @@ import mimetypes
 import os
 import re
 import secrets
-import sqlite3
 import time
 import uuid
 
@@ -129,6 +128,44 @@ API_KEY_CATALOG: list[dict] = [
     {"service": "influencers_club","label": "Influencers Club","env_var": "INFLUENCERS_CLUB_API_KEY","doc": "https://influencers.club/", "category": "Reverse account"},
 ]
 
+# Agenti IA (LLM) opt-in — vedi osint_bot/llm_client.py. Esclusi da
+# API_KEY_CATALOG (quindi invisibili in "Chiavi API" e ogni /api/ai/* risponde
+# 404) finché OSINT_AI_AGENTS_ENABLED non è impostata a "1": è il kill-switch
+# a livello di deployment, indipendente dal flag ai_enrichment_enabled per
+# singolo caso. Nessun dato lascia il perimetro finché entrambi non sono attivi.
+AI_KEY_CATALOG: list[dict] = [
+    {"service": "llm_anthropic", "label": "Anthropic Claude (agente IA)", "env_var": "ANTHROPIC_API_KEY", "doc": "https://console.anthropic.com/settings/keys", "category": "Agente IA (LLM, opt-in)"},
+    {"service": "llm_openai",    "label": "OpenAI (agente IA)",           "env_var": "OPENAI_API_KEY",    "doc": "https://platform.openai.com/api-keys", "category": "Agente IA (LLM, opt-in)"},
+    {"service": "llm_local",     "label": "Endpoint locale (Ollama/llama.cpp)", "env_var": "LOCAL_LLM_BASE_URL", "doc": "https://github.com/ollama/ollama/blob/main/docs/openai.md", "category": "Agente IA (LLM, opt-in)"},
+]
+
+
+def ai_agents_enabled() -> bool:
+    """Kill-switch di deployment. Default OFF: nessun dato esce verso un LLM
+    a meno che l'operatore non lo abiliti esplicitamente sulla VM."""
+    return os.getenv("OSINT_AI_AGENTS_ENABLED", "0").strip() == "1"
+
+
+def tsa_configured() -> str:
+    """URL della TSA RFC3161 configurata dall'operatore, o '' se il timestamp
+    esterno è disattivato. Nessun default hardcoded nel codice — stessa
+    filosofia BYO di ogni altra integrazione di terze parti (MISP_URL,
+    FLOWSINT_URL, ...); solo suggerimenti in docs/CONFIGURATION.md. La firma
+    Ed25519 locale (report_signing.py) non ha bisogno di questo gate: è
+    calcolo puramente locale, zero rete in uscita."""
+    return os.getenv("TSA_URL", "").strip()
+
+
+def api_key_catalog_for(actor: str = "") -> list[dict]:
+    """API_KEY_CATALOG + AI_KEY_CATALOG quando il kill-switch è ON.
+
+    Punto singolo da cui /api/keys, /api/keys/test e la UI leggono il
+    catalogo effettivo — così 'disattivato di default' è garantito in un
+    solo posto invece che replicato in ogni handler."""
+    if ai_agents_enabled():
+        return API_KEY_CATALOG + AI_KEY_CATALOG
+    return API_KEY_CATALOG
+
 
 def _resolve_actor_keys(actor: str) -> dict[str, str]:
     """Snapshot the per-actor key set into a flat dict for SearchConfig/agents."""
@@ -152,7 +189,7 @@ def resolve_api_key(service: str, actor: str = "") -> str:
         key = get_storage().get_api_key(actor, service)
         if key:
             return key
-    for entry in API_KEY_CATALOG:
+    for entry in API_KEY_CATALOG + AI_KEY_CATALOG:
         if entry["service"] == service:
             return os.getenv(entry["env_var"], "") or ""
     return ""
@@ -499,7 +536,13 @@ class OsintHandler(BaseHTTPRequestHandler):
                 if not (sess and sess.get("admin_unlocked")):
                     raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per gestire le chiavi API.")
                 actor = actor_from_request(self)
-                return self.send_json({"keys": get_storage().list_api_keys(actor), "catalog": API_KEY_CATALOG})
+                return self.send_json({"keys": get_storage().list_api_keys(actor), "catalog": api_key_catalog_for(actor)})
+            if path == "/api/report-signing/public-key":
+                # Pensata per essere condivisa liberamente: nessun permesso
+                # speciale oltre l'essere autenticati.
+                self.require_auth()
+                from . import report_signing
+                return self.send_json(report_signing.export_public_key(JOB_ROOT))
             if path == "/api/jobs":
                 self.require_auth()
                 return self.send_json({"jobs": list_jobs(actor_from_request(self))})
@@ -650,7 +693,7 @@ class OsintHandler(BaseHTTPRequestHandler):
                 actor = actor_from_request(self)
                 service = str(payload.get("service") or "").strip()
                 value = str(payload.get("value") or "").strip()
-                if service not in {entry["service"] for entry in API_KEY_CATALOG}:
+                if service not in {entry["service"] for entry in api_key_catalog_for(actor)}:
                     raise WebError(HTTPStatus.BAD_REQUEST, "Servizio non riconosciuto.")
                 store = get_storage()
                 store.put_api_key(actor, service, value)
@@ -662,7 +705,7 @@ class OsintHandler(BaseHTTPRequestHandler):
                     "api_key_updated" if value else "api_key_removed",
                     {"service": service},
                 )
-                return self.send_json({"keys": store.list_api_keys(actor), "catalog": API_KEY_CATALOG})
+                return self.send_json({"keys": store.list_api_keys(actor), "catalog": api_key_catalog_for(actor)})
             if path == "/api/keys/test":
                 sess = current_session(self)
                 if not (sess and sess.get("admin_unlocked")):
@@ -672,7 +715,7 @@ class OsintHandler(BaseHTTPRequestHandler):
                 payload = self.read_json()
                 actor = actor_from_request(self)
                 service = str(payload.get("service") or "").strip()
-                if service not in {entry["service"] for entry in API_KEY_CATALOG}:
+                if service not in {entry["service"] for entry in api_key_catalog_for(actor)}:
                     raise WebError(HTTPStatus.BAD_REQUEST, "Servizio non riconosciuto.")
                 # Se l'utente passa "value" testiamo quella chiave (senza salvare),
                 # altrimenti usiamo la chiave salvata.
@@ -742,6 +785,37 @@ class OsintHandler(BaseHTTPRequestHandler):
                 self.require_auth()
                 actor = actor_from_request(self)
                 return self.send_json(handle_privacy_dsar(actor))
+            if path.startswith("/api/cases/") and path.endswith("/ai-settings"):
+                parts = [p for p in path.split("/") if p]
+                if len(parts) != 4:
+                    raise WebError(HTTPStatus.NOT_FOUND, "Endpoint non trovato.")
+                case_id = parts[2]
+                payload = self.read_json()
+                actor = actor_from_request(self)
+                return self.send_json(set_case_ai_settings(case_id, payload, actor))
+            if path == "/api/ai/narrative":
+                payload = self.read_json()
+                actor = actor_from_request(self)
+                return self.send_json(handle_ai_narrative(payload, actor))
+            if path == "/api/ai/entity-suggestions":
+                payload = self.read_json()
+                actor = actor_from_request(self)
+                return self.send_json(handle_ai_entity_suggestions(payload, actor))
+            if path == "/api/ai/entity-suggestions/decide":
+                payload = self.read_json()
+                actor = actor_from_request(self)
+                return self.send_json(handle_ai_entity_decide(payload, actor))
+            if path == "/api/ai/triage":
+                payload = self.read_json()
+                actor = actor_from_request(self)
+                return self.send_json(handle_ai_triage(payload, actor))
+            if path.startswith("/api/jobs/") and path.endswith("/seal/tsa-timestamp"):
+                parts = [p for p in path.split("/") if p]
+                if len(parts) != 5:
+                    raise WebError(HTTPStatus.NOT_FOUND, "Endpoint non trovato.")
+                job_id = parts[2]
+                actor = actor_from_request(self)
+                return self.send_json(handle_request_tsa_timestamp(job_id, actor))
             raise WebError(HTTPStatus.NOT_FOUND, "Endpoint non trovato.")
         except WebError as exc:
             self.send_json({"error": exc.message}, exc.status)
@@ -1026,6 +1100,8 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         # Export threat-intel generati al volo dall'investigation JSON.
         if len(parts) == 4 and parts[3] in {"stix.json", "misp.json"}:
             return self.handle_threatintel_export(job, parts[3])
+        if len(parts) == 4 and parts[3] == "seal":
+            return self.send_json(handle_get_seal(job_id, requester))
         if len(parts) == 4 and parts[3] in {
             "report.md", "report.json", "report.pdf",
             "forensic.md", "forensic.json",
@@ -1969,6 +2045,18 @@ def execute_job(job_id: str, profile: RunProfile, payload: dict, actor: str = "s
             }
         )
         get_storage().append_audit_event(actor, "job_completed", {"job_id": job_id, "target_type": profile.target_type})
+
+        # --- Sigillo automatico: firma Ed25519 locale del manifest (evidenze +
+        # output). Zero gate, zero rete in uscita — non deve mai far fallire
+        # il job (vedi commento su handle_seal_job).
+        try:
+            handle_seal_job(job_id, job, actor)
+        except Exception as exc:
+            LOG.warning("report sealing failed: %s", exc)
+            get_storage().append_audit_event(
+                actor, "report_seal_failed",
+                {"job_id": job_id, "case_id": job.get("case_id") or "", "error": str(exc)},
+            )
     except Exception as exc:
         job.setdefault("progress", []).append({"at": now_iso(), "stage": "error", "message": str(exc)})
         job.update({"status": "error", "updated_at": now_iso(), "error": str(exc)})
@@ -2195,7 +2283,7 @@ def capabilities(actor: str = "", admin_unlocked: bool = False) -> dict:
         "env_var": "n/a", "last4": "", "checked_at": "", "category": "Meta",
     })
 
-    for entry in API_KEY_CATALOG:
+    for entry in api_key_catalog_for(actor):
         service = entry["service"]
         key = resolve_api_key(service, actor) if actor else os.getenv(entry["env_var"], "")
         # Cached probe se la chiave c'è, altrimenti not_configured immediato.
@@ -2248,6 +2336,7 @@ def capabilities(actor: str = "", admin_unlocked: bool = False) -> dict:
         tools = _obfuscate_tools(tools)
         connectors = _obfuscate_connectors(connectors)
         providers = _obfuscate_providers(providers)
+    tsa_url = tsa_configured()
     return {
         "agents": all_agents,
         "always_on_agents": list(ALWAYS_ON_AGENTS),
@@ -2262,6 +2351,11 @@ def capabilities(actor: str = "", admin_unlocked: bool = False) -> dict:
         "signup_enabled": SIGNUPS_ENABLED,
         "plans": ["free", "pro"],
         "queue": {"pending": JOB_QUEUE.pending_count(), **queue_caps},
+        "report_sealing": {
+            "always_on": True,
+            "tsa_configured": bool(tsa_url),
+            "tsa_host": (urlparse(tsa_url).hostname or "") if tsa_url else "",
+        },
     }
 
 
@@ -2763,93 +2857,26 @@ def now_iso() -> str:
 
 # ─────────────────────────────── Privacy Center ───────────────────────────────
 
-def _privacy_table_exists() -> bool:
-    stor = get_storage()
-    try:
-        stor._conn().execute("SELECT 1 FROM privacy_requests LIMIT 1")
-        return True
-    except Exception:
-        return False
-
-
-def _ensure_privacy_table() -> None:
-    stor = get_storage()
-    con = stor._conn()
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS privacy_requests (
-            id TEXT PRIMARY KEY,
-            owner TEXT NOT NULL,
-            type TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'pending',
-            reason TEXT NOT NULL DEFAULT '',
-            created_at TEXT NOT NULL,
-            processed_at TEXT
-        )
-    """)
-    con.commit()
-
-
 def _log_privacy_request(owner: str, req_type: str, reason: str = "") -> dict:
-    _ensure_privacy_table()
-    import hashlib as _hl
-    req_id = _hl.sha256(f"{owner}:{req_type}:{now_iso()}".encode()).hexdigest()[:16]
+    req_id = hashlib.sha256(f"{owner}:{req_type}:{now_iso()}".encode()).hexdigest()[:16]
     ts = now_iso()
-    get_storage()._conn().execute(
-        "INSERT OR IGNORE INTO privacy_requests (id, owner, type, status, reason, created_at) VALUES (?,?,?,?,?,?)",
-        (req_id, owner, req_type, "pending", reason, ts),
-    )
-    get_storage()._conn().commit()
+    get_storage().log_privacy_request({
+        "id": req_id, "owner": owner, "type": req_type,
+        "status": "pending", "reason": reason, "created_at": ts,
+    })
     return {"id": req_id, "type": req_type, "status": "pending", "created_at": ts, "reason": reason}
 
 
 def get_privacy_log(actor: str) -> dict:
-    _ensure_privacy_table()
-    rows = get_storage()._conn().execute(
-        "SELECT id, type, status, reason, created_at, processed_at FROM privacy_requests WHERE owner=? ORDER BY created_at DESC LIMIT 50",
-        (actor,),
-    ).fetchall()
-    requests = [
-        {"id": r[0], "type": r[1], "status": r[2], "reason": r[3], "created_at": r[4], "processed_at": r[5]}
-        for r in rows
-    ]
-    return {"requests": requests}
+    return {"requests": get_storage().list_privacy_requests(actor)}
 
 
 def _mark_privacy_request_processed(request_id: str) -> None:
     """Flip a privacy_requests row from 'pending' to 'processed'."""
     try:
-        get_storage()._conn().execute(
-            "UPDATE privacy_requests SET status = ?, processed_at = ? WHERE id = ?",
-            ("processed", now_iso(), request_id),
-        )
-        get_storage()._conn().commit()
+        get_storage().mark_privacy_request_processed(request_id)
     except Exception:
         LOG.exception("privacy.mark_processed_failed request_id=%s", request_id)
-
-
-def _table_columns(conn, table: str) -> list[str]:
-    """Return the column names of ``table`` or [] if the table is absent.
-    Used to make the DSAR collector schema-tolerant."""
-    try:
-        rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
-        return [r[1] for r in rows]
-    except Exception:
-        return []
-
-
-def _safe_select(conn, table: str, actor: str,
-                 wanted: list[str], where_col: str = "owner") -> list[dict]:
-    """SELECT only those wanted columns that actually exist in table.
-    Returns a list of dicts keyed by column name, [] on any failure."""
-    cols = [c for c in wanted if c in _table_columns(conn, table)]
-    if not cols:
-        return []
-    q = f"SELECT {', '.join(cols)} FROM {table} WHERE {where_col} = ?"
-    try:
-        rows = conn.execute(q, (actor,)).fetchall()
-    except Exception:
-        return []
-    return [dict(zip(cols, r, strict=False)) for r in rows]
 
 
 def _collect_user_data(actor: str) -> dict:
@@ -2858,14 +2885,15 @@ def _collect_user_data(actor: str) -> dict:
 
     Schema-tolerant: probes each table for its actual columns and only
     reads those that are present, so older databases do not break the
-    DSAR flow.
+    DSAR flow. Backend-agnostic: goes through Storage.select_owned_columns
+    (dialect-correct on both SQLite and Postgres), never touches _conn()
+    directly — the previous version hand-wrote SQLite-only SQL here
+    (?-placeholders, PRAGMA table_info) that broke silently on Postgres.
     """
     stor = get_storage()
-    conn = stor._conn()
 
-    user_rows = _safe_select(conn, "users", actor,
-                             ["username", "email", "created_at", "verified"],
-                             where_col="username")
+    user_rows = stor.select_owned_columns("users", "username", actor,
+                                          ["username", "email", "created_at", "verified"])
     user = user_rows[0] if user_rows else {"username": actor}
 
     try:
@@ -2873,14 +2901,15 @@ def _collect_user_data(actor: str) -> dict:
     except Exception:
         cases = []
 
-    jobs = _safe_select(conn, "jobs", actor,
-                        ["id", "status", "case_id", "created_at", "updated_at"])
-    api_keys = _safe_select(conn, "api_keys", actor,
-                            ["service", "created_at"])
-    privacy_history = _safe_select(
-        conn, "privacy_requests", actor,
-        ["id", "type", "status", "reason", "created_at", "processed_at"],
-    )
+    jobs = stor.select_owned_columns("jobs", "owner", actor,
+                                     ["id", "status", "case_id", "created_at", "updated_at"])
+    # api_keys e' keyed su (username, service), non "owner" — la versione
+    # precedente interrogava "WHERE owner = ?" su una tabella senza colonna
+    # owner: falliva silenziosamente e l'export non rivelava mai le chiavi
+    # configurate. Bug verificato empiricamente prima di questo fix.
+    api_keys = stor.select_owned_columns("api_keys", "username", actor,
+                                         ["service", "created_at"])
+    privacy_history = stor.list_privacy_requests(actor)
 
     return {
         "account": user,
@@ -2950,161 +2979,501 @@ def handle_privacy_dsar(actor: str) -> dict:
 def handle_privacy_erase(actor: str, payload: dict) -> dict:
     """GDPR art. 17 — right to erasure.
 
-    Executes a **real** atomic deletion instead of just logging a promise:
+    Executes a **real** atomic deletion instead of just logging a promise —
+    the actual redaction/tombstone/deletion logic lives in
+    ``Storage.erase_actor_data`` (SQLite) / ``PostgresStorage.erase_actor_data``
+    (Postgres), one implementation per backend in its own dialect, mirroring
+    how ``append_audit_event`` is already split per-backend. This function
+    only logs the request and formats the response.
 
-    1. INSERT a ``privacy_requests`` row for the audit trail.
-    2. Redact the actor's personal fields from every ``audit_events`` row
-       that mentions them (case_id is hashed, target strings are replaced
-       by a stable placeholder).
-    3. Append a new ``audit_events`` row of kind ``account_erased_dsar``
-       so the chain moves forward with the erasure recorded.
-    4. INSERT a ``dsar_tombstones`` row with a SHA-256 selector of the
-       erased subject and the last audit hash, so future proof-of-erasure
-       requests can be answered without re-disclosing the subject.
-    5. DELETE the actor's rows from ``cases``, ``jobs``, ``artifacts``,
-       ``roes``, ``api_keys`` and finally ``users``.
-    6. Flip the privacy_requests row to ``processed`` and return the
-       tombstone_id and the request_id.
-
-    The whole transaction is atomic; if any step fails the deletion is
-    rolled back and the actor's account is left intact.
+    The whole erasure is atomic; if any step fails inside
+    ``erase_actor_data`` the deletion is rolled back and the actor's account
+    is left intact.
     """
     reason = str(payload.get("reason", "")).strip()[:500]
     rec = _log_privacy_request(actor, "erase", reason)
     LOG.warning("privacy.erase_request actor=%s request_id=%s reason=%s",
                 actor, rec["id"], reason[:80])
 
-    import hashlib as _hl
-    import json as _json
-    import uuid as _uuid
-
-    ts = now_iso()
-    selector_bytes = f"user:{actor.lower()}".encode()
-    selector_hash = _hl.sha256(selector_bytes).hexdigest()
-    tomb_id = "TOMB-" + _uuid.uuid4().hex[:12]
-    redacted = f"[REDACTED-DSAR-{ts[:10]}]"
-
-    stor = get_storage()
-    db = stor._conn()
-
+    redacted_placeholder = f"[REDACTED-DSAR-{now_iso()[:10]}]"
     try:
-        db.execute("BEGIN")
-
-        # 2. Redact the actor's identifiers in audit_events.
-        rows = db.execute(
-            "SELECT seq, actor, details FROM audit_events "
-            "WHERE actor = ? OR details LIKE ?",
-            (actor, f"%{actor}%"),
-        ).fetchall()
-        redacted_seqs: list[int] = []
-        for seq, ev_actor, details in rows:
-            new_actor = redacted if ev_actor == actor else ev_actor
-            new_details = details or ""
-            if actor in new_details:
-                new_details = new_details.replace(actor, redacted)
-            if new_actor != ev_actor or new_details != (details or ""):
-                db.execute(
-                    "UPDATE audit_events SET actor = ?, details = ? WHERE seq = ?",
-                    (new_actor, new_details, seq),
-                )
-                redacted_seqs.append(seq)
-
-        # 3. Append the account_erased_dsar event.
-        last = db.execute(
-            "SELECT hash FROM audit_events ORDER BY seq DESC LIMIT 1"
-        ).fetchone()
-        prev_hash = last[0] if last else ""
-        new_seq_row = db.execute(
-            "SELECT COALESCE(MAX(seq), 0) + 1 FROM audit_events"
-        ).fetchone()
-        new_seq = new_seq_row[0] if new_seq_row else 1
-        details_json = _json.dumps({
-            "subject_hash": selector_hash,
-            "tombstone_id": tomb_id,
-            "privacy_request_id": rec["id"],
-            "reason": "GDPR art. 17 erasure",
-            "redacted_seqs_count": len(redacted_seqs),
-        })
-        canonical = f"{new_seq}|{ts}|system|account_erased_dsar|{details_json}|{prev_hash}"
-        new_hash = _hl.sha256(canonical.encode()).hexdigest()
-        db.execute(
-            "INSERT INTO audit_events (seq, timestamp, actor, action, details, previous_hash, hash) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (new_seq, ts, "system", "account_erased_dsar",
-             details_json, prev_hash, new_hash),
+        result = get_storage().erase_actor_data(
+            actor, request_id=rec["id"], redacted_placeholder=redacted_placeholder,
         )
-
-        # 4. Tombstone.
-        db.execute(
-            "INSERT INTO dsar_tombstones (id, selector_sha256, erased_at, actor, scope, audit_hash) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (tomb_id, selector_hash, ts, "system",
-             _json.dumps({
-                 "subject_kind": "user_account",
-                 "redacted_audit_events": len(redacted_seqs),
-                 "privacy_request_id": rec["id"],
-             }),
-             new_hash),
-        )
-
-        # 5. Delete the user's business data. Order matters for FK safety.
-        # Each table is deleted schema-tolerantly: we build a WHERE clause
-        # from whichever ownership column(s) actually exist on the table.
-        counts = {}
-        ownership_columns = ("owner", "actor", "signed_by", "tenant_id", "username")
-        for table in ("artifacts", "roes", "jobs", "cases", "api_keys"):
-            cols_present = [c for c in ownership_columns
-                            if c in _table_columns(db, table)]
-            if not cols_present:
-                counts[table] = 0
-                continue
-            where = " OR ".join(f"{c} = ?" for c in cols_present)
-            try:
-                cur = db.execute(
-                    f"DELETE FROM {table} WHERE {where}",
-                    tuple([actor] * len(cols_present)),
-                )
-                counts[table] = cur.rowcount
-            except sqlite3.OperationalError:
-                counts[table] = 0
-
-        # Finally, the user row.
-        cur = db.execute("DELETE FROM users WHERE username = ?", (actor,))
-        counts["users"] = cur.rowcount
-
-        # 6. Mark privacy request processed.
-        db.execute(
-            "UPDATE privacy_requests SET status = ?, processed_at = ? WHERE id = ?",
-            ("processed", ts, rec["id"]),
-        )
-
-        db.commit()
-
         LOG.warning(
             "privacy.erase_completed actor_hash=%s request_id=%s tombstone=%s "
             "redacted_events=%d deleted=%s",
-            selector_hash[:16], rec["id"], tomb_id, len(redacted_seqs), counts,
+            result["selector_sha256"][:16], rec["id"], result["tombstone_id"],
+            result["redacted_events_count"], result["deleted_counts"],
         )
         return {
             "status": "ok",
             "message": (
                 f"Cancellazione eseguita (richiesta {rec['id']}). "
-                f"Tombstone: {tomb_id}. L'account non è più recuperabile "
+                f"Tombstone: {result['tombstone_id']}. L'account non è più recuperabile "
                 f"dal filesystem attivo; eventuali backup restano soggetti "
                 f"alla policy di rotazione del datastore."
             ),
             "request_id": rec["id"],
-            "tombstone_id": tomb_id,
-            "selector_sha256": selector_hash,
-            "erased_at": ts,
+            "tombstone_id": result["tombstone_id"],
+            "selector_sha256": result["selector_sha256"],
+            "erased_at": result["erased_at"],
         }
     except Exception as exc:
-        db.rollback()
         LOG.exception("privacy.erase_failed actor=%s request_id=%s", actor, rec["id"])
         return {
             "status": "error",
             "message": f"Cancellazione fallita (ID {rec['id']}): {exc}. Nessun dato è stato modificato.",
         }
+
+
+# ------------------------------------------------------------------------
+# Agenti IA (LLM, opt-in) — vedi llm_client.py / ai_context.py /
+# narrative_synthesis.py / policy.py (nessun action_class dedicato: vedi
+# _require_ai_enabled_case per i tre gate indipendenti usati al suo posto).
+# ------------------------------------------------------------------------
+
+def _require_ai_agents_enabled() -> None:
+    """Kill-switch di deployment. 404 (non 403) per non rivelare l'esistenza
+    della feature quando l'operatore l'ha disattivata del tutto."""
+    if not ai_agents_enabled():
+        raise WebError(HTTPStatus.NOT_FOUND, "Endpoint non trovato.")
+
+
+def _require_ai_enabled_case(case_id: str, actor: str) -> dict:
+    """I tre gate indipendenti, in ordine: kill-switch server -> consenso
+    per-caso -> (a valle, nel chiamante) presenza della chiave BYOK. Ognuno
+    fallisce chiuso: un caso non trovato o senza consenso non genera mai
+    una chiamata LLM."""
+    _require_ai_agents_enabled()
+    case = read_case(case_id, requester=actor)
+    if not case.get("ai_enrichment_enabled"):
+        raise WebError(HTTPStatus.FORBIDDEN, "Arricchimento AI non abilitato per questo caso.")
+    return case
+
+
+def _resolve_llm_credentials(provider: str, actor: str) -> tuple[str, str]:
+    """Ritorna (api_key, base_url). Per 'local' il valore salvato è
+    'base_url|token' (llm_client.parse_local_value); per anthropic/openai
+    api_key è il valore diretto e base_url resta vuoto. Nessuna chiave
+    configurata -> entrambi vuoti (il chiamante decide come rispondere)."""
+    from . import llm_client
+    value = resolve_api_key(f"llm_{provider}", actor)
+    if provider == "local":
+        base_url, token = llm_client.parse_local_value(value)
+        return token, base_url
+    return value, ""
+
+
+def _resolve_llm_model(provider: str, requested_model: str) -> str:
+    from . import llm_client
+    if requested_model:
+        return requested_model
+    if provider == "anthropic":
+        return llm_client.DEFAULT_ANTHROPIC_MODEL
+    if provider == "openai":
+        return llm_client.DEFAULT_OPENAI_MODEL
+    return os.getenv("LOCAL_LLM_MODEL", "")
+
+
+def set_case_ai_settings(case_id: str, payload: dict, actor: str) -> dict:
+    """Owner-only, stesso controllo di sign_roe. Consenso per-caso alle
+    capability IA — indipendente dal kill-switch OSINT_AI_AGENTS_ENABLED."""
+    _require_ai_agents_enabled()
+    case = read_case(case_id, requester=actor)
+    if case["owner"] != actor:
+        raise WebError(HTTPStatus.FORBIDDEN, "Solo l'owner del caso può modificare le impostazioni IA.")
+    enabled = bool(payload.get("ai_enrichment_enabled"))
+    store = get_storage()
+    store.set_case_ai_enrichment(case_id, enabled)
+    store.append_audit_event(
+        actor,
+        "case_ai_enrichment_enabled" if enabled else "case_ai_enrichment_disabled",
+        {"case_id": case_id},
+    )
+    return read_case(case_id, requester=actor)
+
+
+# ------------------------------------------------------------ report sealing
+
+_REPORT_PATH_FIELDS = (
+    "markdown_path", "json_path", "pdf_path",
+    "forensic_markdown_path", "forensic_json_path",
+    "redteam_markdown_path", "redteam_json_path",
+)
+
+
+def _report_paths_from_job(job: dict) -> dict[str, str]:
+    """Stessa tupla di campi di delete_job_artifacts — i path dei report
+    finali di un job, così com'è, filtrati dai vuoti a valle da
+    custody.register_report_artifacts."""
+    return {key: job.get(key, "") for key in _REPORT_PATH_FIELDS}
+
+
+def handle_seal_job(job_id: str, job: dict, actor: str) -> dict:
+    """Sigilla i report di un job: registra i file di output come artifact
+    (custody.register_report_artifacts), produce il manifest dell'intero
+    caso (custody.export_case_manifest — vedi il commento in custody.py sul
+    perché è case-scoped, non job-scoped) e lo firma con la chiave Ed25519
+    locale dell'istanza (report_signing.py). Zero gate, zero rete in uscita:
+    chiamata automaticamente al completamento di ogni job. Il chiamante
+    (execute_job) la avvolge in try/except — un fallimento qui non deve mai
+    far fallire il job."""
+    from . import custody, report_signing
+
+    case_id = job.get("case_id") or ""
+    store = get_storage()
+    custody.register_report_artifacts(
+        job_id=job_id, case_id=case_id, report_paths=_report_paths_from_job(job),
+        storage=store, job_root=JOB_ROOT, actor=actor,
+    )
+    manifest = custody.export_case_manifest(case_id, store, JOB_ROOT)
+    signature = report_signing.sign_digest(manifest["manifest_hash"], JOB_ROOT)
+    seal = store.put_report_seal({
+        "case_id": case_id,
+        "job_id": job_id,
+        "manifest_hash": manifest["manifest_hash"],
+        "artifact_count": manifest["artifact_count"],
+        "signature_b64": signature["signature_b64"],
+        "signing_pubkey_b64": signature["public_key_b64"],
+        "signing_pubkey_fingerprint": signature["fingerprint_sha256"],
+        "sealed_by": actor,
+    })
+    store.append_audit_event(actor, "report_sealed", {
+        "job_id": job_id, "case_id": case_id,
+        "manifest_hash": manifest["manifest_hash"],
+        "artifact_count": manifest["artifact_count"],
+        "signing_pubkey_fingerprint": signature["fingerprint_sha256"],
+    })
+    return seal
+
+
+def handle_get_seal(job_id: str, actor: str) -> dict:
+    """GET /api/jobs/<id>/seal — il sigillo di un job, con istruzioni di
+    verifica indipendente. 404 se il job non è ancora stato sigillato (job
+    non completo, o il sigillo automatico è fallito)."""
+    read_job(job_id, requester=actor)  # visibility check, stesso pattern degli altri job endpoint
+    seal = get_storage().get_report_seal(job_id)
+    if seal is None:
+        raise WebError(HTTPStatus.NOT_FOUND, "Nessun sigillo per questo job.")
+    seal = dict(seal)
+    seal["verify_hint"] = (
+        "openssl ts -reply -in token.der -text  # decodifica il token RFC3161 (se presente)\n"
+        "La firma Ed25519 si verifica con la chiave pubblica dell'istanza "
+        "(GET /api/report-signing/public-key) sul digest SHA-256 del manifest."
+    )
+    return seal
+
+
+def handle_request_tsa_timestamp(job_id: str, actor: str) -> dict:
+    """POST /api/jobs/<id>/seal/tsa-timestamp — richiede un timestamp RFC3161
+    esterno sul manifest_hash già sigillato. 404 se TSA_URL non è configurato
+    (stesso pattern 'invisibile se non configurato' del resto del catalogo
+    BYO). Verso la TSA esce solo il digest SHA-256 (32 byte) — mai contenuto
+    del caso — motivo per cui questo endpoint non ha bisogno del consenso
+    per-caso della feature IA: e' un solo gate leggero, non tre."""
+    from . import tsa_client
+
+    tsa_url = tsa_configured()
+    if not tsa_url:
+        raise WebError(HTTPStatus.NOT_FOUND, "Endpoint non trovato.")
+
+    read_job(job_id, requester=actor)  # visibility check, stesso pattern degli altri job endpoint
+    store = get_storage()
+    seal = store.get_report_seal(job_id)
+    if seal is None:
+        raise WebError(HTTPStatus.NOT_FOUND, "Nessun sigillo per questo job: sigillalo prima di richiedere un timestamp.")
+
+    tsa_host = urlparse(tsa_url).hostname or tsa_url
+    requested_at = now_iso()
+    store.append_audit_event(actor, "report_timestamp_requested", {
+        "job_id": job_id, "case_id": seal["case_id"], "tsa_host": tsa_host,
+    })
+    result = tsa_client.request_timestamp(tsa_url, seal["manifest_hash"])
+    updated = store.update_report_seal_tsa(
+        job_id, tsa_url_host=tsa_host, tsa_status=result.status or result.error_class,
+        tsa_token_der_b64=result.token_der_b64, tsa_gen_time=result.gen_time,
+        tsa_requested_at=requested_at,
+    )
+    store.append_audit_event(
+        actor,
+        "report_timestamp_received" if result.ok else "report_timestamp_failed",
+        {
+            "job_id": job_id, "case_id": seal["case_id"], "tsa_host": tsa_host,
+            "status": result.status, "error_class": result.error_class,
+            "http_status": result.http_status,
+        },
+    )
+    if not result.ok:
+        raise WebError(HTTPStatus.BAD_GATEWAY, result.error or "Richiesta di timestamp fallita.")
+    return updated
+
+
+def handle_ai_narrative(payload: dict, actor: str) -> dict:
+    """POST /api/ai/narrative — sintesi narrativa del caso con citazioni.
+    Mai un merge/scrittura automatica: l'output è restituito al chiamante,
+    che decide come mostrarlo (vedi ReportContext.ai_narrative per l'hook
+    fase 2, non ancora attivo)."""
+    from . import ai_context, llm_client, narrative_synthesis
+
+    case_id = str(payload.get("case_id") or "").strip()
+    if not case_id:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Parametro 'case_id' obbligatorio.")
+    case = _require_ai_enabled_case(case_id, actor)
+
+    job_id = str(payload.get("job_id") or "").strip()
+    provider = str(payload.get("provider") or "").strip()
+    if provider not in llm_client.LLM_PROVIDERS:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Parametro 'provider' non valido (anthropic|openai|local).")
+    lang = str(payload.get("lang") or "it").strip().lower()
+    if lang not in ("it", "en"):
+        lang = "it"
+    max_findings = min(int(payload.get("max_findings") or 150), 400)
+
+    api_key, base_url = _resolve_llm_credentials(provider, actor)
+    if not api_key and not base_url:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Nessuna chiave AI configurata per questo provider.")
+    model = _resolve_llm_model(provider, str(payload.get("model") or "").strip())
+
+    run_id = uuid.uuid4().hex
+    started = time.monotonic()
+    response, validation, collected = narrative_synthesis.generate(
+        case_id=case_id, case_title=case.get("title", ""), job_id=job_id, lang=lang,
+        provider=provider, model=model, api_key=api_key, base_url=base_url,
+        max_findings=max_findings,
+    )
+    duration_ms = int((time.monotonic() - started) * 1000)
+
+    # Ricostruito solo per il conteggio byte nell'audit — pure funzioni di
+    # formattazione stringa, nessuna seconda chiamata di rete.
+    sys_prompt, usr_prompt = narrative_synthesis.build_prompt(
+        collected.refs, case_title=case.get("title", ""), lang=lang,
+    )
+    byte_count_sent = ai_context.estimate_prompt_bytes(sys_prompt, usr_prompt)
+    byte_count_received = len(response.raw_text.encode("utf-8"))
+
+    store = get_storage()
+    status = "ok" if validation.ok else "error"
+    store.put_ai_run({
+        "id": run_id, "case_id": case_id, "kind": "narrative", "actor": actor,
+        "provider": provider, "model": model, "status": status,
+        "input_summary": {
+            "finding_count_sent": len(collected.refs),
+            "truncated": collected.truncated,
+            "total_available": collected.total_available,
+        },
+        "output_json": validation.parsed if validation.ok else {},
+        "error": "" if validation.ok else (validation.error or response.error),
+    })
+    store.append_audit_event(actor, "ai_narrative_generated", {
+        "case_id": case_id, "run_id": run_id, "kind": "narrative",
+        "provider": provider, "model": model, "status": status,
+        "error_class": response.error_class,
+        "finding_count_sent": len(collected.refs),
+        "byte_count_sent": byte_count_sent, "byte_count_received": byte_count_received,
+        "duration_ms": duration_ms, "job_ids": sorted({r.job_id for r in collected.refs}),
+    })
+
+    if not validation.ok:
+        raise WebError(HTTPStatus.BAD_GATEWAY,
+                       validation.error or response.error or "Generazione narrativa fallita.")
+    return {
+        "run_id": run_id,
+        "case_id": case_id,
+        "narrative": validation.parsed,
+        "truncated": collected.truncated,
+        "total_available": collected.total_available,
+        "finding_count_sent": len(collected.refs),
+    }
+
+
+def handle_ai_entity_suggestions(payload: dict, actor: str) -> dict:
+    """POST /api/ai/entity-suggestions — coppie di entità candidate a essere
+    lo stesso soggetto. Le coppie sono generate deterministicamente (nessun
+    LLM) da entity_resolution_ai.candidate_pairs prima di essere inviate."""
+    from . import ai_context, entity_resolution_ai, llm_client
+
+    case_id = str(payload.get("case_id") or "").strip()
+    if not case_id:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Parametro 'case_id' obbligatorio.")
+    _require_ai_enabled_case(case_id, actor)
+
+    provider = str(payload.get("provider") or "").strip()
+    if provider not in llm_client.LLM_PROVIDERS:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Parametro 'provider' non valido (anthropic|openai|local).")
+    lang = str(payload.get("lang") or "it").strip().lower()
+    if lang not in ("it", "en"):
+        lang = "it"
+    max_pairs = min(int(payload.get("max_pairs") or 40), 100)
+
+    api_key, base_url = _resolve_llm_credentials(provider, actor)
+    if not api_key and not base_url:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Nessuna chiave AI configurata per questo provider.")
+    model = _resolve_llm_model(provider, str(payload.get("model") or "").strip())
+
+    run_id = uuid.uuid4().hex
+    started = time.monotonic()
+    response, validation, collected = entity_resolution_ai.generate(
+        case_id=case_id, lang=lang, provider=provider, model=model,
+        api_key=api_key, base_url=base_url, max_pairs=max_pairs,
+    )
+    duration_ms = int((time.monotonic() - started) * 1000)
+
+    store = get_storage()
+    if response is None:
+        # Nessuna coppia candidata: nessuna chiamata LLM è mai partita, nulla
+        # da loggare come 'ai_entity_suggestions_generated' (non è successo
+        # nulla che riguardi un provider esterno).
+        return {"run_id": run_id, "case_id": case_id, "verdicts": [],
+               "candidates_total": 0, "candidates_truncated": False, "dropped_hallucinated": 0}
+
+    status = "ok" if validation.ok else "error"
+    # collected.pairs esiste sempre a questo punto (siamo passati oltre il
+    # return anticipato per "nessuna coppia") indipendentemente dal fatto
+    # che la chiamata LLM sia andata a buon fine: il prompt è stato
+    # comunque costruito e inviato.
+    sys_prompt, usr_prompt = entity_resolution_ai.build_prompt(collected.pairs, lang=lang)
+    byte_count_sent = ai_context.estimate_prompt_bytes(sys_prompt, usr_prompt)
+    store.put_ai_run({
+        "id": run_id, "case_id": case_id, "kind": "entity_suggestions", "actor": actor,
+        "provider": provider, "model": model, "status": status,
+        "input_summary": {"candidates_sent": len(collected.pairs), "candidates_truncated": collected.truncated,
+                          "candidates_total": collected.total_available},
+        "output_json": {"verdicts": validation.verdicts, "dropped_hallucinated": validation.dropped_hallucinated}
+                       if validation.ok else {},
+        "error": "" if validation.ok else (validation.error or response.error),
+    })
+    store.append_audit_event(actor, "ai_entity_suggestions_generated", {
+        "case_id": case_id, "run_id": run_id, "kind": "entity_suggestions",
+        "provider": provider, "model": model, "status": status,
+        "error_class": response.error_class,
+        "finding_count_sent": len(collected.pairs),
+        "byte_count_sent": byte_count_sent,
+        "byte_count_received": len(response.raw_text.encode("utf-8")),
+        "duration_ms": duration_ms, "job_ids": [],
+    })
+
+    if not validation.ok:
+        raise WebError(HTTPStatus.BAD_GATEWAY, validation.error or response.error or "Generazione suggerimenti fallita.")
+    return {
+        "run_id": run_id,
+        "case_id": case_id,
+        "verdicts": validation.verdicts,
+        "candidates_total": collected.total_available,
+        "candidates_truncated": collected.truncated,
+        "dropped_hallucinated": validation.dropped_hallucinated,
+    }
+
+
+def handle_ai_entity_decide(payload: dict, actor: str) -> dict:
+    """POST /api/ai/entity-suggestions/decide — decisione UMANA su una coppia
+    suggerita. Nessuna chiamata LLM. Scrive solo in entity_merge_decisions:
+    non tocca mai link_analysis.resolve_entities() né l'Investigation
+    salvata — il 'mai auto-merged' è garantito a livello di modello dati."""
+    case_id = str(payload.get("case_id") or "").strip()
+    entity_id_a = str(payload.get("entity_id_a") or "").strip()
+    entity_id_b = str(payload.get("entity_id_b") or "").strip()
+    decision = str(payload.get("decision") or "").strip()
+    if not case_id or not entity_id_a or not entity_id_b:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Parametri 'case_id', 'entity_id_a', 'entity_id_b' obbligatori.")
+    if decision not in ("confirmed", "rejected"):
+        raise WebError(HTTPStatus.BAD_REQUEST, "Parametro 'decision' deve essere 'confirmed' o 'rejected'.")
+    # read_case applica il controllo di visibilità owner/collaboratore
+    # (404 non 403, coerente col resto della piattaforma); non richiede il
+    # kill-switch IA: revocare/confermare una decisione già presa deve
+    # restare possibile anche a feature IA disattivata nel frattempo.
+    read_case(case_id, requester=actor)
+
+    ordered_a, ordered_b = sorted((entity_id_a, entity_id_b))
+    store = get_storage()
+    record = store.put_entity_merge_decision({
+        "case_id": case_id, "entity_id_a": ordered_a, "entity_id_b": ordered_b,
+        "decision": decision, "decided_by": actor,
+        "ai_run_id": str(payload.get("ai_run_id") or "") or None,
+        "ai_confidence": payload.get("ai_confidence"),
+        "ai_rationale": str(payload.get("ai_rationale") or "")[:500],
+    })
+    store.append_audit_event(
+        actor, "entity_merge_confirmed" if decision == "confirmed" else "entity_merge_rejected",
+        {"case_id": case_id, "entity_id_a": ordered_a, "entity_id_b": ordered_b},
+    )
+    return record
+
+
+def handle_ai_triage(payload: dict, actor: str) -> dict:
+    """POST /api/ai/triage — priorità investigativa consultiva. Non filtra
+    né nasconde mai un finding: solo ordinamento/badge, con fallback
+    deterministico per tutto ciò che l'IA non ha coperto (vedi
+    triage_ai.generate — coverage['fallback_ranked'])."""
+    from . import ai_context, llm_client, triage_ai
+
+    case_id = str(payload.get("case_id") or "").strip()
+    if not case_id:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Parametro 'case_id' obbligatorio.")
+    _require_ai_enabled_case(case_id, actor)
+
+    job_id = str(payload.get("job_id") or "").strip()
+    provider = str(payload.get("provider") or "").strip()
+    if provider not in llm_client.LLM_PROVIDERS:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Parametro 'provider' non valido (anthropic|openai|local).")
+    lang = str(payload.get("lang") or "it").strip().lower()
+    if lang not in ("it", "en"):
+        lang = "it"
+
+    api_key, base_url = _resolve_llm_credentials(provider, actor)
+    if not api_key and not base_url:
+        raise WebError(HTTPStatus.BAD_REQUEST, "Nessuna chiave AI configurata per questo provider.")
+    model = _resolve_llm_model(provider, str(payload.get("model") or "").strip())
+
+    run_id = uuid.uuid4().hex
+    started = time.monotonic()
+    result = triage_ai.generate(
+        case_id=case_id, job_id=job_id, lang=lang, provider=provider, model=model,
+        api_key=api_key, base_url=base_url,
+    )
+    duration_ms = int((time.monotonic() - started) * 1000)
+
+    byte_count_sent = 0
+    byte_count_received = 0
+    for batch, response in zip(triage_ai.split_into_batches(result.collected.refs), result.responses, strict=True):
+        sys_prompt, usr_prompt = triage_ai.build_prompt(batch, lang=lang)
+        byte_count_sent += ai_context.estimate_prompt_bytes(sys_prompt, usr_prompt)
+        byte_count_received += len(response.raw_text.encode("utf-8"))
+
+    # Un run è considerato riuscito se almeno un batch ha risposto — un
+    # fallimento parziale resta visibile in coverage, non nasconde nulla,
+    # e non deve mai risultare in un 502 quando il fallback ha comunque
+    # coperto ogni finding con un bucket deterministico.
+    any_batch_ok = any(r.ok for r in result.responses) if result.responses else True
+    status = "ok" if any_batch_ok else "error"
+
+    store = get_storage()
+    store.put_ai_run({
+        "id": run_id, "case_id": case_id, "kind": "triage", "actor": actor,
+        "provider": provider, "model": model, "status": status,
+        "input_summary": result.coverage,
+        "output_json": {"rankings": result.rankings} if any_batch_ok else {},
+        "error": "" if any_batch_ok else "; ".join(r.error for r in result.responses if r.error),
+    })
+    store.append_audit_event(actor, "ai_triage_generated", {
+        "case_id": case_id, "run_id": run_id, "kind": "triage",
+        "provider": provider, "model": model, "status": status,
+        "finding_count_sent": result.coverage["ai_ranked"] + result.coverage.get("dropped_hallucinated", 0),
+        "byte_count_sent": byte_count_sent, "byte_count_received": byte_count_received,
+        "duration_ms": duration_ms,
+        "job_ids": sorted({r.job_id for r in result.collected.refs}),
+    })
+
+    if not any_batch_ok:
+        errors = "; ".join(r.error for r in result.responses if r.error) or "Generazione triage fallita."
+        raise WebError(HTTPStatus.BAD_GATEWAY, errors)
+
+    return {
+        "run_id": run_id,
+        "case_id": case_id,
+        "rankings": result.rankings,
+        "coverage": result.coverage,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:

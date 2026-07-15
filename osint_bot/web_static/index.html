@@ -38,7 +38,7 @@
 
       <!-- HERO -->
       <section class="hero" id="top">
-        <p class="heroEyebrow reveal" data-i18n="hero.eyebrow">Open Source Intelligence · GDPR-oriented · court-ready</p>
+        <p class="heroEyebrow reveal" data-i18n="hero.eyebrow">Open Source Intelligence · GDPR-oriented · inviolabile</p>
         <h1 class="heroTitle heroTitle--wow">
           <span class="heroWord heroWord--vanish reveal delay-1" data-text="Traccia" data-i18n="hero.w1" data-i18n-attr="data-text:hero.w1">Traccia</span>
           <span class="heroWord heroWord--vanish reveal delay-2" data-text="ogni" data-i18n="hero.w2" data-i18n-attr="data-text:hero.w2">ogni</span>
@@ -50,8 +50,8 @@
         </h1>
         <p class="heroLead reveal delay-7" data-i18n="hero.lead">
           Argo è il motore OSINT italiano privacy-by-design.
-          58 connettori nativi, ricerca aggregata, report court-ready.
-          Zero dati inviati a servizi cloud terzi.
+          58 connettori nativi, ricerca aggregata, report con catena audit verificabile.
+          Zero dati inviati a servizi cloud terzi di default.
         </p>
         <div class="heroCtas reveal delay-8">
           <a href="#start" class="heroCta heroCta--primary">
@@ -113,7 +113,7 @@
           <article class="whyCard revealUp">
             <span class="whyCard__num">02</span>
             <h3 data-i18n="why.c2.h">Prova ogni claim.</h3>
-            <p data-i18n="why.c2.p">Ogni finding porta con sé provenance, hash SHA-256, timestamp e catena audit verificabile. Court-ready per default.</p>
+            <p data-i18n="why.c2.p">Ogni finding porta con sé provenance, hash SHA-256, timestamp e catena audit verificabile. Inviolabile per design.</p>
           </article>
           <article class="whyCard revealUp">
             <span class="whyCard__num">03</span>
@@ -815,6 +815,10 @@
                   <a id="redteamJsonLink" class="smallLink" href="#" target="_blank">Red Team JSON</a>
                   <a id="stixLink" class="smallLink" href="#" target="_blank" title="STIX 2.1 bundle per TIP/SIEM" data-i18n-attr="title:jobs.stixTitle">STIX 2.1</a>
                   <a id="mispLink" class="smallLink" href="#" target="_blank" title="MISP core-format event" data-i18n-attr="title:jobs.mispTitle">MISP</a>
+                  <button id="aiNarrativeBtn" class="smallLink aiTrigger hidden" type="button" data-i18n="ai.narrative.button">Genera narrativa AI</button>
+                  <button id="aiTriageBtn" class="smallLink aiTrigger hidden" type="button" data-i18n="ai.triage.button">Priorità AI</button>
+                  <button id="sealBadge" class="smallLink hidden" type="button" data-i18n="seal.badge">🔒 Sigillo</button>
+                  <button id="tsaTimestampBtn" class="smallLink hidden" type="button" data-i18n="seal.tsa.button">Richiedi timestamp RFC3161</button>
                 </div>
               </div>
               <div class="reportTabs" role="tablist" aria-label="Tipo report" data-i18n-attr="aria-label:jobs.tab.aria">
@@ -828,6 +832,18 @@
               <div id="forensicViewer" class="forensicViewer hidden">
                 <aside class="forensicNav" id="forensicNav" aria-label="Indice sezioni" data-i18n-attr="aria-label:jobs.forensicNav"></aside>
                 <article class="forensicBody" id="forensicBody"></article>
+              </div>
+              <div id="aiNarrativePanel" class="aiNarrativePanel hidden">
+                <div class="aiDisclaimer" data-i18n="ai.narrative.disclaimer">Generato da AI — non verificato. Verifica ogni citazione contro la tabella evidenze.</div>
+                <div id="aiNarrativeBody" class="aiNarrativeBody"></div>
+              </div>
+              <div id="aiTriagePanel" class="aiNarrativePanel hidden">
+                <div class="aiDisclaimer" data-i18n="ai.triage.disclaimer">Priorità consultiva generata da AI — nessun finding è filtrato o nascosto.</div>
+                <div id="aiTriageBody" class="aiNarrativeBody"></div>
+              </div>
+              <div id="sealPanel" class="aiNarrativePanel hidden">
+                <div class="aiDisclaimer" data-i18n="seal.disclaimer">Firma Ed25519 locale, calcolata automaticamente al completamento del report. Il timestamp RFC3161 (se richiesto) è emesso da una terza parte esterna a Argo — verificalo con i tuoi strumenti.</div>
+                <div id="sealBody" class="aiNarrativeBody"></div>
               </div>
             </section>
           </div>
@@ -903,6 +919,7 @@
                 <button class="entityTab" data-etab="evidences" type="button" data-i18n="entity.tab.evidences">Evidenze</button>
                 <button class="entityTab" data-etab="timeline" type="button">Timeline</button>
                 <button class="entityTab" data-etab="audit" type="button">Audit</button>
+                <button class="entityTab aiTrigger hidden" data-etab="ai-suggestions" type="button" data-i18n="ai.entity.tab">Suggerimenti IA</button>
               </nav>
               <div id="entityTabBody" class="entityTabBody"></div>
               <!-- Suggested actions panel -->
