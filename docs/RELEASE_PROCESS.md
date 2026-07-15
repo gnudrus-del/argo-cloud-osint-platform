@@ -1,6 +1,6 @@
 # Release process
 
-Manual for now. Automated release-notes and GHCR publication are tracked as a roadmap item (see `.github/workflows/release.yml` scaffolding when it lands).
+Tagging and the GitHub release are still manual. GHCR publication and categorized release notes are automated: publishing a GitHub release triggers `.github/workflows/docker-publish.yml` (build, push, Sigstore attestation) and `.github/release.yml` drives the auto-generated categorized notes.
 
 ## Versioning
 
@@ -51,21 +51,22 @@ pip install dist/argo_cloud_osint-0.1.0-py3-none-any.whl
 argo-osint --version
 ```
 
-### 4. Docker image
+### 4. Docker image (automated)
+
+Publishing the GitHub release (step 2) fires `.github/workflows/docker-publish.yml` on the `release: published` event: it builds the image, pushes `ghcr.io/<owner>/argo-cloud-osint-platform:<version>` and `:latest`, and attests Sigstore build provenance. No manual `docker push` needed. Verify after the workflow run:
 
 ```bash
-docker build -t argo-cloud-osint-platform:0.1.0 .
+gh attestation verify oci://ghcr.io/gnudrus-del/argo-cloud-osint-platform:<version> \
+    --repo gnudrus-del/argo-cloud-osint-platform
 ```
 
-Optional GHCR push (manual for now):
+To build and test the image locally first, without pushing:
 
 ```bash
-echo $GITHUB_TOKEN | docker login ghcr.io -u <your-user> --password-stdin
-docker tag argo-cloud-osint-platform:0.1.0 ghcr.io/<your-user>/argo-cloud-osint-platform:0.1.0
-docker tag argo-cloud-osint-platform:0.1.0 ghcr.io/<your-user>/argo-cloud-osint-platform:latest
-docker push ghcr.io/<your-user>/argo-cloud-osint-platform:0.1.0
-docker push ghcr.io/<your-user>/argo-cloud-osint-platform:latest
+docker build -t argo-cloud-osint-platform:<version> .
 ```
+
+The same workflow can also be triggered manually (`workflow_dispatch`, with an explicit `tag` input) if you need to re-publish an image without cutting a new release.
 
 ### 5. PyPI publication (deferred)
 

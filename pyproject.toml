@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "argo-cloud-osint"
-version = "0.1.0"
+version = "0.2.0"
 description = "Self-hosted defensive OSINT platform with CLI + web UI, BYOK connectors, audit chain, and STIX/MISP/PDF/JSON/Markdown exports."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -46,13 +46,15 @@ classifiers = [
 dependencies = [
     "reportlab>=4.0",
     "phonenumbers>=8.13",
+    "cryptography>=41.0",
+    "asn1crypto>=1.5",
 ]
 
 [project.optional-dependencies]
 web = []
 ai = [
     "pytesseract>=0.3.10",
-    "Pillow>=10.0",
+    "Pillow>=12.3.0",  # 12.2.0 ha 5 CVE note (PYSEC-2026-2253..2257), corrette in 12.3.0
     "spacy>=3.7",
     "langdetect>=1.0.9",
     "deep-translator>=1.11",
@@ -82,6 +84,8 @@ Security = "https://github.com/gnudrus-del/argo-cloud-osint-platform/security/po
 [project.scripts]
 argo-osint = "osint_bot.cli:main"
 osint-bot = "osint_bot.cli:main"
+argo-verify-report = "osint_bot.cli_verify:main"
+argo-rotate-master-key = "osint_bot.cli_rotate_key:main"
 
 [tool.setuptools]
 packages = ["osint_bot"]

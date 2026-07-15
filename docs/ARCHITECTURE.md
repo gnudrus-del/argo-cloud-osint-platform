@@ -1,120 +1,73 @@
-# Architettura e roadmap di Gufo OSINT
+# Architecture
 
-Gufo OSINT e una piattaforma self-hosted per analisi OSINT difensive, verificabili e documentabili. Il principio guida e mantenere il core stabile: la UI deve guidare l'analista, i moduli devono essere isolati, ogni evidenza deve rimanere collegata a una fonte e le azioni attive devono essere autorizzate e tracciate lato server.
+This is the detailed, module-level companion to the [Architecture at a glance](../README.md#architecture-at-a-glance) diagram in the README. Read that first for the five-layer overview; this document walks each layer's actual source files, explains why the boundaries are drawn where they are, and lists the technical debt honestly instead of as a marketing pitch.
 
-## Mappa dell'architettura attuale
+Argo is a single-process, self-hosted application: one Python codebase (`osint_bot/`), served either via the CLI (`argo-osint`) or the stdlib-based web server (`osint_bot/web.py`). There is no microservice split, no message broker requirement, and no cloud dependency — the entire pipeline runs on one machine or VM. That is a deliberate design constraint, not a limitation to "fix": it is what makes Argo installable on a Raspberry Pi or an air-gapped analyst workstation, and it is why the threat model in [`THREAT_MODEL.md`](THREAT_MODEL.md) assumes a trusted single-tenant operator rather than a multi-tenant SaaS.
 
-### UI web
+## Layers
 
-- `osint_bot/web_static/index.html`, `app.js`, `app.css`: interfaccia italiana con ricerca guidata, palette tema, profili OPSEC, provider SERP, aree di ricerca, intensita, report Markdown/JSON/PDF, timeline job, grafo entita, pivot assistito e upload media.
-- La UI invia richieste HTTP al server stdlib in `osint_bot/web.py`.
-- Le stringhe utente restano in italiano; il codice resta in inglese.
+### 1. Input — CLI, web UI, REST API
 
-### Server applicativo
+- `osint_bot/cli.py` (`argo-osint` entry point) — scriptable, one-shot investigations; the same connector pipeline the web UI uses.
+- `osint_bot/web.py` — a single stdlib `http.server`-based process. No web framework: routing, session cookies (`HttpOnly` + `SameSite=Strict`, `Secure` behind `OSINT_SECURE_COOKIE=1`), CSRF tokens, security headers (CSP, HSTS, X-Frame-Options, COOP), rate limiting, and every `/api/*` handler live here. This is the largest file in the codebase by design — it is the trust boundary, and keeping request handling in one auditable place beats spreading it across a framework's middleware stack.
+- `osint_bot/web_static/` (`index.html`, `app.js`, `app.css`, `i18n.js`) — the browser-side UI. No build step, no bundler: plain JS served as static files. `i18n.js` + a shared message catalog drive the bilingual (IT/EN) UI and connector output.
 
-- `osint_bot/web.py`: server HTTP, autenticazione, sessioni HttpOnly, CSRF, security header, API protette, creazione job, stato job e rendering statico.
-- `web_jobs/`: storage file-based per job, utenti e report generati.
-- `osint_bot/job_queue.py`: coda background in-process con worker dedicato. Ogni job viene accodato, passa da `queued` a `running` e aggiorna la lista `progress`.
-- `osint_bot/audit.py`: audit log append-only con hash chaining. Registra creazione, avvio, completamento ed errore job con target redatti quando necessario.
+### 2. Orchestrator, policy, and audit
 
-### Pipeline OSINT
+- `osint_bot/orchestrator.py` — dispatches a target (domain / ip / email / handle / phone / wallet / company) to every connector whose `input_types` match, applies per-connector rate limits, and normalizes results into `Finding` objects.
+- `osint_bot/policy.py`, `osint_bot/scope.py`, `osint_bot/safety.py` — the **centralized policy gate**: Rules of Engagement, case scope, and legal-basis checks run once, inside `BaseConnector.run`, not duplicated per connector. A connector cannot bypass this by construction — it never receives a target until the gate has cleared it.
+- `osint_bot/audit.py` — the SHA-256 hash-chained audit log. Every login, search, finding, deletion, and (as of this version) AI-agent invocation and report seal is appended as a hash-linked event. `verify_audit_chain()` (mirrored in both storage backends, see below) walks the chain and flags a broken `previous_hash` link as tampering — except for events whose `seq` is listed in a `dsar_tombstones` record's `scope.redacted_seqs`, which are documented GDPR redactions, not tampering. This tombstone-aware distinction is the mechanism that lets "tamper-evident" and "GDPR-compliant erasure" coexist without contradicting each other.
+- `osint_bot/_safe_http.py` — the single sanctioned egress gateway. Every connector, plus the CLI/job-queue seed-URL fetcher (`osint_bot/fetch.py`), routes outbound HTTP through it. It blocks cloud metadata (`169.254.169.254`), loopback, RFC1918 ranges, non-HTTP schemes, and revalidates redirect targets instead of trusting the first hop. `scripts/enforce_safe_http.py` runs in CI and fails the build if any connector imports `urllib.request` / `httpx` / `requests` / `aiohttp` directly — the guarantee is structural, not a code-review convention.
 
-- `osint_bot/cli.py`: punto di ingresso CLI e riuso della pipeline per il web.
-- `osint_bot/orchestrator.py`: interpreta comandi naturali e costruisce profili di ricerca.
-- `osint_bot/search.py`: provider SERP Brave, Bing, Serper e modalita multi-provider quando le API sono configurate.
-- `osint_bot/dorks.py` e `osint_bot/discovery.py`: query, dork e seed URL verificabili.
-- `osint_bot/fetch.py`, `extract.py`, `analyze.py`: recupero pagine pubbliche, estrazione e analisi.
-- `osint_bot/agents.py`: agenti di analisi e ponte verso moduli esterni.
-- `osint_bot/report.py`: report Markdown/JSON con separazione tra fatti osservati, inferenze e ipotesi operative.
-- `osint_bot/pdf_report.py`: export PDF leggibile da Markdown, usato dalla piattaforma web per i job completati.
+### 3. Connector registry — 58 native sources
 
-### Plugin e tool esterni
+- `osint_bot/connectors/` — one small module per source (`connector.py` defines the `BaseConnector` interface: `input_types`, `action_class` (`passive` / `active` / `intrusive`), rate limit, `required_key`, `legal_note`, and a `run()` returning `Finding` objects with evidence URLs and confidence). Adding a source is implementing this interface in ~50 lines; nothing else in the codebase needs to change.
+- 43 connectors declare no `required_key` (work out of the box); 15 declare one and report `missing_key` cleanly when it is unset — this split is read directly from the registry (`build_default_registry().catalog()`), not hand-counted, so it cannot drift from what the code actually ships. See the README's connector tables for the full list grouped by capability.
+- `osint_bot/external_tools.py`, `osint_bot/tool_adapter.py` — subprocess wrappers (with timeouts) around installed CLIs (holehe, maigret, theHarvester, GHunt, Toutatis, LinkedIn2Username, the Telegram checker) that are exposed to the orchestrator as ordinary connectors.
 
-- `osint_bot/external_tools.py`: catalogo dei tool locali e wrapper subprocess con timeout.
-- `osint_bot/plugins.py`: registro plugin, contesto uniforme e risultati normalizzati.
-- Ogni plugin riceve input tipizzato tramite `PluginContext` e restituisce `PluginResult` con `status`, `findings`, `output`, `error`, `warnings` e `duration_ms`.
-- L'esecuzione plugin e parallela e degrada in modo controllato: un modulo mancante, bloccato dai guardrail o in errore non ferma l'intera pipeline.
+### 4. Storage — SQLite (default) or Postgres (recommended in production)
 
-### Modello dati
+- `osint_bot/storage_base.py` defines the interface; `osint_bot/storage.py` (SQLite) and `osint_bot/storage_postgres.py` (Postgres) each implement every method independently, in their own SQL dialect — there is no shared query layer to drift silently. This includes the Privacy Center / DSAR methods (`table_columns`, `select_owned_columns`, `erase_actor_data`, `log_privacy_request`, ...), which used to bypass this abstraction with hand-written SQLite-only SQL; that path is now backend-portable, exercised in CI against a real `postgres:16` container (`postgres-integration` job, `tests/test_privacy_postgres.py`).
+- `create_storage()` picks the backend from `DATABASE_URL`: unset → SQLite under `OSINT_JOB_DIR`, zero configuration. Set → Postgres, requiring the `postgres` extra (`psycopg[binary]`, installed by default in the Docker image). If Postgres is requested but unreachable, the default behavior is a logged fallback to SQLite; `OSINT_STORAGE_STRICT=1` makes that fallback a fatal startup error instead, for operators who need to know immediately if they are not actually running the backend they think they are.
+- `osint_bot/neo4j_sync.py`, `osint_bot/opensearch_index.py` — optional, off unless `NEO4J_HTTP_URL` / `OPENSEARCH_URL` are set. Graph and full-text mirrors of the same finding data, not sources of truth.
+- **BYOK API key encryption at rest** (`osint_bot/secrets_crypto.py`) — `Storage.put_api_key`/`get_api_key` on both backends transparently envelope-encrypt every value: a random per-secret AES-256-GCM data key encrypts the value, wrapped by the instance's master key. The master key itself lives outside the database by construction — resolved from `OSINT_MASTER_KEY` (env), `OSINT_MASTER_KEY_FILE` (a systemd-credential-friendly file path), or an auto-generated local file (`<job_root>/.master_key`, `chmod 600`) sibling to the SQLite/Postgres connection info, never a row inside either. Legacy plaintext rows (written before this existed) are read transparently and upgraded on next write — there is no blocking migration step. `argo-rotate-master-key` re-wraps every stored key under a fresh master key; every store/access/delete is a separate audit-chain event (`api_key_stored` / `api_key_accessed` / `api_key_deleted`), never including the value itself.
 
-- `osint_bot/models.py`: dataclass principali per risultati, pagine, evidenze, finding, agenti, indagini, entita e relazioni.
-- `osint_bot/entities.py`: normalizza entita come dominio, URL, email, telefono, IP, wallet, username, media e organizzazioni; costruisce relazioni tra target, pagine, finding e citazioni.
-- Email e telefoni hanno `display_value` redatto per ridurre esposizione accidentale nei report.
+### 5. Report sealing — Ed25519 (always on) + RFC3161 (opt-in)
 
-### Media e metadati
+- `osint_bot/custody.py` builds a manifest hashing the case's collected evidence and generated report files; `osint_bot/report_signing.py` signs that manifest hash with the instance's Ed25519 key (auto-generated on first use, persisted at `OSINT_REPORT_SIGNING_KEY_PATH`). This runs automatically on every completed job — no configuration, no network call.
+- `osint_bot/tsa_client.py` optionally requests an RFC3161 trusted timestamp from an external Time-Stamping Authority, on demand per report (never automatic). Only the 32-byte SHA-256 digest of the manifest is sent — never case content. The feature is invisible (`404`) until an operator sets `TSA_URL`; there is no default TSA baked into the code, since trusting one is the operator's decision.
+- `argo-verify-report` (`osint_bot/cli_verify.py`) checks a seal's signature offline, independent of the running instance. It verifies the signature on the declared manifest hash; it does not re-hash the individual evidence/report files against that manifest (that would require exporting the complete artifact list — tracked, not yet built, and disclosed as such in [`docs/AUDIT_READINESS.md`](AUDIT_READINESS.md)).
 
-- `osint_bot/media.py`: analisi locale di immagini/video caricati, hash e dimensioni.
-- I moduli ExifTool/reverse image restano una fase successiva: il core ora ha il punto in cui integrarli come plugin.
+### 6. AI agent (opt-in, 3-gate, off by default)
 
-### Sicurezza e guardrail
+- `osint_bot/llm_client.py` — a thin multi-provider transport (Anthropic, OpenAI, or a local OpenAI-compatible endpoint such as Ollama/llama.cpp).
+- `osint_bot/narrative_synthesis.py`, `osint_bot/entity_resolution_ai.py`, `osint_bot/triage_ai.py` — the three capabilities: narrative report synthesis, entity-resolution suggestions, and finding triage. Each is invoked only through `osint_bot/ai_context.py`, which enforces three independent, fail-closed gates before a single byte leaves the process: a server-wide kill switch (`OSINT_AI_AGENTS_ENABLED`, default off — the three LLM key slots and every `/api/ai/*` route are invisible, not merely disabled, when this is off), a per-case consent flag the case owner must explicitly set, and a per-analyst BYOK key. Every invocation — success or failure — is written to the audit chain with provider/model/byte-counts, never the prompt or response text.
+- The `local` provider is the zero-data-leaves-your-infrastructure option: `_safe_http` allows a private/internal `LOCAL_LLM_BASE_URL` explicitly for this one provider, since it is an operator-configured target rather than a third party.
 
-- `osint_bot/safety.py`: separa OSINT passivo da azioni gated, blocca usi non consentiti e applica autorizzazioni lato server.
-- `assert_external_tool_allowed` viene richiamato anche dal layer plugin, quindi il gating non dipende solo dalla UI.
-- Secrets: oggi via variabili d'ambiente o script Windows, mai hardcoded nei file del progetto.
+### 7. Export layer
 
-## Debito tecnico e rischi attuali
+- `osint_bot/report.py`, `osint_bot/pdf_report.py`, `osint_bot/forensic_report.py` — Markdown, JSON, and PDF (via `reportlab`) analyst reports.
+- `osint_bot/stix_export.py` — STIX 2.1 bundle; the MISP core-format 2.4 event export lives alongside it for TIP integration.
+- `redact_report_json()` (`osint_bot/web.py`) — when a report is served (not the on-disk copy) with `include_contact=False`, email/phone PII across `target`, `entities`, `findings`, `agent_results`, and `pages.emails` is redacted before the response leaves the process. The primary analyst web UI always requests the unredacted view (`include_contact: true` in `app.js`, a deliberate UX choice: the analyst doing the investigation needs the contact data to act on it) — the redaction path exists for the served-report case where a stricter default is warranted.
 
-- Storage file-based: semplice e self-hostable, ma non ideale per concorrenza alta, multi-tenant reale, ricerca storica e retention GDPR granulare.
-- Coda in-process: affidabile per una singola istanza, ma non sopravvive a crash/process restart come farebbe Redis/RQ/Celery o un job store persistente.
-- Parsing tool ancora minimale: molti tool esterni vengono tradotti in finding tramite euristiche; servono parser dedicati per output JSON/CSV dove disponibili.
-- Secrets non cifrati centralmente: manca un vault applicativo o integrazione con secret manager.
-- Provider API incompleti: Shodan, Censys, HIBP, Hunter, VirusTotal, AbuseIPDB, ipinfo e Bright Data devono stare dietro adapter comuni con rate limit e auditing.
-- Multi-tenancy predisposta ma non completa: servono isolamento dati per tenant, ruoli, quote, retention e cancellazione per caso.
-- Il grafo UI e l'export PDF sono presenti, ma richiedono ancora funzioni avanzate: filtri, layout persistente, export grafico e viste caso.
-- Osservabilita limitata: logging strutturato, metriche per modulo ed error tracking vanno aggiunti prima di un deploy serio.
-- Docker/compose e CI base sono presenti; restano da aggiungere hardening container, scansioni security e test integrazione browser in pipeline.
+## Privacy Center / DSAR
 
-## Roadmap prioritaria
+`osint_bot/gdpr.py` plus the storage-backend methods above implement GDPR Art. 15 (access), Art. 17 (erasure), and Art. 20 (portability):
 
-### Fase 1 - Core affidabile
+- `privacy_requests` — the operational log of subject requests (id, owner, type, status, reason, timestamps).
+- `dsar_tombstones` — the durable cryptographic proof of erasure: a selector hash, actor, timestamp, and a `scope` recording which audit-chain sequence numbers were redacted as part of that erasure. This is intentionally a separate table from `privacy_requests` — the tombstone is the evidence that survives even if the request log itself is later pruned.
+- Erasure (`erase_actor_data`) is one atomic transaction: redact matching audit events, append an `account_erased_dsar` audit event, write the tombstone, and delete the actor's rows across every schema-tolerant table (cases, jobs, artifacts, RoEs, API keys, users) — all in the same commit, so a failure partway through rolls back the whole thing rather than leaving a half-erased actor.
 
-Stato: implementata in questo snapshot.
+## Known limitations (as of this version)
 
-- Contratto plugin uniforme (`PluginContext`, `PluginResult`, registry).
-- Esecuzione parallela dei moduli con timeout ed errore strutturato.
-- Coda job background con avanzamento.
-- Modello entita/relazioni e arricchimento automatico dei report.
-- Audit log append-only con hash chain.
-- Export PDF dei report completati.
-- Viewer grafo entita con pivot assistito dalla UI.
-- Test unitari per plugin, entita, audit log e coda.
-- Documentazione architetturale e guida moduli.
+Reproduced in more detail, with suggested external-review scope, in [`docs/AUDIT_READINESS.md`](AUDIT_READINESS.md) and [`docs/THREAT_MODEL.md`](THREAT_MODEL.md):
 
-### Fase 2 - Persistenza, provider e governance
+- **No key-rotation tooling** for the Ed25519 report-signing key (the BYOK API-key master key does have rotation — `argo-rotate-master-key` — the two are separate keys with separate lifecycles).
+- **In-process job queue by default** (`osint_bot/job_queue.py`) — reliable for a single instance, does not survive a process crash mid-job the way a persistent broker (Celery/Redis, available via the `queue` extra) would.
+- **`argo-verify-report` verifies the seal's signature, not a full re-derived manifest** against a bundled evidence export (see above).
+- **Single-tenant admin model** — one admin credential, analyst/admin distinction, no per-tenant isolation or RBAC. Not currently on the roadmap; would be a prerequisite for selling to teams rather than individual analysts, and is an open, not-yet-decided direction for the project.
+- **Datastore itself is not encrypted at rest** by the application (SQLite file or Postgres database) — this is deliberately delegated to OS/disk-level encryption rather than reimplemented in-app.
 
-- Sostituire lo storage file-based con repository astratti e backend SQLite/PostgreSQL.
-- Aggiungere cache e deduplica query: chiave normalizzata su provider, target, modulo, profilo OPSEC e parametri.
-- Introdurre adapter provider comuni per SERP e API key.
-- Cifrare e centralizzare le chiavi con vault locale o integrazione secret manager.
-- Aggiungere gestione casi, retention, cancellazione, versioning risultati e audit UI.
-- Rendere l'audit log esportabile e verificabile.
+## Where this is going
 
-### Fase 3 - Moduli OSINT estesi
-
-- Username/SOCMINT: Sherlock, Maigret, WhatsMyName dataset, Social-Analyzer e holehe con parser dedicati.
-- Dominio/Azienda: BBOT, SpiderFoot, theHarvester, Amass, Subfinder, OpenCorporates/Aleph, Shodan/Censys.
-- Email/Telefono/IP: holehe, h8mail, HIBP, Hunter, PhoneInfoga, AbuseIPDB, VirusTotal e ipinfo.
-- Crypto: explorer pubblici, tracing base e screening liste OFAC/SDN.
-- Media: ExifTool, reverse image workflow e hashing esteso.
-- Deep/dark web: OnionSearch, Ahmia, OnionScan e onion-lookup solo con gating server-side e autorizzazione esplicita.
-
-### Fase 4 - Prodotto e piattaforma
-
-- Raffinamento vista grafo: filtri, layout salvato, ricerca entita, export immagine.
-- Export PDF avanzato con indice, allegati e copertina caso.
-- Ruoli, permessi, quote, piani Pro e isolamento tenant.
-- Estendere Docker/docker-compose e CI con test integrazione browser e security checks.
-- Logging strutturato, metriche per modulo, error tracking e dashboard di salute.
-- Layer agentico MCP-native opzionale per concatenare moduli e compilare report.
-
-## Come verificare la Fase 1
-
-```powershell
-cd <path\to\argo-osint>
-python -m compileall osint_bot
-python -m unittest discover -s tests
-node --check osint_bot\web_static\app.js
-python -m osint_bot.cli example.com --type domain --provider none --max-pages 1 --output-dir reports\phase1-smoke --format both
-```
-
-Il report Markdown deve includere la sezione `Entita e relazioni`; il JSON deve includere `entities` e `relationships`; i job web completati devono esporre anche `/report.pdf`.
+See [`docs/ROADMAP.md`](ROADMAP.md) for the maintained, dated plan — this document intentionally does not duplicate a roadmap that would drift out of sync with it.

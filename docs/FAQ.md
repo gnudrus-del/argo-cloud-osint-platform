@@ -22,7 +22,7 @@ Currently **yes**, in your local `.env`. Encryption-at-rest for connector keys i
 
 ## Does Argo phone home?
 
-No. Zero telemetry. Verify with `strace` or by inspecting the source — there are no non-connector outbound calls.
+No. Zero telemetry — Argo's own servers (there are none) never see your data. By default there are also no non-connector outbound calls at all; verify with `strace` or by inspecting the source. The one deliberate, opt-in exception is the AI agent (LLM) capability: if you explicitly enable it (server kill switch + per-case consent + your own BYOK key, all three required), case findings are sent to the LLM provider *you* choose — see [`THREAT_MODEL.md`](THREAT_MODEL.md#1-data-leak-to-third-parties). Leave it disabled and the guarantee is unconditional.
 
 ## Can I run it on a Raspberry Pi?
 
@@ -38,7 +38,7 @@ Yes. About 50 lines of Python. See [`CONNECTORS.md`](CONNECTORS.md) and [`CONTRI
 
 ## Is the audit chain court-ready?
 
-The chain is tamper-evident (any modification of a past event invalidates every subsequent hash). Whether it is admissible as evidence in your jurisdiction depends on chain-of-custody, timestamping and expert testimony — that is a legal question, not a code question.
+The chain is tamper-evident (any modification of a past event invalidates every subsequent hash). Every completed report is also independently signed (Ed25519, automatic, zero config) and can be optionally timestamped against an RFC3161 authority you choose — verifiable offline with `argo-verify-report` or standard tools, without trusting Argo's own database. See `docs/CONFIGURATION.md` and `docs/THREAT_MODEL.md` for exactly what this proves. Whether it is admissible as evidence in your jurisdiction still depends on chain-of-custody procedure and expert testimony — that is a legal question, not a code question.
 
 ## Why "Argo"?
 

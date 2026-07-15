@@ -1,8 +1,33 @@
 services:
+  # Postgres è il backend raccomandato per un deploy in produzione/multi-analista
+  # (vedi docs/CONFIGURATION.md — SQLite resta il default a zero configurazione
+  # per uso singolo-analista/valutazione). Per restare su SQLite: commenta questo
+  # servizio, rimuovi DATABASE_URL dal servizio argo-osint sotto, e rimuovi
+  # 'depends_on'.
+  postgres:
+    image: postgres:16-alpine
+    container_name: argo-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-argo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD before starting}
+      POSTGRES_DB: ${POSTGRES_DB:-argo}
+    volumes:
+      - argo_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-argo} -d ${POSTGRES_DB:-argo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   argo-osint:
     build: .
     image: argo-cloud-osint-platform:local
     container_name: argo-osint
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8000:8000"
     environment:
@@ -11,6 +36,7 @@ services:
       OSINT_SECURE_COOKIE: ${OSINT_SECURE_COOKIE:-0}
       OSINT_HSTS: ${OSINT_HSTS:-0}
       OSINT_SESSION_TTL_SECONDS: ${OSINT_SESSION_TTL_SECONDS:-28800}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-argo}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-argo}
       BING_SEARCH_API_KEY: ${BING_SEARCH_API_KEY:-}
       BRAVE_SEARCH_API_KEY: ${BRAVE_SEARCH_API_KEY:-}
       SERPER_API_KEY: ${SERPER_API_KEY:-}
@@ -19,6 +45,11 @@ services:
       CENSYS_API_SECRET: ${CENSYS_API_SECRET:-}
       HIBP_API_KEY: ${HIBP_API_KEY:-}
       HUNTER_API_KEY: ${HUNTER_API_KEY:-}
+      # Empty = the "Request RFC3161 timestamp" button stays hidden (404 on the
+      # endpoint) — same "absent unless configured" pattern as every BYOK key
+      # above. Set to a TSA you are authorized to use, e.g. https://freetsa.org/tsr
+      # — see docs/CONFIGURATION.md.
+      TSA_URL: ${TSA_URL:-}
     volumes:
       - argo_jobs:/app/web_jobs
       - argo_reports:/app/reports
@@ -33,3 +64,4 @@ services:
 volumes:
   argo_jobs:
   argo_reports:
+  argo_postgres_data:

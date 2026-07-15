@@ -1,8 +1,8 @@
 # Contribuire ad Argo OSINT
 
 Benvenuto/a. Argo è una piattaforma **OSINT italiana** privacy-by-design,
-GDPR-oriented, court-ready. Ogni contributo ci aiuta a farla diventare un
-punto di riferimento.
+GDPR-oriented, con catena audit SHA-256 inviolabile. Ogni contributo ci aiuta
+a farla diventare un punto di riferimento.
 
 ## Come partecipare
 

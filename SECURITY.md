@@ -33,13 +33,28 @@ sessione dei tool). Le due superfici di attacco più rilevanti sono:
 
 ## Cosa NON viene fatto (limiti dichiarati)
 
-- Le API key sono memorizzate **in chiaro** nel DB SQLite: la sicurezza si
-  basa su chmod 600 del DB, filesystem-level encryption della VM, controllo
-  accessi sistema. Encryption at-rest applicativa (KMS) è nella roadmap.
+- Le API key sono cifrate a riposo con envelope encryption applicativa
+  (`osint_bot/secrets_crypto.py`: AES-256-GCM, master key dell'istanza
+  separata dal DB — env var, file credential systemd, o file locale
+  autogenerato, mai una riga di tabella). Protegge da una fuga del solo
+  database (file SQLite rubato, dump Postgres); non protegge da una
+  compromissione della macchina che ospita la master key — in quel caso
+  restano rilevanti chmod 600 sul file chiave, filesystem-level encryption
+  della VM, controllo accessi sistema. Rotazione via `argo-rotate-master-key`.
 - Le sessioni tool esterni (GHunt, Toutatis) sono memorizzate in env/dir sulla
   VM: proteggerle è responsabilità dell'analista.
 - Argo NON è un WAF: dietro un reverse proxy pubblico usare Caddy/nginx con
   TLS moderno e fail2ban (unit incluse in `deploy_artifacts/`).
+
+## Modello di minaccia completo e materiali per un audit esterno
+
+Questo file è un riassunto. Il modello di minaccia completo (cosa è in
+scope, cosa è dichiaratamente fuori scope, limiti noti) è in
+[`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). Chi sta valutando di
+commissionare una revisione di sicurezza esterna a pagamento trova materiali
+preparatori (scope suggerito, dipendenze, gate CI già attivi) in
+[`docs/AUDIT_READINESS.md`](docs/AUDIT_READINESS.md) — **non** un'attestazione
+che Argo sia già stato controllato: non lo è stato, ad oggi.
 
 ## Segnalazione vulnerabilità
 

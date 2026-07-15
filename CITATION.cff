@@ -22,8 +22,8 @@ authors:
 repository-code: "https://github.com/gnudrus-del/argo-cloud-osint-platform"
 url: "https://github.com/gnudrus-del/argo-cloud-osint-platform"
 license: Apache-2.0
-version: "0.1.0"
-date-released: "2026-07-05"
+version: "0.2.0"
+date-released: "2026-07-14"
 keywords:
   - "open source intelligence"
   - "defensive OSINT"

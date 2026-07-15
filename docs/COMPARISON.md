@@ -4,7 +4,7 @@ Honest, non-denigratory comparison with a few alternatives. Every tool listed ha
 
 ## When to use Argo
 
-- You need **self-hosted** OSINT with **case data that never leaves your perimeter**.
+- You need **self-hosted** OSINT with **case data that never leaves your perimeter by default** (the only exception is the optional, opt-in AI agent capabilities — see `docs/THREAT_MODEL.md`).
 - You need **audit-chained findings** for evidentiary or compliance reasons.
 - You are OK writing Python for custom connectors.
 - Your investigations are **defensive, authorized, or public-interest**.

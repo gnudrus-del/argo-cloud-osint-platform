@@ -7,7 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Placeholder for changes on `main` since the last tagged release.
+- Report sealing: Ed25519 signature on every completed job (always on) + optional on-demand RFC3161 trusted timestamping (`report_signing.py`, `tsa_client.py`), CLI `argo-verify-report`.
+- Privacy Center / DSAR made backend-portable: erasure, export and audit-redaction logic moved off raw SQLite SQL onto the shared `Storage`/`PostgresStorage` interface, so it now works correctly (not silently as a zero-column no-op) on Postgres.
+- Postgres positioned as the recommended backend for production/multi-analyst deployments: wired into `docker-compose.yml`, `OSINT_STORAGE_STRICT` flag for a loud failure instead of a silent SQLite fallback, exercised in CI against a real `postgres:16` container. SQLite remains the zero-config default.
+- `docs/AUDIT_READINESS.md` — preparatory material (suggested scope, dependencies, active CI gates) for a paid third-party security review. Not itself an audit.
+- `pip-audit` dependency-scan CI job; `Pillow` bumped to `>=12.3.0` (5 known CVEs fixed).
+- AI agent integration (opt-in, `ai` extra): narrative report synthesis, entity-resolution suggestions, finding triage via a BYOK LLM provider (Anthropic / OpenAI / local OpenAI-compatible endpoint), gated by a server kill switch + per-case consent + per-analyst key.
+- **BYOK API key encryption at rest** (`osint_bot/secrets_crypto.py`): envelope encryption (AES-256-GCM, a random per-secret data key wrapped by an instance master key), the master key held outside the database (env var, systemd-credential file, or an auto-generated local file — never a DB row, never in `.env`), transparent upgrade of pre-existing plaintext rows on next write, per-access audit events (`api_key_stored` / `api_key_accessed` / `api_key_deleted`), and a `argo-rotate-master-key` CLI for rotation. Values are never written to logs, backups, or DSAR exports (the export path already selected only `service`/`created_at`, never `value`).
+- Documentation fact-check pass across `README.md`, `SECURITY.md`, `docs/*` correcting stale/aspirational claims (connector counts, "tamper-evident" scope, encryption-at-rest status).
+
+## [0.2.0] — 2026-07-14
+
+### Added
+
+- **Bilingual UI and connector output (Italian / English)** end-to-end — frontend, 59-connector-surface backend messages, per-request `ConnectorContext.lang`.
+- **Centralised policy gate** — Rules of Engagement + case-scope enforcement consolidated in `BaseConnector.run` (hardening H1).
+- **SSRF hardening completed** — every connector *and* the CLI/job-queue seed-URL fetcher (including its `robots.txt` lookup) route through `_safe_http`; zero direct HTTP calls left outside the gateway; CI-enforced (hardening H2 + follow-up).
+- **Real DSAR (GDPR Art. 17)** — erasure endpoint became an atomic transaction: redact audit events, append a hash-chained `dsar_tombstoned` proof, delete business rows, all in one commit (hardening H3).
+- **Docker image published to GHCR** on tagged release (`ghcr.io/gnudrus-del/argo-cloud-osint-platform:0.2.0`, `:latest`) — confirmed live via the `docker-publish.yml` workflow run for this tag.
+- **Sigstore build provenance** (SLSA v1) attested and pushed to the registry alongside the image.
+- **PyPI publish workflow** scaffolded (Trusted Publisher via OIDC) — not yet triggered; the package is not live on PyPI as of this release.
+- Architecture diagram replaced with a full connector map; UI screenshots and a sample forensic report added to the repo.
+- `web-next/` dependency and CI maintenance (Next.js upgraded past known CVEs); marked frozen/experimental, superseded by the production Python-served UI.
+
+### Known limitations (carried forward)
+
+- BYOK provider keys still stored plaintext in `.env` — encryption-at-rest remains planned, not yet built. *(Resolved in Unreleased above.)*
+- No PyPI package published yet (workflow exists, unused).
+- Datastore not encrypted at rest — relies on OS-level disk encryption.
 
 ## [0.1.0] — 2026-07-05
 
@@ -33,12 +60,13 @@ First public release.
 
 ### Known limitations
 
-- **BYOK provider keys are stored plaintext** in `.env`. Encryption-at-rest is planned for v0.2.0.
-- **Datastore is not encrypted at rest** — use OS-level disk encryption. Planned.
-- **No PyPI package published yet** — install from source until `argo-cloud-osint` is validated on PyPI.
-- **No Docker image on GHCR yet** — the workflow is present but publish requires a maintainer-triggered release.
-- **Screenshots** in `docs/assets/` are placeholders. Real screenshots to be added post-v0.1.0.
-- **Web UI test coverage** is manual; end-to-end tests are on the v0.2.0 roadmap.
+- **BYOK provider keys are stored plaintext** in `.env`. *(Resolved in `[Unreleased]` above: envelope encryption at rest, see `osint_bot/secrets_crypto.py`.)*
+- **Datastore is not encrypted at rest** — use OS-level disk encryption. Still planned.
+- **No PyPI package published yet** — install from source until `argo-cloud-osint` is validated on PyPI. *(Still open in 0.2.0 — the publish workflow was added but has not been triggered.)*
+- **No Docker image on GHCR yet** at the time of this release — the workflow was present but had not yet been publish-triggered. *(Resolved in 0.2.0: the image is published and Sigstore-attested.)*
+- **Screenshots** in `docs/assets/` are placeholders. Real screenshots to be added post-v0.1.0. *(Resolved in 0.2.0.)*
+- **Web UI test coverage** is manual; end-to-end tests are on the roadmap.
 
-[Unreleased]: https://github.com/gnudrus-del/argo-cloud-osint-platform/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/gnudrus-del/argo-cloud-osint-platform/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/gnudrus-del/argo-cloud-osint-platform/releases/tag/v0.2.0
 [0.1.0]: https://github.com/gnudrus-del/argo-cloud-osint-platform/releases/tag/v0.1.0

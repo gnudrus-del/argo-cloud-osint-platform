@@ -2,11 +2,11 @@
 
 > Una piattaforma OSINT difensiva self-hosted per analisti che hanno bisogno di indagini con fonti verificabili, catena audit e attenzione alla privacy.
 
-Argo gira interamente sulla tua infrastruttura. Aggrega fonti pubbliche (59 connettori nativi, key-free e BYOK), tiene una catena audit SHA-256 di ogni finding e produce report in Markdown, JSON, PDF, STIX 2.1 e MISP. UI e output dei connettori sono bilingui (italiano / inglese). Niente telemetria, niente dipendenza cloud, niente vendor lock-in.
+Argo gira interamente sulla tua infrastruttura. Aggrega fonti pubbliche (58 connettori nativi, key-free e BYOK), tiene una catena audit SHA-256 di ogni finding e produce report in Markdown, JSON, PDF, STIX 2.1 e MISP. UI e output dei connettori sono bilingui (italiano / inglese). Niente telemetria, niente dipendenza cloud, niente vendor lock-in.
 
 ## Perché Argo
 
-Le SaaS OSINT esistenti funzionano bene finché non puoi inviare i dati del caso a un cloud terzo — indagini regolamentate, due diligence aziendale, protezione delle fonti giornalistiche, casi legali con obblighi di riservatezza. Argo gira sulla **tua** macchina o VM. I tuoi lead e i tuoi finding non escono mai dal tuo perimetro.
+Le SaaS OSINT esistenti funzionano bene finché non puoi inviare i dati del caso a un cloud terzo — indagini regolamentate, due diligence aziendale, protezione delle fonti giornalistiche, casi legali con obblighi di riservatezza. Argo gira sulla **tua** macchina o VM. I tuoi lead e i tuoi finding non escono mai dal tuo perimetro **di default** — l'unica eccezione sono le capability IA (LLM) opzionali e opt-in, che inviano dati del caso a un provider BYOK a tua scelta solo se le abiliti esplicitamente; vedi [`docs/THREAT_MODEL.md`](THREAT_MODEL.md).
 
 ## Caratteristiche principali
 
@@ -15,11 +15,12 @@ Le SaaS OSINT esistenti funzionano bene finché non puoi inviare i dati del caso
 - **Investigazioni case-based** — ogni query vive dentro un caso con scope, Rules of Engagement e endpoint DSAR (GDPR).
 - **Target handling privacy-by-design** — target personali richiedono base giuridica esplicita; i contatti sono redatti di default.
 - **Modello BYOK** — 15 provider opzionali (Shodan, VirusTotal, HIBP, SecurityTrails, ecc.) usano *le tue* chiavi, mai intermediati. Altri 3 (EmailRep, IPinfo, OpenCorporates) funzionano anche senza chiave, ma la sfruttano se configurata.
-- **59 connettori nativi** — 44 key-free + 15 BYOK.
+- **58 connettori nativi** — 43 key-free + 15 BYOK.
 - **HTTP outbound hardened SSRF** — ogni connettore, più il fetcher usato da CLI e job queue (campo `seed_urls`), passa da `_safe_http`: blocco cloud metadata, loopback, RFC1918, schemi non-HTTP e redirect cross-boundary (inclusa la risoluzione di `robots.txt`). Enforced in CI.
 - **DSAR reale (GDPR Art. 15 / Art. 17)** — l'endpoint di cancellazione esegue una transazione atomica con prova hash-chained `dsar_tombstoned`.
 - **Finding con fonte** — ogni finding porta URL di evidenza, timestamp e confidence.
 - **Catena audit (SHA-256)** — ogni evento è appeso a un log hash-chained. Modificare un evento passato invalida tutti gli hash successivi.
+- **Sigillo dei report (Ed25519, sempre attivo)** — ogni job completato viene sigillato automaticamente: evidenze e file di report finiscono in un manifest, firmato con la chiave Ed25519 dell'istanza, registrato nella catena audit. Timestamp RFC3161 opzionale verso una TSA a tua scelta (esce solo un digest SHA-256 di 32 byte, mai il contenuto del caso) — verificabile offline con `argo-verify-report` o strumenti standard (`openssl ts -verify`). Vedi [`docs/THREAT_MODEL.md`](THREAT_MODEL.md) per cosa dimostra davvero e cosa no.
 - **Export Markdown / JSON / PDF / STIX 2.1 / MISP**.
 - **Architettura a connettori/plugin** — aggiungi una fonte con ~50 righe.
 - **Deploy Docker + self-hosted** — include Dockerfile, docker-compose, unit systemd e ricetta Caddy reverse-proxy.

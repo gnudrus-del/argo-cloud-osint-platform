@@ -2,7 +2,7 @@
 
 Public planning. Priorities can change; nothing here is a promise.
 
-## v0.1.0 (current)
+## v0.1.0 — 2026-07-05
 
 - 58 native connectors (43 key-free + 15 BYOK).
 - CLI + web UI + Docker.
@@ -10,14 +10,25 @@ Public planning. Priorities can change; nothing here is a promise.
 - STIX 2.1 bundle + MISP event exports.
 - Deployment recipes: systemd + Caddy, Docker Compose.
 
-## v0.2.0 — hardening + distribution
+## v0.2.0 — 2026-07-14 — hardening + distribution
 
-- **Encryption-at-rest for connector keys** (planned). Currently keys are plaintext in `.env`. Roadmap: OS keychain integration + envelope-encrypted `.env` file.
-- **Publish Docker image to GHCR** on tagged releases (planned).
-- **PyPI publication** as `argo-cloud-osint` (planned).
-- **Signed releases** (Sigstore / cosign) (planned).
-- Broader test coverage of connector edge cases.
-- Ruff clean pass across the codebase.
+- Bilingual UI and connector output (Italian / English), end to end.
+- Centralised policy gate (RoE + case-scope) in `BaseConnector.run`.
+- SSRF hardening completed across every connector and the seed-URL fetcher; CI-enforced.
+- Real DSAR (GDPR Art. 17) — atomic erasure transaction with hash-chained tombstone proof.
+- **Docker image published to GHCR** on tagged release, Sigstore build provenance attested. Done — confirmed via a live workflow run against this tag.
+- **PyPI publication** as `argo-cloud-osint` — workflow scaffolded (Trusted Publisher / OIDC), not yet triggered. Still not on PyPI.
+- **Encryption-at-rest for connector keys** — did **not** ship in 0.2.0 despite earlier plans; keys were still plaintext in `.env`. Shipped in "Unreleased" below.
+
+## Unreleased (on `main`, not yet tagged)
+
+- Signed report seals (Ed25519, always on) + optional RFC3161 trusted timestamping, `argo-verify-report` CLI.
+- Privacy Center / DSAR made backend-portable (works correctly on Postgres, not just SQLite).
+- Postgres recommended for production/multi-analyst deployments, wired into `docker-compose.yml`, exercised in CI against a real container. SQLite stays the zero-config default.
+- `docs/AUDIT_READINESS.md` for anyone commissioning a paid external security review.
+- `pip-audit` CI gate; dependency bumps for known CVEs.
+- Opt-in AI agent capabilities (narrative synthesis, entity-resolution suggestions, triage) via BYOK LLM, 3-gate fail-closed.
+- **Connector-key encryption at rest** — envelope encryption (`osint_bot/secrets_crypto.py`), a master key held outside the database (env var / systemd-credential file / auto-generated local file), `argo-rotate-master-key` for rotation, per-access audit events, keys excluded from logs/backups/exports.
 
 ## v0.3.0 — analyst UX
 

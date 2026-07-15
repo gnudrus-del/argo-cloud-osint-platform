@@ -11,7 +11,7 @@
 [![Bilingual](https://img.shields.io/badge/UI-IT%20%2F%20EN-f5b740)](docs/README.it.md)
 [![Live demo](https://img.shields.io/badge/live_demo-argo--cloud.duckdns.org-orange)](https://argo-cloud.duckdns.org)
 
-Argo runs entirely on your infrastructure. It aggregates public sources (59 native connectors, key-free and BYOK), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. UI and connector output are bilingual (Italian / English). No telemetry, no cloud dependency, no vendor lock-in.
+Argo runs entirely on your infrastructure. It aggregates public sources (58 native connectors, key-free and BYOK), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. UI and connector output are bilingual (Italian / English). No telemetry, no cloud dependency, no vendor lock-in.
 
 ---
 
@@ -56,13 +56,13 @@ The [`docs/samples/example-report/`](docs/samples/example-report/) directory con
 - [`example.com.json`](docs/samples/example-report/example.com.json) — structured findings (JSON, ~82 KB)
 - [`example.com.pdf`](docs/samples/example-report/example.com.pdf) — court-ready PDF (~15 KB)
 
-No API key was configured; the report uses only the 44 key-free connectors. See [`docs/samples/README.md`](docs/samples/README.md) for details.
+No API key was configured; the report uses only the 43 key-free connectors. See [`docs/samples/README.md`](docs/samples/README.md) for details.
 
 ---
 
 ## Why Argo?
 
-Existing OSINT SaaS tools work well until you cannot send your case data to a third-party cloud — regulated investigations, corporate due diligence, journalist source-protection, legal cases with confidentiality obligations. Argo runs on **your** machine or VM. Your leads and findings never leave your perimeter.
+Existing OSINT SaaS tools work well until you cannot send your case data to a third-party cloud — regulated investigations, corporate due diligence, journalist source-protection, legal cases with confidentiality obligations. Argo runs on **your** machine or VM. Your leads and findings never leave your perimeter **by default** — the only exception is the optional, opt-in AI agent (LLM) capabilities, which send case data to a BYOK provider of your choice only if you explicitly enable them; see [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Features
 
@@ -71,15 +71,16 @@ Existing OSINT SaaS tools work well until you cannot send your case data to a th
 - **Case-based investigations** — every query lives in a case with scope, Rules of Engagement, and DSAR (GDPR) endpoints.
 - **Privacy-by-design target handling** — personal targets require an explicit legal basis; contacts are redacted by default.
 - **BYOK provider model** — 15 optional providers (Shodan, VirusTotal, HIBP, SecurityTrails, etc.) use *your* API keys, never intermediated. Three additional providers (EmailRep, IPinfo, OpenCorporates) work without a key but return richer results if one is configured.
-- **59 native connectors** — 44 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, and more) + 15 BYOK.
+- **58 native connectors** — 43 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, and more) + 15 BYOK.
 - **Sourced findings** — every finding carries evidence URLs, timestamps and confidence scoring.
 - **Audit chain (SHA-256)** — every event (login, search, finding, deletion) is appended to a hash-chained log. Tampering with a past event invalidates every subsequent hash. Same pattern as Certificate Transparency and Git.
+- **Signed report seals (Ed25519, always on)** — every completed job is automatically sealed: evidence and report files are hashed into a manifest, signed with the instance's Ed25519 key, and recorded in the audit chain. Optional RFC3161 trusted timestamping against a TSA you configure (only a 32-byte SHA-256 digest ever leaves, never case content) closes the gap between "our own audit log says so" and independent, offline-verifiable proof — verify with `argo-verify-report` or standard tools (`openssl ts -verify`). See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for exactly what this does and does not prove.
 - **SSRF-hardened outbound HTTP** — every connector, plus the seed-URL fetcher used by the CLI and the job queue's `seed_urls` field, routes through a single `_safe_http` gateway that blocks cloud metadata (`169.254.169.254`), loopback, RFC1918, non-HTTP schemes and unfollowed cross-boundary redirects (including on the redirect chain of the fetcher's own `robots.txt` lookup). Enforced in CI for every connector: no connector may import `urllib.request`/`httpx`/`requests`/`aiohttp` directly.
 - **Real DSAR (GDPR Art. 15 / Art. 17)** — the erasure endpoint runs an atomic transaction: redact audit events, append a `dsar_tombstoned` proof, delete business rows across all tables, all within one commit.
 - **Markdown / JSON / PDF exports** — for analyst reports.
 - **STIX 2.1 bundle + MISP event exports** — for TIP integration.
 - **Connector/plugin architecture** — add a new source by implementing a small `BaseConnector` subclass.
-- **Docker + self-hosted deployment** — includes `Dockerfile`, `docker-compose.yml`, systemd unit, and a Caddy reverse-proxy recipe. A prebuilt image is published to GHCR (`ghcr.io/gnudrus-del/argo-cloud-osint-platform:0.1.0`).
+- **Docker + self-hosted deployment** — includes `Dockerfile`, `docker-compose.yml`, systemd unit, and a Caddy reverse-proxy recipe. A prebuilt image is published to GHCR on every tagged release (currently `ghcr.io/gnudrus-del/argo-cloud-osint-platform:0.2.0`, also available as `:latest`), with Sigstore build provenance attached — see [Docker publish workflow](.github/workflows/docker-publish.yml).
 
 ## Use cases
 
@@ -87,7 +88,7 @@ Existing OSINT SaaS tools work well until you cannot send your case data to a th
 - **Corporate due diligence** — verify partners/vendors with sourced evidence.
 - **Threat intelligence enrichment** — correlate observables (IPs, hashes, domains, wallets) with public feeds and your own MISP.
 - **Authorized username / email / domain investigations** — with legal-basis gating and consent tracking.
-- **Analyst reporting** — reproducible reports with audit chain for court-ready evidence.
+- **Analyst reporting** — reproducible reports backed by a tamper-evident SHA-256 audit chain; legal admissibility depends on your jurisdiction's rules of evidence (see [`docs/FAQ.md`](docs/FAQ.md)).
 
 ## What Argo does *not* do
 
@@ -119,8 +120,8 @@ argo-osint --help
 ### Pull the prebuilt Docker image
 
 ```bash
-docker pull ghcr.io/gnudrus-del/argo-cloud-osint-platform:0.1.0
-# also available as :latest
+docker pull ghcr.io/gnudrus-del/argo-cloud-osint-platform:latest
+# pinned releases also available: :0.2.0, :0.1.0
 ```
 
 > **PyPI:** the project name `argo-cloud-osint` is reserved but not
@@ -191,7 +192,7 @@ More: [`docs/EXAMPLES.md`](docs/EXAMPLES.md).
 
 ## Architecture at a glance
 
-Argo is a three-layer pipeline: **input** (CLI or web UI) → **orchestrator** (with policy, audit, storage) → **connectors** (59 native sources, key-free or BYOK) → **exports**. Every finding is sourced, timestamped, hash-linked into the audit chain, and gated by the case's Rules of Engagement.
+Argo is a three-layer pipeline: **input** (CLI or web UI) → **orchestrator** (with policy, audit, storage) → **connectors** (58 native sources, key-free or BYOK) → **exports**. Every finding is sourced, timestamped, hash-linked into the audit chain, and gated by the case's Rules of Engagement.
 
 ```mermaid
 flowchart TB
@@ -209,15 +210,24 @@ flowchart TB
     end
 
     subgraph STORE["Storage"]
-        SQLITE[("SQLite<br/>default")]
-        PG[("Postgres<br/>optional")]
+        SQLITE[("SQLite<br/>zero-config default")]
+        PG[("Postgres<br/>recommended in production")]
         NEO[("Neo4j<br/>graph, opt.")]
         OS[("OpenSearch<br/>full-text, opt.")]
     end
 
-    subgraph REG["Connector Registry — 59 native sources"]
+    subgraph SEAL["Report Sealing"]
+        SIGN[("Ed25519 sign<br/>always on")]
+        TSA[("RFC3161 TSA<br/>opt-in per report")]
+    end
+
+    subgraph AI["AI Agent (opt-in, 3-gate)"]
+        LLM[("BYOK LLM<br/>narrative · entity · triage")]
+    end
+
+    subgraph REG["Connector Registry — 58 native sources"]
         direction TB
-        KFREE["44 key-free connectors"]
+        KFREE["43 key-free connectors"]
         BYOK["15 BYOK connectors"]
     end
 
@@ -243,24 +253,33 @@ flowchart TB
     ORCH --> PG
     ORCH --> NEO
     ORCH --> OS
+    ORCH -.->|"opt-in, case consent<br/>+ BYOK key required"| LLM
+    LLM -.-> AUDIT
     SQLITE --> EXPORT
     PG --> EXPORT
     EXPORT --> REPORT["Analyst<br/>report"]
+    EXPORT --> SIGN
+    SIGN -->|"on demand"| TSA
+    SIGN --> AUDIT
 
     classDef inputStyle fill:#1a2b4a,stroke:#4facfe,color:#fff
     classDef coreStyle fill:#3a2a1a,stroke:#f5b740,color:#fff
     classDef storeStyle fill:#2a3a1a,stroke:#7fc78f,color:#fff
     classDef regStyle fill:#3a1a3a,stroke:#b06ab3,color:#fff
     classDef exportStyle fill:#4a2a1a,stroke:#f5b740,color:#fff
+    classDef sealStyle fill:#1a3a3a,stroke:#3ad6c7,color:#fff
+    classDef aiStyle fill:#2a1a3a,stroke:#9d7bf5,color:#fff
 
     class CLI,WEB,API inputStyle
     class ORCH,POLICY,AUDIT,SSRF coreStyle
     class SQLITE,PG,NEO,OS storeStyle
     class KFREE,BYOK regStyle
     class MD,JSON,PDF,STIX,MISPX,REPORT exportStyle
+    class SIGN,TSA sealStyle
+    class LLM aiStyle
 ```
 
-### The 44 key-free connectors
+### The 43 key-free connectors
 
 Work out of the box, no signup, no API key. Grouped by capability. Three of these (`emailrep`, `ipinfo`, `opencorporates`) accept a BYOK for richer output but do not require one — they are also listed under **The 15 BYOK connectors** below.
 
@@ -376,6 +395,16 @@ Work out of the box, no signup, no API key. Grouped by capability. Three of thes
 
 **Blockchain (light) — no-key** — see BYOK for full-featured providers.
 
+**Reputation & registry — optional key (3)**
+
+| Connector | What it does |
+| --- | --- |
+| `emailrep` | Email reputation (works key-free, richer output with `EMAILREP_API_KEY`) |
+| `ipinfo` | IP geolocation + ASN (works key-free, higher rate limit with `IPINFO_API_KEY`) |
+| `opencorporates` | Global company registry (works key-free, higher rate limit with `OPENCORPORATES_API_KEY`) |
+
+These three also appear in **The 15 BYOK connectors** below — they are counted once in the 43 key-free (no key is *required*) and listed again there because a key is *accepted*.
+
 ### The 15 BYOK connectors
 
 Fill only what you have; missing keys are silently skipped (`missing_key` status).
@@ -444,7 +473,8 @@ Argo is built for authorized investigations. Reading data about a person you hav
 - Runs entirely local / self-hosted. Assumed threat model: single-tenant analyst on a trusted machine or VM.
 - **BYOK.** Argo does not intermediate third-party APIs. Your keys, your rate quota, your invoice.
 - **No hardcoded secrets.** All configuration via env vars; `.env.example` is documented; `.gitignore` blocks `.env`, `*.env`, `secrets.env`, `deploy_artifacts/`.
-- **Target data at rest** is stored under case scope in SQLite (default) or Postgres. Encryption-at-rest is currently **not** applied — treat the datastore as sensitive and use OS-level disk encryption. Tracked as a roadmap item.
+- **BYOK API keys are encrypted at rest** — envelope encryption (AES-256-GCM) with the master key held outside the database. Protects against a database-only leak, not a compromise of the host holding the master key.
+- **Target data at rest** is stored under case scope in SQLite (default) or Postgres. The datastore itself (SQLite file / Postgres database) is **not** application-encrypted — treat it as sensitive and use OS-level disk encryption.
 - **Audit chain (SHA-256)** for tamper-evidence. Full-chain verification is a single CLI command.
 - **DSAR (GDPR):** deletion and export endpoints are implemented.
 
@@ -460,14 +490,18 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md). Highlights of the near-term plan.
 - Centralised policy gate (Rules of Engagement + case-scope enforcement) in `BaseConnector.run` — hardening H1.
 - SSRF-hardened outbound HTTP: every connector routes through `_safe_http`, redirect-revalidated, cloud-metadata-blocked, CI-enforced — hardening H2.
 - SSRF hardening extended to the CLI/job-queue seed-URL fetcher (`osint_bot/fetch.py`, reachable from the web job queue's `seed_urls` field), including its `robots.txt` lookup — hardening H2 follow-up.
-- Real DSAR (GDPR Art. 17): atomic erasure transaction with hash-chained `dsar_tombstoned` proof — hardening H3.
-- Prebuilt Docker image published to GHCR (`:0.1.0`, `:latest`) with Sigstore build provenance.
+- Real DSAR (GDPR Art. 17): atomic erasure transaction with hash-chained `dsar_tombstoned` proof — hardening H3. The full DSAR/Privacy Center path (export, access, erasure) is backend-portable — it goes through the `Storage`/`PostgresStorage` interface, not raw SQL, so it behaves identically on SQLite and Postgres.
+- Prebuilt Docker images published to GHCR on tagged releases (`:0.1.0`, `:0.2.0`, always `:latest`) with Sigstore build provenance attested for each.
+- Signed report seals (Ed25519, always on) + optional RFC3161 trusted timestamping — every completed job is sealed automatically; verify offline with `argo-verify-report`.
+- AI enrichment (`ai` extra, opt-in, 3-gate fail-closed) — narrative synthesis, entity-resolution suggestions, finding triage via a BYOK LLM provider (including a fully local Ollama/llama.cpp option).
+- Postgres recommended for production / multi-analyst deployments — shipped in `docker-compose.yml`, exercised in CI against a real `postgres:16` container. SQLite remains the zero-config default for single-analyst use.
+- `docs/AUDIT_READINESS.md` — preparatory scope/dependency/CI-gate summary for anyone commissioning a paid external security review (not itself an audit).
+- Connector-key encryption at rest (`osint_bot/secrets_crypto.py`): envelope encryption (AES-256-GCM), a master key held outside the database (env var, systemd-credential file, or an auto-generated local file), `argo-rotate-master-key` for rotation, per-access audit events, keys excluded from logs/backups/DSAR exports. See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for exactly what this does and does not protect against.
 
 **Planned**
 
-- Connector-key encryption at rest.
-- First PyPI release under name `argo-cloud-osint` (the name is reserved; upload workflow is scaffolded via a Trusted Publisher).
-- AI enrichment (`ai` extra) — OCR + NER + language detection (experimental).
+- First PyPI release under name `argo-cloud-osint` (the name is reserved; upload workflow is scaffolded via a Trusted Publisher, not yet triggered).
+- Key-rotation tooling for the Ed25519 report-signing key (distinct from the API-key master key above, which already has rotation).
 
 **Frozen / experimental**
 

@@ -20,7 +20,11 @@ COPY config ./config
 COPY scripts ./scripts
 COPY DEPLOYMENT.md ./
 
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -e .
+# [postgres] installa psycopg[binary] (wheel precompilata, nessuna libreria
+# di sistema extra necessaria) — Postgres è il backend raccomandato in
+# produzione (vedi docker-compose.yml); l'immagine lo supporta sempre, resta
+# comunque inerte finché DATABASE_URL non è impostata (default: SQLite).
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -e ".[postgres]"
 
 RUN mkdir -p /app/web_jobs /app/reports && chown -R argo:argo /app
 USER argo
