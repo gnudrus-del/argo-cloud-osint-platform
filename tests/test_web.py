@@ -10,6 +10,7 @@ from osint_bot.orchestrator import RunProfile
 from osint_bot.storage import Storage
 from osint_bot.web import (
     WebError,
+    _content_disposition,
     _safe_str_equals,
     create_job,
     hash_password,
@@ -238,6 +239,34 @@ class WebTests(unittest.TestCase):
             with self.assertRaises(WebError) as ctx:
                 read_job(alice_job["id"], requester="bob")
         self.assertEqual(ctx.exception.status, HTTPStatus.NOT_FOUND)
+
+
+class ContentDispositionTests(unittest.TestCase):
+    """Report/export downloads (report.pdf, report.json, ..., stix.json,
+    misp.json) must force a real browser download rather than an inline
+    view — without Content-Disposition: attachment, browsers with a built-in
+    PDF/JSON/text viewer open the file in a new tab instead of downloading
+    it, which is exactly the bug this header fixes."""
+
+    def test_basic_filename_produces_attachment_header(self):
+        self.assertEqual(_content_disposition("report.pdf"), 'attachment; filename="report.pdf"')
+
+    def test_dangerous_characters_are_stripped(self):
+        # CR/LF/quotes could otherwise break out of the filename value and
+        # inject a second header; safe_filename() collapses them all to "_",
+        # so the whole attempt stays inert text inside one filename="..."
+        # value instead of splitting into a second header line. The literal
+        # words survive (e.g. "Set-Cookie" as plain characters) -- that's
+        # fine and expected; what matters is there is no CR/LF left to make
+        # it a real header.
+        header = _content_disposition('evil"\r\nSet-Cookie: pwn=1.pdf')
+        self.assertNotIn("\r", header)
+        self.assertNotIn("\n", header)
+        self.assertEqual(header.count('"'), 2)  # exactly the wrapping quotes, none injected
+
+    def test_stix_and_misp_kind_names_work_as_filenames(self):
+        self.assertEqual(_content_disposition("stix.json"), 'attachment; filename="stix.json"')
+        self.assertEqual(_content_disposition("misp.json"), 'attachment; filename="misp.json"')
 
 
 class Pillar04GateTests(unittest.TestCase):

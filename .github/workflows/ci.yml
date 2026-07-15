@@ -75,7 +75,16 @@ jobs:
         # non un fallimento del progetto. Ignora esplicitamente i suoi CVE
         # invece di lasciare la scansione permanentemente rossa per qualcosa
         # fuori dal nostro controllo diretto.
-        run: pip-audit --ignore-vuln PYSEC-2026-196 --ignore-vuln PYSEC-2026-2875 --ignore-vuln PYSEC-2026-2876
+        #
+        # PYSEC-2022-252 (deep-translator, extra "ai" opzionale): incidente
+        # storico, non un bug nel codice attuale. Nell'agosto 2022 l'account
+        # PyPI del maintainer fu compromesso via phishing e fu pubblicata una
+        # singola release malevola; quella release e' stata rimossa da PyPI e
+        # l'account bloccato. L'advisory copre un range di versioni troppo
+        # ampio e non indica una "fix version" perche' non c'e' nulla da
+        # correggere: 1.11.4 e' l'unica versione installabile oggi da PyPI ed
+        # e' pulita. Verificato manualmente prima di ignorarlo.
+        run: pip-audit --ignore-vuln PYSEC-2026-196 --ignore-vuln PYSEC-2026-2875 --ignore-vuln PYSEC-2026-2876 --ignore-vuln PYSEC-2022-252
 
   postgres-integration:
     name: Privacy Center / DSAR against live Postgres

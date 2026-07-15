@@ -49,7 +49,7 @@ All in `.github/workflows/ci.yml`:
 | --- | --- |
 | `python` | Lint (ruff, blocking), unit tests (600+ at time of writing), JS syntax |
 | `ssrf-guard` | No connector imports a raw HTTP client (`urllib.request`/`httpx`/`requests`/`aiohttp`) instead of `_safe_http` |
-| `dependency-scan` | `pip-audit` against the full dependency closure — blocks `build-package` |
+| `dependency-scan` | `pip-audit` against the full dependency closure — blocks `build-package`. Explicitly ignores 3 CVEs in `pip` itself (the packaging tool present in the venv, not an app dependency) and `PYSEC-2022-252` (`deep-translator`, optional `ai` extra) — a 2022 PyPI account-compromise incident where the malicious release was removed from PyPI and the account locked; the advisory's version range is over-broad and lists no fix version because there is nothing left to fix in the only version PyPI serves today. Manually verified before being added to the ignore list, not a blanket suppression. |
 | `postgres-integration` | Privacy Center/DSAR tests against a real `postgres:16` service container |
 | `docker-build` | Image builds and imports cleanly |
 

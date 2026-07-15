@@ -1137,8 +1137,9 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
                 return self.send_raw(
                     json.dumps(redacted, ensure_ascii=False, indent=2).encode("utf-8"),
                     content_type,
+                    download_name=parts[3],
                 )
-            return self.send_file(Path(report_path), content_type)
+            return self.send_file(Path(report_path), content_type, download_name=parts[3])
         raise WebError(HTTPStatus.NOT_FOUND, "Risorsa job non trovata.")
 
     def handle_threatintel_export(self, job: dict, kind: str) -> None:
@@ -1163,6 +1164,7 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         return self.send_raw(
             json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"),
             "application/json; charset=utf-8",
+            download_name=kind,
         )
 
     def handle_media_upload(self) -> None:
@@ -1421,7 +1423,7 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         content_type = mimetypes.guess_type(static_path.name)[0] or "application/octet-stream"
         self.send_file(static_path, content_type)
 
-    def send_file(self, path: Path, content_type: str) -> None:
+    def send_file(self, path: Path, content_type: str, *, download_name: str = "") -> None:
         # Difesa in profondità contro path-traversal: il file DEVE essere sotto
         # JOB_ROOT (dove si generano report/upload) oppure sotto STATIC_ROOT
         # (asset del frontend). Anche se un attaccante forzasse un path via DB,
@@ -1454,14 +1456,18 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-cache, must-revalidate")
         self.send_header("ETag", etag)
+        if download_name:
+            self.send_header("Content-Disposition", _content_disposition(download_name))
         self.end_headers()
         self.wfile.write(data)
 
-    def send_raw(self, data: bytes, content_type: str) -> None:
+    def send_raw(self, data: bytes, content_type: str, *, download_name: str = "") -> None:
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
+        if download_name:
+            self.send_header("Content-Disposition", _content_disposition(download_name))
         self.end_headers()
         self.wfile.write(data)
 
@@ -2828,6 +2834,14 @@ def delete_job_artifacts(job: dict) -> list[str]:
 def safe_filename(value: str) -> str:
     stem = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(value).name).strip("._-")
     return stem[:120] or "upload.bin"
+
+
+def _content_disposition(filename: str) -> str:
+    """``Content-Disposition: attachment`` header value, filename sanitized
+    through the same allow-list as uploads (no CR/LF/quotes reach a header —
+    header-injection defense, even though every call site here passes an
+    internally-controlled name, not user input)."""
+    return f'attachment; filename="{safe_filename(filename)}"'
 
 
 def parse_multipart_file(raw: bytes, content_type: str) -> tuple[str, bytes]:
