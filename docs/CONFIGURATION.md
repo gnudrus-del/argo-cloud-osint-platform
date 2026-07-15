@@ -79,9 +79,9 @@ Every key saved through the "Chiavi API" UI is encrypted at rest before it reach
 
 Neither set: Argo auto-generates a key on first use and persists it to `<OSINT_JOB_DIR>/.master_key` (`chmod 600`), sibling to the database file, never a row inside it — zero-config, same UX as the Ed25519 report-signing key.
 
-API keys written before this feature existed are read transparently (no `enc:v1:` prefix means legacy plaintext) and silently upgraded to encrypted on the next write — no blocking migration.
+API keys written before this feature existed are read transparently (no `enc:v1:`/`enc:v2:` prefix means legacy plaintext) and silently upgraded to encrypted (current format, `enc:v2:`) on the next write — no blocking migration.
 
-**What this protects against:** a database-only leak (a stolen SQLite file, a Postgres dump, a leaked Postgres credential). **What it does not protect against:** compromise of the host the master key file lives on — same `chmod 600` / OS-disk-encryption reasoning as everything else in this file.
+**What this protects against:** a database-only leak (a stolen SQLite file, a Postgres dump, a leaked Postgres credential). Every value is bound (via AES-GCM associated data) to its own `(username, service)` row, so an attacker with direct DB *write* access can't copy one row's ciphertext into another row and have it decrypt "successfully" there. **What it does not protect against:** compromise of the host the master key file lives on — same `chmod 600` / OS-disk-encryption reasoning as everything else in this file.
 
 **Rotation:**
 
@@ -89,6 +89,8 @@ API keys written before this feature existed are read transparently (no `enc:v1:
 argo-rotate-master-key              # dry run — shows key source and how many keys would be re-wrapped
 argo-rotate-master-key --yes        # rotates in place, if the key source is a local file Argo can rewrite
 ```
+
+**Stop the Argo web service before rotating.** The rotation tool takes one snapshot of stored keys and has no lock against a concurrently-running server writing a key mid-rotation — the CLI prints this warning every time, it isn't buried here as an afterthought. The new master key is written to disk only after every row has been successfully re-wrapped, never before — a crash or error partway through leaves the old key untouched and nothing is lost; re-run the rotation once the underlying issue is fixed.
 
 If the master key comes from `OSINT_MASTER_KEY` or a read-only systemd-credential mount, Argo cannot rewrite its own environment or an externally managed credential — rotation then requires `--new-key-output <path>`, after which you update your secret manager / systemd credential / `OSINT_MASTER_KEY` with the new value yourself. **Restart the Argo service after any rotation** — a running process caches its master key in memory and fails to decrypt keys re-wrapped under a new one until restarted.
 
@@ -128,6 +130,15 @@ An optional RFC3161 trusted timestamp against an external Time-Stamping Authorit
 Only a 32-byte SHA-256 digest of the manifest is ever sent to the TSA — never case content, never finding text. This is why the timestamp feature has a single, light gate (is a TSA configured) rather than the AI agent's 3-gate model: the privacy exposure of a one-way hash is categorically different from sending case prose to an LLM.
 
 Verify a sealed report independently, offline, with `argo-verify-report <seal.json>` (the seal export downloaded from `GET /api/jobs/<id>/seal`) — it checks the Ed25519 signature and, if present, prints the RFC3161 token's claimed timestamp with instructions to verify it yourself (`openssl ts -reply -in token.der -text`). Argo does not verify the TSA's own certificate chain — that trust decision belongs to whoever relies on the proof, not to the tool that requested it.
+
+**Signing-key rotation:**
+
+```bash
+argo-rotate-signing-key             # dry run — shows the current key's fingerprint
+argo-rotate-signing-key --yes       # retires the current key, generates a new one
+```
+
+Unlike the API-key master key, rotating this needs no re-processing: every sealed report already carries its own public key inline, so past signatures stay verifiable forever regardless of which key is "current." The retired private key is archived on disk (never deleted). **Restart the Argo service after rotating** — same reason as the master key: a running process caches the signing key in memory and keeps signing *new* reports with the retired key until restarted, which matters most exactly when you rotated because you suspected the old key was exposed.
 
 ## Production checklist
 

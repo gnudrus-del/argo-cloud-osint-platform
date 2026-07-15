@@ -28,7 +28,9 @@ Public planning. Priorities can change; nothing here is a promise.
 - `docs/AUDIT_READINESS.md` for anyone commissioning a paid external security review.
 - `pip-audit` CI gate; dependency bumps for known CVEs.
 - Opt-in AI agent capabilities (narrative synthesis, entity-resolution suggestions, triage) via BYOK LLM, 3-gate fail-closed.
-- **Connector-key encryption at rest** — envelope encryption (`osint_bot/secrets_crypto.py`), a master key held outside the database (env var / systemd-credential file / auto-generated local file), `argo-rotate-master-key` for rotation, per-access audit events, keys excluded from logs/backups/exports.
+- **Connector-key encryption at rest** — envelope encryption (`osint_bot/secrets_crypto.py`), row-bound via AES-GCM associated data, a master key held outside the database (env var / systemd-credential file / auto-generated local file), `argo-rotate-master-key` for rotation, per-access audit events, keys excluded from logs/backups/exports.
+- **Ed25519 report-signing key rotation** (`argo-rotate-signing-key`) — retires and archives the current key, past signatures stay verifiable unchanged.
+- **Internal adversarial security review** of this cycle's new cryptographic code, performed by an independent context — found and fixed a rotation-ordering bug, a false "no restart needed" claim, a rotation race condition, and missing row-binding on stored ciphertext. Not a substitute for an external audit; see `docs/AUDIT_READINESS.md`.
 
 ## v0.3.0 — analyst UX
 

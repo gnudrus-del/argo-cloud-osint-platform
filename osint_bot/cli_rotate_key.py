@@ -46,45 +46,62 @@ def rotate(storage, job_root: Path, *, new_key_output: Path | None) -> tuple[boo
     old_key = secrets_crypto.get_master_key(job_root)
     new_key = secrets_crypto.generate_master_key()
 
+    if source.startswith("env:") and new_key_output is None:
+        lines.append(
+            "ERROR: the master key comes from OSINT_MASTER_KEY (an environment "
+            "variable) — this process cannot rewrite its own parent's "
+            "environment or any secret manager on your behalf. Re-run with "
+            "--new-key-output <path> and I will write the new key there; "
+            "you then update OSINT_MASTER_KEY (or your secret manager) "
+            "with its contents yourself."
+        )
+        return False, lines
+
+    # Determine (but do NOT yet write) where the new key will land, and
+    # pre-flight that the destination is actually writable. Writing the new
+    # key file happens ONLY after every row has been successfully re-wrapped
+    # below (see the try/except) — writing it earlier would mean a crash
+    # mid-loop deletes the only copy of the OLD key (which lived solely in
+    # the `old_key` variable) while some rows are still encrypted under it,
+    # making them permanently unrecoverable. This ordering is deliberate:
+    # the old key file must remain on disk, untouched, until the new key
+    # provably decrypts everything the old one did.
     in_place_path: Path | None = None
-    if source.startswith("env:"):
-        if new_key_output is None:
+    if new_key_output is None and not source.startswith("env:"):
+        in_place_path = secrets_crypto.master_key_path(job_root)
+        try:
+            in_place_path.parent.mkdir(parents=True, exist_ok=True)
+            probe = in_place_path.with_suffix(in_place_path.suffix + ".rotate-probe")
+            probe.write_text("", encoding="utf-8")
+            probe.unlink()
+        except OSError as exc:
             lines.append(
-                "ERROR: the master key comes from OSINT_MASTER_KEY (an environment "
-                "variable) — this process cannot rewrite its own parent's "
-                "environment or any secret manager on your behalf. Re-run with "
-                "--new-key-output <path> and I will write the new key there; "
-                "you then update OSINT_MASTER_KEY (or your secret manager) "
-                "with its contents yourself."
+                f"ERROR: {in_place_path} does not look writable ({exc}). "
+                "If this path is a read-only systemd-credential mount, "
+                "re-run with --new-key-output <path> instead."
             )
             return False, lines
-    else:
-        # "file-override:<path>" or "auto-generated:<path>" — try to write
-        # in place; a systemd-managed read-only credential mount will raise
-        # and we fall back to requiring --new-key-output just like the env case.
-        candidate = secrets_crypto.master_key_path(job_root)
-        if new_key_output is not None:
-            in_place_path = None  # operator explicitly asked for a separate file
-        else:
-            try:
-                secrets_crypto.persist_master_key_file(candidate, new_key)
-                in_place_path = candidate
-            except OSError as exc:
-                lines.append(
-                    f"ERROR: could not write the new key to {candidate} ({exc}). "
-                    "If this path is a read-only systemd-credential mount, "
-                    "re-run with --new-key-output <path> instead."
-                )
-                return False, lines
 
-    # Re-wrap every stored key under the new master key.
+    # Re-wrap every stored key under the new master key. The OLD key file
+    # (or OSINT_MASTER_KEY env var) is untouched throughout this loop, so a
+    # crash here is always recoverable: nothing has been destroyed yet.
     reencrypted = 0
-    for row in rows:
-        plaintext = secrets_crypto.decrypt_secret(row["value"], old_key)
-        new_blob = secrets_crypto.encrypt_secret(plaintext, new_key)
-        storage.set_api_key_encrypted(row["username"], row["service"], new_blob)
-        reencrypted += 1
+    try:
+        for row in rows:
+            row_aad = secrets_crypto.api_key_aad(row["username"], row["service"])
+            plaintext = secrets_crypto.decrypt_secret(row["value"], old_key, aad=row_aad)
+            new_blob = secrets_crypto.encrypt_secret(plaintext, new_key, aad=row_aad)
+            storage.set_api_key_encrypted(row["username"], row["service"], new_blob)
+            reencrypted += 1
+    except Exception as exc:
+        lines.append(
+            f"ERROR: re-wrap failed after {reencrypted}/{len(rows)} key(s) ({exc}). "
+            "The OLD master key was NOT touched and is still active — nothing was "
+            "lost. Fix the underlying issue and re-run the rotation from scratch."
+        )
+        return False, lines
 
+    # Only now, with every row provably re-wrapped, persist the new key.
     if new_key_output is not None:
         secrets_crypto.persist_master_key_file(new_key_output, new_key)
         lines.append(f"New master key written to: {new_key_output}")
@@ -95,6 +112,7 @@ def rotate(storage, job_root: Path, *, new_key_output: Path | None) -> tuple[boo
             "until the new key is confirmed live."
         )
     else:
+        secrets_crypto.persist_master_key_file(in_place_path, new_key)
         lines.append(f"New master key written to: {in_place_path}")
 
     secrets_crypto.invalidate_cache()
@@ -132,6 +150,13 @@ def main(argv: list[str] | None = None) -> int:
             print("\nDry run only — no changes made. Re-run with --yes to rotate.")
             return 0
 
+        print(
+            "WARNING: stop the Argo web service before continuing. This tool takes "
+            "one snapshot of stored keys and re-wraps it; a key written by a still-"
+            "running server during rotation can end up saved under the old key with "
+            "no record of that having happened, or overwritten by this tool's stale "
+            "snapshot. There is no locking against a concurrent writer.\n"
+        )
         ok, lines = rotate(storage, job_root, new_key_output=args.new_key_output)
         for line in lines:
             print(line)

@@ -122,5 +122,71 @@ class ExportPublicKeyTests(_IsolatedKeyCacheMixin, unittest.TestCase):
             self.assertEqual(set(exported), {"algorithm", "public_key_b64", "fingerprint_sha256"})
 
 
+class KeyRotationTests(_IsolatedKeyCacheMixin, unittest.TestCase):
+    def test_rotation_changes_the_active_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            before = report_signing.sign_digest(_digest_hex(), root)
+            result = report_signing.rotate_signing_key(root)
+            after = report_signing.sign_digest(_digest_hex(), root)
+            self.assertEqual(result["retired_fingerprint_sha256"], before["fingerprint_sha256"])
+            self.assertEqual(result["new_fingerprint_sha256"], after["fingerprint_sha256"])
+            self.assertNotEqual(before["fingerprint_sha256"], after["fingerprint_sha256"])
+
+    def test_first_rotation_with_no_prior_key_has_empty_retired_fingerprint(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertFalse(report_signing.signing_key_path(root).exists())
+            result = report_signing.rotate_signing_key(root)
+            self.assertEqual(result["retired_fingerprint_sha256"], "")
+            self.assertTrue(result["new_fingerprint_sha256"])
+
+    def test_old_seals_remain_verifiable_after_rotation(self):
+        """The whole point of embedding the public key in every seal: a
+        report signed before rotation must still verify after, unchanged."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            digest_hex = _digest_hex()
+            old_sig = report_signing.sign_digest(digest_hex, root)
+            report_signing.rotate_signing_key(root)
+            self.assertTrue(report_signing.verify_signature(
+                digest_hex, old_sig["signature_b64"], old_sig["public_key_b64"]))
+
+    def test_new_key_cannot_verify_old_signature_against_its_own_pubkey(self):
+        """A verifier that (wrongly) assumed 'current key' == 'signing key'
+        for an old report would fail -- this is exactly why verification
+        must use the pubkey embedded in the seal, not a live lookup."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            digest_hex = _digest_hex()
+            old_sig = report_signing.sign_digest(digest_hex, root)
+            report_signing.rotate_signing_key(root)
+            new_pub = report_signing.export_public_key(root)
+            self.assertFalse(report_signing.verify_signature(
+                digest_hex, old_sig["signature_b64"], new_pub["public_key_b64"]))
+
+    def test_retired_key_file_is_archived_not_deleted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report_signing.get_signing_key(root)  # create the first key
+            key_path = report_signing.signing_key_path(root)
+            self.assertTrue(key_path.exists())
+            report_signing.rotate_signing_key(root)
+            self.assertTrue(key_path.exists())  # new key now lives here
+            archived = list(root.glob(".report_signing_key.retired-*"))
+            self.assertEqual(len(archived), 1)
+
+    def test_double_rotation_archives_both_retired_keys_separately(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report_signing.get_signing_key(root)
+            r1 = report_signing.rotate_signing_key(root)
+            r2 = report_signing.rotate_signing_key(root)
+            self.assertNotEqual(r1["new_fingerprint_sha256"], r2["new_fingerprint_sha256"])
+            self.assertEqual(r2["retired_fingerprint_sha256"], r1["new_fingerprint_sha256"])
+            archived = list(root.glob(".report_signing_key.retired-*"))
+            self.assertEqual(len(archived), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

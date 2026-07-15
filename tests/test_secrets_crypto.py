@@ -65,6 +65,88 @@ class EnvelopeRoundtripTests(_IsolatedKeyCacheMixin, unittest.TestCase):
         self.assertEqual(secrets_crypto.decrypt_secret(blob2, key), "SAME")
 
 
+class AssociatedDataTests(_IsolatedKeyCacheMixin, unittest.TestCase):
+    """AAD row-binding, added after an adversarial review found stored
+    ciphertext wasn't bound to its (username, service) row — see
+    docs/THREAT_MODEL.md."""
+
+    def test_correct_aad_decrypts(self):
+        key = secrets_crypto.generate_master_key()
+        aad = secrets_crypto.api_key_aad("alice", "shodan")
+        blob = secrets_crypto.encrypt_secret("SECRET", key, aad=aad)
+        self.assertEqual(secrets_crypto.decrypt_secret(blob, key, aad=aad), "SECRET")
+
+    def test_wrong_aad_fails_to_decrypt(self):
+        key = secrets_crypto.generate_master_key()
+        blob = secrets_crypto.encrypt_secret("SECRET", key, aad=secrets_crypto.api_key_aad("alice", "shodan"))
+        with self.assertRaises(InvalidTag):
+            secrets_crypto.decrypt_secret(blob, key, aad=secrets_crypto.api_key_aad("bob", "shodan"))
+
+    def test_missing_aad_fails_to_decrypt_a_v2_value(self):
+        key = secrets_crypto.generate_master_key()
+        blob = secrets_crypto.encrypt_secret("SECRET", key, aad=secrets_crypto.api_key_aad("alice", "shodan"))
+        with self.assertRaises(InvalidTag):
+            secrets_crypto.decrypt_secret(blob, key)  # no aad passed
+
+    def test_new_writes_use_v2_format(self):
+        key = secrets_crypto.generate_master_key()
+        blob = secrets_crypto.encrypt_secret("SECRET", key)
+        self.assertTrue(blob.startswith(secrets_crypto.ENVELOPE_PREFIX_V2))
+
+    def test_v1_value_decrypts_ignoring_any_aad(self):
+        """A value written before AAD support existed (enc:v1:, produced by
+        directly building the old envelope shape) must still decrypt --
+        v1 never had AAD, so decrypt_secret must not require or check one
+        for it, regardless of what a caller passes."""
+        key = secrets_crypto.generate_master_key()
+        v2_blob = secrets_crypto.encrypt_secret("SECRET", key, aad=b"whatever")
+        # Re-pack the same envelope under the v1 prefix to simulate a
+        # pre-AAD row (the on-wire *format* is identical; only the prefix
+        # and the absence of AAD at encryption time differ in practice).
+        v1_blob = secrets_crypto.ENVELOPE_PREFIX_V1 + v2_blob[len(secrets_crypto.ENVELOPE_PREFIX_V2):]
+        no_aad_blob = secrets_crypto.encrypt_secret("SECRET", key)  # no aad -> valid under v1 semantics
+        v1_of_no_aad = secrets_crypto.ENVELOPE_PREFIX_V1 + no_aad_blob[len(secrets_crypto.ENVELOPE_PREFIX_V2):]
+        self.assertEqual(secrets_crypto.decrypt_secret(v1_of_no_aad, key), "SECRET")
+        self.assertEqual(secrets_crypto.decrypt_secret(v1_of_no_aad, key, aad=b"ignored-for-v1"), "SECRET")
+
+    def test_different_rows_get_different_aad(self):
+        self.assertNotEqual(
+            secrets_crypto.api_key_aad("alice", "shodan"),
+            secrets_crypto.api_key_aad("alice", "hibp"),
+        )
+        self.assertNotEqual(
+            secrets_crypto.api_key_aad("alice", "shodan"),
+            secrets_crypto.api_key_aad("bob", "shodan"),
+        )
+
+    def test_storage_layer_rejects_ciphertext_moved_to_a_different_row(self):
+        """The actual attack scenario the AAD fix defends against: an
+        attacker with direct DB-write access copies one row's ciphertext
+        into a different row. Before the fix this decrypted successfully
+        under the shared master key (silent misattribution); now it must
+        raise instead of returning a plausible-looking wrong secret."""
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Storage(Path(tmp) / "gufo.sqlite3")
+            store.put_user({"username": "alice", "password": "p", "plan": "free", "created_at": "x", "disabled": False})
+            store.put_user({"username": "bob", "password": "p", "plan": "free", "created_at": "x", "disabled": False})
+            store.put_api_key("alice", "shodan", "ALICE-SECRET")
+
+            alice_row = store._conn().execute(
+                "SELECT value FROM api_keys WHERE username = ? AND service = ?", ("alice", "shodan")
+            ).fetchone()["value"]
+
+            # Simulate an attacker relocating alice's ciphertext into bob's row,
+            # bypassing put_api_key entirely (direct SQL, as a DB-write attacker would).
+            store._conn().execute(
+                "INSERT INTO api_keys (username, service, value, updated_at) VALUES (?, ?, ?, ?)",
+                ("bob", "shodan", alice_row, "2020-01-01T00:00:00+00:00"),
+            )
+
+            with self.assertRaises(InvalidTag):
+                store.get_api_key("bob", "shodan")
+            store.close()
+
+
 class MasterKeyLoadingTests(_IsolatedKeyCacheMixin, unittest.TestCase):
     def test_auto_generated_and_persisted(self):
         with tempfile.TemporaryDirectory() as tmp:

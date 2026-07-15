@@ -665,7 +665,10 @@ class PostgresStorage:
         if not value:
             self.delete_api_key(username, service)
             return
-        encrypted = secrets_crypto.encrypt_secret(value, secrets_crypto.get_master_key(self._job_root))
+        encrypted = secrets_crypto.encrypt_secret(
+            value, secrets_crypto.get_master_key(self._job_root),
+            aad=secrets_crypto.api_key_aad(username, service),
+        )
         self._exec(
             """
             INSERT INTO api_keys (username, service, value, updated_at)
@@ -681,7 +684,10 @@ class PostgresStorage:
             "SELECT value FROM api_keys WHERE username = %s AND service = %s", (username, service))
         if not row:
             return None
-        plaintext = secrets_crypto.decrypt_secret(row["value"], secrets_crypto.get_master_key(self._job_root))
+        plaintext = secrets_crypto.decrypt_secret(
+            row["value"], secrets_crypto.get_master_key(self._job_root),
+            aad=secrets_crypto.api_key_aad(username, service),
+        )
         self.append_audit_event(username, "api_key_accessed", {"service": service})
         return plaintext
 
@@ -691,7 +697,8 @@ class PostgresStorage:
             (username,))
         master_key = secrets_crypto.get_master_key(self._job_root)
         return [{"service": r["service"],
-                 "masked": _mask(secrets_crypto.decrypt_secret(r["value"], master_key)),
+                 "masked": _mask(secrets_crypto.decrypt_secret(
+                     r["value"], master_key, aad=secrets_crypto.api_key_aad(username, r["service"]))),
                  "updated_at": r["updated_at"]}
                 for r in rows]
 

@@ -40,21 +40,27 @@ Values written before this module existed are plain, unprefixed strings.
 ``decrypt_secret`` treats anything without the ``enc:v1:`` prefix as such
 legacy plaintext and returns it unchanged — the next ``put_api_key`` call
 transparently upgrades it to an encrypted blob. There is no blocking
-migration step; ``scripts/reencrypt_api_keys.py`` (via ``all_api_keys`` +
-``set_api_key_encrypted`` on the storage backend) proactively upgrades
-everything at once for operators who don't want to wait for a natural
-rewrite.
+migration step; a full re-encryption of every stored key at once (rather
+than waiting for a natural rewrite) is exactly what ``cli_rotate_key.py``
+(``argo-rotate-master-key``) already does via ``all_api_keys`` +
+``set_api_key_encrypted`` on the storage backend, since a master-key
+rotation and a proactive legacy-plaintext upgrade are the same operation.
 """
 from __future__ import annotations
 
 import base64
 import json
+import logging
 import os
 from pathlib import Path
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-ENVELOPE_PREFIX = "enc:v1:"
+_log = logging.getLogger("osint_bot.secrets_crypto")
+
+ENVELOPE_PREFIX_V1 = "enc:v1:"  # legacy: no AAD, kept for backward-compat reads only
+ENVELOPE_PREFIX_V2 = "enc:v2:"  # current: AAD binds ciphertext to its (username, service) row
+ENVELOPE_PREFIX = ENVELOPE_PREFIX_V2  # what new writes use; kept for callers checking the prefix
 _NONCE_BYTES = 12  # standard AES-GCM nonce size
 _KEY_BITS = 256
 
@@ -94,8 +100,12 @@ def persist_master_key_file(path: Path, key: bytes) -> None:
     path.write_text(base64.b64encode(key).decode("ascii"), encoding="utf-8")
     try:
         path.chmod(0o600)
-    except OSError:
-        pass  # best-effort: filesystem without POSIX permissions (Windows/FAT)
+    except OSError as exc:
+        # Best-effort: expected on filesystems without POSIX permissions
+        # (Windows/FAT). Logged (not swallowed silently) because on a POSIX
+        # host where this fails for another reason, the master key could sit
+        # group/world-readable with nothing telling the operator.
+        _log.warning("Could not chmod 600 master key file %s: %s", path, exc)
 
 
 def load_or_create_master_key(job_root: Path) -> bytes:
@@ -136,20 +146,42 @@ def invalidate_cache() -> None:
     _master_key_cache.clear()
 
 
+def api_key_aad(username: str, service: str) -> bytes:
+    """Canonical AAD for one ``api_keys`` row. A single shared function (not
+    each caller formatting its own string) so storage.py, storage_postgres.py
+    and the rotation CLI can never drift into using slightly different AAD
+    for the same row, which would make a value written by one and read by
+    the other fail to decrypt."""
+    return f"api_key:{username}:{service}".encode()
+
+
 def is_encrypted(value: str) -> bool:
-    return bool(value) and value.startswith(ENVELOPE_PREFIX)
+    return bool(value) and (value.startswith(ENVELOPE_PREFIX_V2) or value.startswith(ENVELOPE_PREFIX_V1))
 
 
-def encrypt_secret(plaintext: str, master_key: bytes) -> str:
+def encrypt_secret(plaintext: str, master_key: bytes, *, aad: bytes = b"") -> str:
     """Envelope-encrypt *plaintext*. Empty input returns empty output — an
-    empty API key value means "no key configured", not a secret to protect."""
+    empty API key value means "no key configured", not a secret to protect.
+
+    *aad* (Additional Authenticated Data) should be a stable identifier for
+    the row this value belongs to, e.g. ``f"{username}:{service}".encode()``.
+    It is not secret and is not stored, but AES-GCM cryptographically binds
+    the ciphertext to it: decrypting with a different *aad* fails loudly
+    instead of silently succeeding. Without this, direct database write
+    access (SQL injection, a rogue script, a compromised low-privilege DB
+    credential — a different threat than the "read-only DB leak" this module
+    otherwise defends against) could copy one row's ciphertext into another
+    row and have it decrypt "successfully" there, silently misattributing a
+    secret. Every new write goes through this; omitting *aad* (default)
+    keeps it backward-compatible for callers that have none available.
+    """
     if not plaintext:
         return ""
     dek = AESGCM.generate_key(bit_length=_KEY_BITS)
     data_nonce = os.urandom(_NONCE_BYTES)
-    ciphertext = AESGCM(dek).encrypt(data_nonce, plaintext.encode("utf-8"), None)
+    ciphertext = AESGCM(dek).encrypt(data_nonce, plaintext.encode("utf-8"), aad or None)
     wrap_nonce = os.urandom(_NONCE_BYTES)
-    wrapped_dek = AESGCM(master_key).encrypt(wrap_nonce, dek, None)
+    wrapped_dek = AESGCM(master_key).encrypt(wrap_nonce, dek, aad or None)
     envelope = {
         "wrap_nonce": base64.b64encode(wrap_nonce).decode("ascii"),
         "wrapped_dek": base64.b64encode(wrapped_dek).decode("ascii"),
@@ -157,27 +189,41 @@ def encrypt_secret(plaintext: str, master_key: bytes) -> str:
         "ciphertext": base64.b64encode(ciphertext).decode("ascii"),
     }
     packed = base64.b64encode(json.dumps(envelope).encode("utf-8")).decode("ascii")
-    return ENVELOPE_PREFIX + packed
+    return ENVELOPE_PREFIX_V2 + packed
 
 
-def decrypt_secret(value: str, master_key: bytes) -> str:
+def decrypt_secret(value: str, master_key: bytes, *, aad: bytes = b"") -> str:
     """Decrypt a value produced by ``encrypt_secret``. Legacy plaintext
-    (no ``enc:v1:`` prefix, written before this module existed) passes
-    through unchanged — see the module docstring."""
+    (no ``enc:v1:``/``enc:v2:`` prefix, written before this module existed)
+    passes through unchanged — see the module docstring.
+
+    *aad* must match what ``encrypt_secret`` was called with for this value
+    to decrypt (v2 envelopes only — v1 predates AAD support and is always
+    decrypted without it, regardless of what the caller passes here, since
+    it was never bound to any). A mismatched *aad* raises ``InvalidTag``,
+    same as a wrong key — the row-binding only has teeth if verification is
+    unconditional, not best-effort.
+    """
     if not value or not is_encrypted(value):
         return value
-    envelope = json.loads(base64.b64decode(value[len(ENVELOPE_PREFIX):]))
+    if value.startswith(ENVELOPE_PREFIX_V2):
+        prefix, use_aad = ENVELOPE_PREFIX_V2, (aad or None)
+    else:
+        prefix, use_aad = ENVELOPE_PREFIX_V1, None  # v1 never had AAD
+    envelope = json.loads(base64.b64decode(value[len(prefix):]))
     wrap_nonce = base64.b64decode(envelope["wrap_nonce"])
     wrapped_dek = base64.b64decode(envelope["wrapped_dek"])
     data_nonce = base64.b64decode(envelope["data_nonce"])
     ciphertext = base64.b64decode(envelope["ciphertext"])
-    dek = AESGCM(master_key).decrypt(wrap_nonce, wrapped_dek, None)
-    plaintext = AESGCM(dek).decrypt(data_nonce, ciphertext, None)
+    dek = AESGCM(master_key).decrypt(wrap_nonce, wrapped_dek, use_aad)
+    plaintext = AESGCM(dek).decrypt(data_nonce, ciphertext, use_aad)
     return plaintext.decode("utf-8")
 
 
 __all__ = [
     "ENVELOPE_PREFIX",
+    "ENVELOPE_PREFIX_V1",
+    "ENVELOPE_PREFIX_V2",
     "master_key_path",
     "master_key_source",
     "generate_master_key",
@@ -185,6 +231,7 @@ __all__ = [
     "load_or_create_master_key",
     "get_master_key",
     "invalidate_cache",
+    "api_key_aad",
     "is_encrypted",
     "encrypt_secret",
     "decrypt_secret",

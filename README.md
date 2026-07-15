@@ -496,12 +496,13 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md). Highlights of the near-term plan.
 - AI enrichment (`ai` extra, opt-in, 3-gate fail-closed) — narrative synthesis, entity-resolution suggestions, finding triage via a BYOK LLM provider (including a fully local Ollama/llama.cpp option).
 - Postgres recommended for production / multi-analyst deployments — shipped in `docker-compose.yml`, exercised in CI against a real `postgres:16` container. SQLite remains the zero-config default for single-analyst use.
 - `docs/AUDIT_READINESS.md` — preparatory scope/dependency/CI-gate summary for anyone commissioning a paid external security review (not itself an audit).
-- Connector-key encryption at rest (`osint_bot/secrets_crypto.py`): envelope encryption (AES-256-GCM), a master key held outside the database (env var, systemd-credential file, or an auto-generated local file), `argo-rotate-master-key` for rotation, per-access audit events, keys excluded from logs/backups/DSAR exports. See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for exactly what this does and does not protect against.
+- Connector-key encryption at rest (`osint_bot/secrets_crypto.py`): envelope encryption (AES-256-GCM), row-bound via AES-GCM associated data, a master key held outside the database (env var, systemd-credential file, or an auto-generated local file), `argo-rotate-master-key` for rotation, per-access audit events, keys excluded from logs/backups/DSAR exports. See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for exactly what this does and does not protect against.
+- Ed25519 report-signing key rotation (`argo-rotate-signing-key`) — past signatures stay verifiable unchanged (each seal embeds its own public key); found and fixed by an internal adversarial review, see `docs/THREAT_MODEL.md`.
 
 **Planned**
 
 - First PyPI release under name `argo-cloud-osint` (the name is reserved; upload workflow is scaffolded via a Trusted Publisher, not yet triggered).
-- Key-rotation tooling for the Ed25519 report-signing key (distinct from the API-key master key above, which already has rotation).
+- An independent, external, professional security audit — the internal adversarial review noted above is real due diligence but explicitly not a substitute; see `docs/AUDIT_READINESS.md`.
 
 **Frozen / experimental**
 
