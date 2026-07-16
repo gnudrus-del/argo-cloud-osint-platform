@@ -173,7 +173,12 @@ jobs:
   # job is BLOCKING now that the lockfile is committed: silent breakage here
   # is a real signal, not noise.
   web-next:
-    name: Next.js typecheck + build + e2e (frozen prototype)
+    # Keep this display name EXACTLY as the branch-protection required check
+    # expects ("Next.js typecheck + build (frozen prototype)"); renaming the
+    # job orphans that required status → it stays "Expected" forever and blocks
+    # merge. The job also runs e2e + a Docker smoke build (see steps below);
+    # the name stays terse only to match the protected-check string.
+    name: Next.js typecheck + build (frozen prototype)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
