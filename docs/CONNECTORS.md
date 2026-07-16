@@ -92,7 +92,7 @@ _SPEC = ConnectorSpec(
 )
 ```
 
-Return a `ConnectorResult` with a list of `Finding` objects, each carrying evidence URLs, confidence and source reliability tags.
+Return a `ConnectorResult` with a list of `Finding` objects, each carrying evidence URLs, confidence and source reliability tags. See [`METHODOLOGY.md`](METHODOLOGY.md) for what those numbers should actually mean.
 
 ## Writing a new connector
 

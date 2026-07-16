@@ -170,6 +170,7 @@
     "auth.email.ph": { en: "name@example.com", it: "nome@example.com" },
     "auth.pass.ph": { en: "minimum 12 characters", it: "minimo 12 caratteri" },
     "auth.submit": { en: "Sign in", it: "Accedi" },
+    "auth.or": { en: "or", it: "oppure" },
 
     // footer
     "foot.tag": { en: "<strong>Argo OSINT</strong> — the investigation platform that stays yours.", it: "<strong>Argo OSINT</strong> — la piattaforma investigativa che rimane tua." },
@@ -652,6 +653,15 @@
     "db.events": { en: "events", it: "eventi" },
     "db.metricsLocked": { en: "📊 Platform metrics reserved for the administrator.", it: "📊 Metriche piattaforma riservate all'amministratore." },
     "db.unlock": { en: "🔐 Unlock", it: "🔐 Sblocca" },
+    "db.loginHistory": { en: "Login history", it: "Storico accessi" },
+    "db.colUser": { en: "User", it: "Utente" },
+    "db.colEmail": { en: "Email", it: "Email" },
+    "db.colProvider": { en: "Login method", it: "Metodo di accesso" },
+    "db.colLoginCount": { en: "Logins", it: "Accessi" },
+    "db.colLastLogin": { en: "Last login", it: "Ultimo accesso" },
+    "db.providerPassword": { en: "Password", it: "Password" },
+    "db.neverLoggedIn": { en: "never", it: "mai" },
+    "db.loginHistoryTruncated": { en: "Showing {shown} of {total} users.", it: "Mostrati {shown} di {total} utenti." },
     "db.complete": { en: "Complete", it: "Completi" },
     "db.running": { en: "Running", it: "In corso" },
     "db.providersConfigured": { en: "Search providers configured", it: "Provider di ricerca configurati" },

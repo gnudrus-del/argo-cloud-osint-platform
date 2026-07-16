@@ -61,6 +61,33 @@ services:
       retries: 3
       start_period: 15s
 
+  # Console Next.js sperimentale/frozen — NON il frontend di produzione (che è
+  # argo-osint sopra, servito dal backend Python). Opt-in: non parte con un
+  # semplice `docker compose up`, serve `docker compose --profile web-next up`.
+  # Vedi web-next/STATUS.md per lo stato e la decisione #H4 (completare o
+  # eliminare) ancora aperta.
+  web-next:
+    build: ./web-next
+    image: argo-web-next:local
+    container_name: argo-web-next
+    profiles: ["web-next"]
+    depends_on:
+      argo-osint:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      # Il proxy Next (/api/* -> ARGO_API_BASE, vedi next.config.mjs) deve
+      # puntare al servizio del backend Python sulla rete Compose interna.
+      ARGO_API_BASE: http://argo-osint:8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
 volumes:
   argo_jobs:
   argo_reports:

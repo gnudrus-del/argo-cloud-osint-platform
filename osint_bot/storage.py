@@ -36,7 +36,9 @@ CREATE TABLE IF NOT EXISTS users (
     disabled INTEGER NOT NULL DEFAULT 0,
     email TEXT,
     verified INTEGER NOT NULL DEFAULT 0,
-    verified_at TEXT
+    verified_at TEXT,
+    auth_provider TEXT NOT NULL DEFAULT 'password',
+    google_sub TEXT
 );
 
 CREATE TABLE IF NOT EXISTS jobs (
@@ -252,6 +254,7 @@ class Storage:
             boot.executescript(_SCHEMA)
             _migrate_jobs_case_id(boot)
             _migrate_users_email_verified(boot)
+            _migrate_users_auth_provider(boot)
             _migrate_cases_allowed_targets(boot)
             _migrate_cases_ai_enrichment(boot)
         finally:
@@ -303,22 +306,25 @@ class Storage:
 
     def all_users(self) -> dict[str, dict]:
         rows = self._conn().execute(
-            "SELECT username, password, plan, created_at, disabled, email, verified, verified_at FROM users"
+            "SELECT username, password, plan, created_at, disabled, email, verified, verified_at, "
+            "auth_provider, google_sub FROM users"
         ).fetchall()
         return {row["username"]: _row_to_user(row) for row in rows}
 
     def put_user(self, user: dict) -> None:
         self._conn().execute(
             """
-            INSERT INTO users (username, password, plan, created_at, disabled, email, verified, verified_at)
-            VALUES (:username, :password, :plan, :created_at, :disabled, :email, :verified, :verified_at)
+            INSERT INTO users (username, password, plan, created_at, disabled, email, verified, verified_at, auth_provider, google_sub)
+            VALUES (:username, :password, :plan, :created_at, :disabled, :email, :verified, :verified_at, :auth_provider, :google_sub)
             ON CONFLICT(username) DO UPDATE SET
                 password = excluded.password,
                 plan = excluded.plan,
                 disabled = excluded.disabled,
                 email = excluded.email,
                 verified = excluded.verified,
-                verified_at = excluded.verified_at
+                verified_at = excluded.verified_at,
+                auth_provider = excluded.auth_provider,
+                google_sub = excluded.google_sub
             """,
             {
                 "username": user["username"],
@@ -329,6 +335,8 @@ class Storage:
                 "email": user.get("email") or None,
                 "verified": 1 if user.get("verified") else 0,
                 "verified_at": user.get("verified_at") or None,
+                "auth_provider": user.get("auth_provider", "password"),
+                "google_sub": user.get("google_sub") or None,
             },
         )
 
@@ -1328,6 +1336,17 @@ def _migrate_users_email_verified(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE users ADD COLUMN verified_at TEXT")
 
 
+def _migrate_users_auth_provider(conn: sqlite3.Connection) -> None:
+    """Add users.auth_provider/google_sub for Google Sign-In (opt-in, additional
+    login door alongside email+password). Pre-existing rows default to
+    'password' — their real (and only usable) login method already."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "auth_provider" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'password'")
+    if "google_sub" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN google_sub TEXT")
+
+
 def _migrate_cases_allowed_targets(conn: sqlite3.Connection) -> None:
     """Add cases.allowed_targets per scope enforcement (round 6)."""
     cols = {row[1] for row in conn.execute("PRAGMA table_info(cases)").fetchall()}
@@ -1367,6 +1386,8 @@ def _row_to_user(row: sqlite3.Row) -> dict:
         "email": row["email"] if "email" in keys else None,
         "verified": bool(row["verified"]) if "verified" in keys else False,
         "verified_at": row["verified_at"] if "verified_at" in keys else None,
+        "auth_provider": row["auth_provider"] if "auth_provider" in keys else "password",
+        "google_sub": row["google_sub"] if "google_sub" in keys else None,
     }
 
 

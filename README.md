@@ -461,7 +461,7 @@ Fill only what you have; missing keys are silently skipped (`missing_key` status
 6. **Export** — Markdown / JSON / PDF for humans; STIX 2.1 bundle + MISP event for TIP integration. `report_generated` event → audit chain.
 7. **DSAR (optional)** — subject rights: `privacy_requests` + `dsar_tombstones` tables record deletion/export with cryptographic proof-of-erasure.
 
-Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/CONNECTORS.md`](docs/CONNECTORS.md) · [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
+Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/CONNECTORS.md`](docs/CONNECTORS.md) · [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) · [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) (how confidence, source reliability, and severity are assigned to a finding).
 
 ---
 
@@ -525,7 +525,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md). Highlights of the near-term plan.
 
 **Frozen / experimental**
 
-- `web-next/` — Next.js prototype for graph visualization. Superseded by the production Python-served UI; kept as reference. See [`web-next/STATUS.md`](web-next/STATUS.md).
+- `web-next/` — Next.js prototype for graph visualization. Superseded by the production Python-served UI; kept as reference. Has CSRF protection and an opt-in Docker Compose profile (`docker compose --profile web-next up`) — still not promoted to production, decision tracked as issue `#H4`. See [`web-next/STATUS.md`](web-next/STATUS.md).
 
 ---
 

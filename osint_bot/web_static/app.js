@@ -163,6 +163,9 @@ async function boot() {
     $("appShell").classList.add("hidden");
     $("signupTab").disabled = !status.signup_enabled;
     if (!status.signup_enabled) setAuthMode("login");
+    if (status.google_login_enabled && status.google_client_id) {
+      setupGoogleSignIn(status.google_client_id);
+    }
     return;
   }
   state.user = status.user;
@@ -218,6 +221,59 @@ async function submitAuth() {
     state.user = data.user;
     state.csrf = data.csrf;
     $("authPass").value = "";
+    await boot();
+  } catch (error) {
+    $("authMessage").style.color = "";
+    $("authMessage").textContent = error.message;
+  }
+}
+
+// --- Google Sign-In (additional login door, alongside email+password) -----
+let _googleScriptPromise = null;
+
+function loadGoogleScript() {
+  if (_googleScriptPromise) return _googleScriptPromise;
+  _googleScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("Impossibile caricare Google Identity Services."));
+    document.head.appendChild(script);
+  });
+  return _googleScriptPromise;
+}
+
+async function setupGoogleSignIn(clientId) {
+  try {
+    await loadGoogleScript();
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) return;
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCredential,
+    });
+    $("googleAuthDivider").classList.remove("hidden");
+    $("googleAuthBox").classList.remove("hidden");
+    window.google.accounts.id.renderButton($("googleAuthBox"), {
+      theme: "outline", size: "large", width: 280,
+      text: "signin_with", locale: (window.I18N && window.I18N.get()) || "it",
+    });
+  } catch (err) {
+    // Feature-detect failure (e.g. offline, ad-blocker) — fail silently,
+    // the email+password form underneath still works.
+    console.warn("Google Sign-In non disponibile:", err.message);
+  }
+}
+
+async function handleGoogleCredential(response) {
+  try {
+    const data = await api("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential: response.credential }),
+    }, true, false);
+    state.user = data.user;
+    state.csrf = data.csrf;
     await boot();
   } catch (error) {
     $("authMessage").style.color = "";
@@ -2177,6 +2233,7 @@ async function loadAdminStats() {
         Object.entries(j.by_status || {}).map(([k,v])=>`${k}: ${v}`).join(" · ") || "—"
       }</span></div>
       <div class="capability"><strong>Audit chain</strong><span>${a.chain_valid ? t("db.chainValid") : t("db.chainBroken")} (${a.events_total ?? 0} ${t("db.events")})</span></div>
+      <div style="grid-column:1/-1">${renderLoginHistoryTable(s.logins || [])}</div>
     `;
     box.hidden = false;
   } catch (err) {
@@ -2190,6 +2247,41 @@ async function loadAdminStats() {
     if (b) b.addEventListener("click", () => { if (typeof openAdminUnlockModal === "function") openAdminUnlockModal(); });
     box.hidden = false;
   }
+}
+
+const _LOGIN_HISTORY_ROW_CAP = 100;
+
+function renderLoginHistoryTable(logins) {
+  if (!logins.length) return "";
+  const shown = logins.slice(0, _LOGIN_HISTORY_ROW_CAP);
+  const providerLabel = (p) => (p === "google" ? "Google" : t("db.providerPassword"));
+  const rows = shown.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.username)}</td>
+      <td>${escapeHtml(row.email || "—")}</td>
+      <td>${providerLabel(row.provider)}</td>
+      <td style="text-align:right">${row.login_count}</td>
+      <td>${row.last_login ? escapeHtml(row.last_login) : t("db.neverLoggedIn")}</td>
+    </tr>`).join("");
+  const truncNote = logins.length > _LOGIN_HISTORY_ROW_CAP
+    ? `<p class="muted" style="margin-top:6px">${t("db.loginHistoryTruncated", { shown: shown.length, total: logins.length })}</p>`
+    : "";
+  return `
+    <div class="capability" style="grid-column:1/-1;margin-top:6px"><strong>👤 ${t("db.loginHistory")}</strong></div>
+    <div style="overflow-x:auto">
+      <table class="entityTable">
+        <thead><tr>
+          <th>${t("db.colUser")}</th>
+          <th>${t("db.colEmail")}</th>
+          <th>${t("db.colProvider")}</th>
+          <th style="text-align:right">${t("db.colLoginCount")}</th>
+          <th>${t("db.colLastLogin")}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${truncNote}
+  `;
 }
 
 function renderDashError(message) {

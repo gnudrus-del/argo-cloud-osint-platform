@@ -323,6 +323,26 @@ svg {
   font-weight: 580;
 }
 
+.authDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.authDivider::before, .authDivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.googleAuthBox {
+  display: flex;
+  justify-content: center;
+}
+
 /* ----------------------------------------------------------- App shell */
 
 .shell {

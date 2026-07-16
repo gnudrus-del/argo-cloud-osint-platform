@@ -57,6 +57,13 @@ from .forensic_report import (
 from .forensic_report import (
     to_markdown as forensic_to_markdown,
 )
+from .google_auth import (
+    GoogleTokenError,
+    google_client_id,
+    google_login_enabled,
+    username_from_email,
+    verify_google_id_token,
+)
 from .high_risk import audit_event_payload as high_risk_audit
 from .high_risk import detect_high_risk
 from .job_queue import JobSpec
@@ -610,6 +617,8 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.handle_signup()
             if path == "/api/auth/login":
                 return self.handle_login()
+            if path == "/api/auth/google":
+                return self.handle_google_login()
             if path == "/api/auth/logout":
                 session = current_session(self)
                 if session:
@@ -1013,6 +1022,58 @@ class OsintHandler(BaseHTTPRequestHandler):
         store = get_storage()
         store.append_audit_event(username, "login_success", {
             "remote_ip": self.client_address[0],
+            "method": "password",
+        })
+        return self.start_session(username)
+
+    def handle_google_login(self) -> None:
+        """Sign-in with Google — additional login door onto the same user table.
+
+        First-time Google sign-in auto-provisions a user (already
+        email-verified by Google, no usable password: password login stays
+        impossible for that account since ``verify_password`` fails closed
+        on an empty/malformed stored hash).
+        """
+        if not google_login_enabled():
+            raise WebError(HTTPStatus.NOT_FOUND, "Login Google non configurato.")
+        payload = self.read_json()
+        credential = str(payload.get("credential", ""))
+        try:
+            identity = verify_google_id_token(credential)
+        except GoogleTokenError as exc:
+            raise WebError(HTTPStatus.UNAUTHORIZED, str(exc)) from exc
+
+        store = get_storage()
+        users = load_users()
+        username = next(
+            (u.get("username", "") for u in users.values()
+             if (u.get("email") or "").lower() == identity.email
+             and not u.get("disabled")),
+            "",
+        )
+        is_new = not username
+        if is_new:
+            username = username_from_email(identity.email, set(users.keys()))
+            users[username] = {
+                "username": username,
+                "email": identity.email,
+                "password": "",  # no password set — Google is the only login door
+                "plan": "free",
+                "created_at": now_iso(),
+                "disabled": False,
+                "verified": True,  # Google already verified the email
+                "verified_at": now_iso(),
+                "auth_provider": "google",
+                "google_sub": identity.google_sub,
+            }
+            save_users(users)
+            store.append_audit_event(username, "user_signup", {
+                "email": identity.email, "method": "google",
+            })
+
+        store.append_audit_event(username, "login_success", {
+            "remote_ip": self.client_address[0],
+            "method": "google",
         })
         return self.start_session(username)
 
@@ -2368,15 +2429,27 @@ def capabilities(actor: str = "", admin_unlocked: bool = False) -> dict:
     }
 
 
+def _auth_capability_fields() -> dict:
+    # google_client_id is not a secret — it's meant to be embedded in
+    # frontend JS (Google Identity Services reads it from the page).
+    enabled = google_login_enabled()
+    return {
+        "signup_enabled": SIGNUPS_ENABLED,
+        "google_login_enabled": enabled,
+        "google_client_id": google_client_id() if enabled else "",
+    }
+
+
 def auth_status(handler: OsintHandler) -> dict:
     session = current_session(handler)
     if not session:
-        return {"authenticated": False, "signup_enabled": SIGNUPS_ENABLED}
+        return {"authenticated": False, **_auth_capability_fields()}
     user = load_users().get(session["username"])
     if not user:
         SESSION_STORE.delete(session["id"])
-        return {"authenticated": False, "signup_enabled": SIGNUPS_ENABLED}
-    return {"authenticated": True, "user": public_user(user), "csrf": session["csrf"], "signup_enabled": SIGNUPS_ENABLED}
+        return {"authenticated": False, **_auth_capability_fields()}
+    return {"authenticated": True, "user": public_user(user), "csrf": session["csrf"],
+            **_auth_capability_fields()}
 
 
 def current_session(handler: OsintHandler) -> dict | None:
@@ -2671,6 +2744,34 @@ def admin_stats() -> dict:
                   if e.get("action") == "login_success" and e.get("timestamp", "") >= day_ago}
     signups_7d = sum(1 for e in events
                      if e.get("action") == "user_signup" and e.get("timestamp", "") >= week_ago)
+    # Storico accessi per utente: chi, quando (ultimo), quante volte, con che
+    # metodo (password/google) — costruito dagli stessi eventi login_success
+    # gia' letti sopra, nessuna query aggiuntiva.
+    # Two logins in the same second share an identical second-resolution
+    # timestamp string, so sorting/picking "most recent" by that string alone
+    # is ambiguous. ``events`` is already seq-ordered (Storage.all_audit_events:
+    # ORDER BY seq ASC) — use each event's position in that list as a tie-free
+    # recency rank instead.
+    login_events_by_user: dict[str, list[tuple[int, dict]]] = {}
+    for idx, e in enumerate(events):
+        if e.get("action") == "login_success":
+            login_events_by_user.setdefault(e.get("actor", ""), []).append((idx, e))
+    logins_detail = []
+    for uname, user in users.items():
+        user_logins = login_events_by_user.get(uname, [])
+        last_idx, last_event = user_logins[-1] if user_logins else (-1, None)
+        logins_detail.append({
+            "username": uname,
+            "email": user.get("email", ""),
+            "login_count": len(user_logins),
+            "last_login": last_event.get("timestamp", "") if last_event else "",
+            "last_method": (last_event.get("details") or {}).get("method", "") if last_event else "",
+            "provider": user.get("auth_provider", "password"),
+            "_recency_rank": last_idx,
+        })
+    logins_detail.sort(key=lambda d: d["_recency_rank"], reverse=True)
+    for row in logins_detail:
+        del row["_recency_rank"]
     # Job aggregati per stato
     jobs = store.list_jobs(limit=10_000)
     by_status: dict[str, int] = {}
@@ -2687,6 +2788,7 @@ def admin_stats() -> dict:
             "active_24h": len(logins_24h),
             "signups_7d": signups_7d,
         },
+        "logins": logins_detail,
         "jobs": {
             "total": len(jobs),
             "by_status": by_status,
