@@ -1590,15 +1590,39 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         # Difesa clickjacking (retrocompatibile con CSP frame-ancestors 'none').
         self.send_header("X-Frame-Options", "DENY")
         # Isolamento cross-origin: previene attacchi Spectre-like e leaks.
-        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        # Google Identity Services apre un popup che deve fare postMessage verso
+        # la finestra madre; con COOP "same-origin" il riferimento all'opener
+        # viene reciso e il login Google si blocca. Rilassiamo a
+        # "same-origin-allow-popups" SOLO quando il login Google è configurato;
+        # senza Google la postura resta "same-origin" (stretta come prima).
+        google_on = google_login_enabled()
+        self.send_header(
+            "Cross-Origin-Opener-Policy",
+            "same-origin-allow-popups" if google_on else "same-origin",
+        )
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        self.send_header(
-            "Content-Security-Policy",
-            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
-            "connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
-        )
+        if google_on:
+            # Google Identity Services carica il proprio script, inietta stili,
+            # apre un iframe e scambia il token coi suoi endpoint /gsi/. Whitelist
+            # minima dei domini Google documentati, aggiunta SOLO con Google attivo
+            # (https://developers.google.com/identity/gsi/web/guides/csp).
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' https://accounts.google.com/gsi/client; "
+                "style-src 'self' https://accounts.google.com/gsi/style; "
+                "img-src 'self' data:; "
+                "connect-src 'self' https://accounts.google.com/gsi/; "
+                "frame-src https://accounts.google.com/gsi/; "
+                "object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+            )
+        else:
+            csp = (
+                "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+                "connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+            )
+        self.send_header("Content-Security-Policy", csp)
         if hasattr(self, "_pending_cookie"):
             self.send_header("Set-Cookie", self._pending_cookie)
             delattr(self, "_pending_cookie")
