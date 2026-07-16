@@ -150,7 +150,10 @@ export OSINT_WEB_TOKEN="pick-a-long-random-token"
 docker compose up --build
 ```
 
-Full walkthrough: [`docs/QUICKSTART.md`](docs/QUICKSTART.md).
+Full walkthrough: [`docs/QUICKSTART.md`](docs/QUICKSTART.md). For production
+deployment (self-hosted VM with systemd + Caddy, Cloudflare Tunnel, or the
+optional Postgres/Neo4j/OpenSearch/Celery stack), see
+[`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ---
 

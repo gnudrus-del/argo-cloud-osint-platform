@@ -263,6 +263,78 @@ class WebEndpointRoeTests(unittest.TestCase):
             self.assertEqual(ctx.exception.status, HTTPStatus.FORBIDDEN)
 
 
+class CliCaseIdGateTests(unittest.TestCase):
+    """The CLI (`--case-id`) reuses the same RoE gate as the web UI.
+
+    `osint_bot.plugins._lazy_storage()` used to read the raw `web.STORAGE`
+    global, which is `None` until something calls `web.get_storage()` -- the
+    web server does this on startup, but a standalone CLI process invoked
+    with `--case-id` never did, so the RoE gate always saw `storage=None`
+    and denied every gated action with an unfixable "no active RoE" error,
+    even for a real case. Fixed to call `web.get_storage()` (lazy-init),
+    verified here end to end via `run_tool`, not just `authorize_action`.
+    """
+
+    def test_lazy_storage_initialises_from_job_root_like_a_standalone_cli(self):
+        import osint_bot.web as web
+        from osint_bot.plugins import _lazy_storage
+
+        with tempfile.TemporaryDirectory() as tmp:
+            original_root, original_storage = web.JOB_ROOT, web.STORAGE
+            web.JOB_ROOT = Path(tmp)
+            web.STORAGE = None  # simulate a fresh CLI process, nothing initialised yet
+            try:
+                store = _lazy_storage()
+                self.assertIsNotNone(store)
+                self.assertTrue((Path(tmp) / "gufo.sqlite3").exists())
+            finally:
+                try:
+                    if web.STORAGE is not None:
+                        web.STORAGE.close()
+                except Exception:
+                    pass
+                web.JOB_ROOT, web.STORAGE = original_root, original_storage
+
+    def test_lazy_storage_respects_pre_set_storage(self):
+        # Backward-compat: tests (and the running web server) that already
+        # set web.STORAGE directly must keep getting that exact instance.
+        with _isolated_storage() as (_, store):
+            from osint_bot.plugins import _lazy_storage
+            self.assertIs(_lazy_storage(), store)
+
+    def test_run_tool_with_case_id_denies_without_active_roe(self):
+        from osint_bot.external_tools import run_tool
+        with _isolated_storage() as (_, store):
+            from osint_bot.web import create_case
+            case = create_case({"title": "CLI run"}, actor="alice")
+            result = run_tool(
+                "shodan", "example.com", timeout=5, target_type="domain",
+                case_id=case["id"], actor="alice", storage=store,
+            )
+            self.assertEqual(result.status, "denied")
+
+    def test_run_tool_with_case_id_and_active_roe_reaches_execution(self):
+        from osint_bot.external_tools import run_tool
+        with _isolated_storage() as (_, store):
+            from osint_bot.web import create_case
+            case = create_case({"title": "CLI run"}, actor="alice")
+            _sign_real_roe(store, case["id"], "alice", allowed_classes=["passive"])
+            result = run_tool(
+                "shodan", "example.com", timeout=5, target_type="domain",
+                case_id=case["id"], actor="alice", storage=store,
+            )
+            # Passed the RoE gate; whatever happens next (missing binary,
+            # missing key, ...) is a different failure mode, not "denied".
+            self.assertNotEqual(result.status, "denied")
+
+    def test_run_tool_without_case_id_is_unchanged_legacy_behaviour(self):
+        from osint_bot.external_tools import run_tool
+        # No case_id at all: same permissive legacy path as before this fix,
+        # regardless of what _lazy_storage() would now resolve to.
+        result = run_tool("shodan", "example.com", timeout=5, target_type="domain")
+        self.assertNotEqual(result.status, "denied")
+
+
 class DefaultCaseAutoRoeTests(unittest.TestCase):
     def test_default_case_has_permissive_roe(self):
         from osint_bot.web import ensure_default_case

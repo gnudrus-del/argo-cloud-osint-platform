@@ -13,7 +13,7 @@ tools/
 tmp-*.png
 
 # Deploy secrets — mai in git (i template/script/unit generici in
-# deploy_artifacts/ SONO invece tracciati: sono referenziati da DEPLOY-STACK.md)
+# deploy_artifacts/ SONO invece tracciati: sono referenziati da docs/DEPLOY.md)
 .env
 *.env
 deploy_artifacts/secrets.env

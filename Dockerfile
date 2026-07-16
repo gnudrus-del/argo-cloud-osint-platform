@@ -18,7 +18,7 @@ COPY pyproject.toml README.md LICENSE ./
 COPY osint_bot ./osint_bot
 COPY config ./config
 COPY scripts ./scripts
-COPY DEPLOYMENT.md ./
+COPY docs/DEPLOY.md ./docs/DEPLOY.md
 
 # [postgres] installa psycopg[binary] (wheel precompilata, nessuna libreria
 # di sistema extra necessaria) — Postgres è il backend raccomandato in

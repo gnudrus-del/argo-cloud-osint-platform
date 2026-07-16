@@ -72,6 +72,7 @@ docker compose up --build
 
 - [Quickstart completo](QUICKSTART.md)
 - [Installazione](INSTALLATION.md)
+- [Deploy (VM, Docker, Cloudflare Tunnel, stack avanzato)](DEPLOY.md)
 - [Configurazione](CONFIGURATION.md)
 - [Connettori](CONNECTORS.md)
 - [Esempi](EXAMPLES.md)

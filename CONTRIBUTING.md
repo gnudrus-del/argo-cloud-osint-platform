@@ -1,71 +1,74 @@
-# Contribuire ad Argo OSINT
+> 🇮🇹 [Leggi in italiano](docs/CONTRIBUTING.it.md)
 
-Benvenuto/a. Argo è una piattaforma **OSINT italiana** privacy-by-design,
-GDPR-oriented, con catena audit SHA-256 inviolabile. Ogni contributo ci aiuta
-a farla diventare un punto di riferimento.
+# Contributing to Argo OSINT
 
-## Come partecipare
+Welcome. Argo is an **Italian OSINT platform**, privacy-by-design,
+GDPR-oriented, with a tamper-proof SHA-256 audit chain. Every contribution
+helps make it a reference point.
 
-### Segnalare un bug
-- Verifica che non esista già una issue simile.
-- Apri una issue con: sistema operativo, versione (`git rev-parse HEAD`),
-  passi di riproduzione, output atteso vs. osservato, log rilevanti.
-- **Segreti**: mai nei log/screenshot che alleghi. Reduci le API key.
+## How to get involved
 
-### Proporre una feature
-- Discuti prima in una **Discussion** o issue "proposal": vuoi capire se
-  ha spazio nella roadmap prima di scrivere il codice.
-- Argo ha una linea forte: **privacy-by-design + native-first**. Le PR che
-  aggiungono dipendenze pesanti o servizi SaaS obbligatori vanno motivate.
+### Reporting a bug
+- Check that a similar issue doesn't already exist.
+- Open an issue with: operating system, version (`git rev-parse HEAD`),
+  reproduction steps, expected vs. observed output, relevant logs.
+- **Secrets**: never in the logs/screenshots you attach. Redact API keys.
 
-### Aggiungere un connettore OSINT
-- Vedi `osint_bot/connectors/` per il pattern (subclass `BaseConnector`).
-- Regole d'oro:
-  1. **Passivo di default** (`ACTION_PASSIVE`); attivo solo se ha senso e
-     va marcato `ACTION_ACTIVE_GATED`.
-  2. **Graceful degrade**: se il tool/chiave manca → `status="missing_key"`
-     con messaggio chiaro. Mai eccezioni.
-  3. **Rate limit e cache TTL** dichiarati nello spec.
-  4. **Test offline deterministici** (in `tests/`).
-  5. **Legal note** in italiano nello spec: cosa manda in rete e a chi.
+### Proposing a feature
+- Discuss it first in a **Discussion** or "proposal" issue: find out whether
+  it fits the roadmap before writing code.
+- Argo has a strong stance: **privacy-by-design + native-first**. PRs that
+  add heavy dependencies or mandatory SaaS services need to be justified.
 
-### Sicurezza
-Vedi [SECURITY.md](SECURITY.md). Se scopri una vulnerabilità, **non aprire
-una issue pubblica**: usa GitHub Security Advisories.
+### Adding an OSINT connector
+- See `osint_bot/connectors/` for the pattern (subclass `BaseConnector`).
+- Golden rules:
+  1. **Passive by default** (`ACTION_PASSIVE`); active only if it makes
+     sense, and it must be marked `ACTION_ACTIVE_GATED`.
+  2. **Graceful degrade**: if the tool/key is missing → `status="missing_key"`
+     with a clear message. Never exceptions.
+  3. **Rate limit and cache TTL** declared in the spec.
+  4. **Deterministic offline tests** (in `tests/`).
+  5. **Legal note** in Italian in the spec: what it sends over the network
+     and to whom.
 
-## Setup dev
+### Security
+See [SECURITY.md](SECURITY.md). If you discover a vulnerability, **do not
+open a public issue**: use GitHub Security Advisories.
+
+## Dev setup
 
 ```bash
 git clone https://github.com/gnudrus-del/argo-cloud-osint-platform.git
 cd argo-cloud-osint-platform
-python -m venv .venv && . .venv/bin/activate   # oppure .venv\Scripts\activate
-pip install -e '.[ai,postgres,queue]'          # extras opzionali
-cp .env.example .env                           # configura almeno OSINT_WEB_TOKEN
-python -m pytest tests/ -q                     # deve passare tutto
-python -m osint_bot.web --port 7655            # avvia il backend
+python -m venv .venv && . .venv/bin/activate   # or .venv\Scripts\activate
+pip install -e '.[ai,postgres,queue]'          # optional extras
+cp .env.example .env                           # configure at least OSINT_WEB_TOKEN
+python -m pytest tests/ -q                     # must pass fully
+python -m osint_bot.web --port 7655            # start the backend
 ```
 
-Frontend Next.js opzionale in `web-next/` (vedi `web-next/README.md`).
+Optional Next.js frontend in `web-next/` (see `web-next/README.md`).
 
-## Stile di codice
+## Code style
 
-- **Python 3.10+**, type hints dove aiutano la leggibilità.
-- Commenti solo dove il WHY è non ovvio; niente commenti "questa è la funzione X".
-- Naming italiano nei messaggi utente/documenti, inglese nel codice.
-- **Test**: ogni connettore ha un `tests/test_connector_<name>.py` offline.
+- **Python 3.10+**, type hints where they help readability.
+- Comments only where the WHY isn't obvious; no "this is function X"
+  comments.
+- Italian naming in user-facing messages/documents, English in code.
+- **Tests**: every connector has an offline `tests/test_connector_<name>.py`.
 
-## Processo PR
+## PR process
 
-1. Fai fork + branch da `main` (`feat/<nome>`, `fix/<nome>`).
-2. Un commit = un cambio logico; commit message imperativo in inglese.
-3. `pre-push`: `python -m pytest tests/ -q` deve passare.
-4. Nella PR: descrivi cosa cambia, perché, come l'hai testato.
-5. Un maintainer fa review; sii aperto a discussione.
+1. Fork + branch from `main` (`feat/<name>`, `fix/<name>`).
+2. One commit = one logical change; imperative commit message in English.
+3. `pre-push`: `python -m pytest tests/ -q` must pass.
+4. In the PR: describe what changes, why, and how you tested it.
+5. A maintainer will review; be open to discussion.
 
-## Codice di condotta
+## Code of conduct
 
-Vedi [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). In sintesi: sii rispettoso,
-non pubblicare dati personali di terzi negli esempi, niente attacchi ad
-personam.
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). In short: be respectful,
+don't publish third parties' personal data in examples, no personal attacks.
 
-Grazie per il tuo tempo. 💛
+Thank you for your time. 💛

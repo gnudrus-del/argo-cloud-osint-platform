@@ -65,6 +65,23 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Conferma che il target personale e autorizzato o di pubblico interesse.",
     )
+    parser.add_argument(
+        "--case-id",
+        default=None,
+        help=(
+            "ID di un caso creato via web UI/API. Se impostato, ogni tool esterno e "
+            "connettore invocato da questa run passa dal gate RoE/scope dello stesso "
+            "caso (stessa policy della web UI, non solo i flag --confirm-authorization/ "
+            "--allow-network-scan/--allow-darkweb qui sotto). Senza --case-id il "
+            "comportamento resta quello storico della CLI: nessun controllo di scope "
+            "dichiarato, solo i flag di consenso espliciti."
+        ),
+    )
+    parser.add_argument(
+        "--actor",
+        default="",
+        help="Nome analista da registrare nella catena audit per le azioni gated da --case-id.",
+    )
     return parser
 
 

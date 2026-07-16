@@ -49,4 +49,4 @@ Recipe: see `deploy_artifacts/` and `scripts/bootstrap-vm-fresh.sh`. High-level:
 3. `./deploy.sh` (or `./deploy.ps1` on Windows) — rsync of `osint_bot/` to the VM, restart the service.
 4. Point your DNS at the VM. Argo lands on HTTPS via Caddy's automatic Let's Encrypt.
 
-Full VM guide: [`DEPLOYMENT.md`](../DEPLOYMENT.md).
+Full VM guide: [`docs/DEPLOY.md`](DEPLOY.md).

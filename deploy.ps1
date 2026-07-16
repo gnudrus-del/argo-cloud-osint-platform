@@ -7,10 +7,11 @@
     Copia SOLO la directory osint_bot/ in /opt/argo-osint/osint_bot/ sulla VM,
     con backup remoto preventivo, riavvio del servizio systemd e health check.
 
-    Allineato a DEPLOY.md:
-      - /opt/argo-osint e' di proprieta' dell'utente 'ubuntu' (vedi DEPLOY.md
-        sez. 3: `sudo chown ubuntu:ubuntu argo-osint`), quindi le copie NON
-        usano sudo; solo `systemctl` usa sudo.
+    Allineato a docs/DEPLOY.md:
+      - /opt/argo-osint e' di proprieta' dell'utente 'ubuntu' (vedi
+        docs/DEPLOY.md, sez. "Deploy su VM": `sudo chown ubuntu:ubuntu
+        argo-osint`), quindi le copie NON usano sudo; solo `systemctl` usa
+        sudo.
       - servizio systemd: argo-osint (python -m osint_bot.web --port 7655).
 
     Nessuna credenziale, chiave privata o IP e' hardcoded: l'host e la chiave

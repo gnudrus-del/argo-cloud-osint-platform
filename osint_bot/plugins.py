@@ -14,14 +14,21 @@ from .safety import SafetyError, assert_external_tool_allowed, redact_email, red
 
 
 def _lazy_storage():
-    """Return the web-layer Storage if it's already initialised, else None.
+    """Return the Storage backend, initialising it on first use if needed.
 
-    Avoids a hard import cycle between plugins and web. Tests can monkey-patch
-    osint_bot.web.STORAGE directly.
+    Avoids a hard import cycle between plugins and web. Calls
+    ``web.get_storage()`` (not the raw ``web.STORAGE`` global) so a case-based
+    RoE gate works from the CLI too: the web server usually has STORAGE
+    initialised by the time a plugin runs, but a standalone CLI invocation
+    with ``--case-id`` never calls ``get_storage()`` on its own otherwise,
+    and the RoE gate would silently see ``storage=None`` (which fails closed
+    with "no active RoE", not open — but still uselessly, since the case can
+    never be found). Tests can still monkey-patch ``osint_bot.web.STORAGE``
+    directly: ``get_storage()`` returns it as-is when already set.
     """
     try:
         from . import web as _web
-        return _web.STORAGE
+        return _web.get_storage()
     except Exception:
         return None
 

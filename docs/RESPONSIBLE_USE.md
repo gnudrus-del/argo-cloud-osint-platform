@@ -24,6 +24,8 @@ For personal targets (email, phone, individual name), Argo requires a **case** w
 
 Findings tagged as personal are **redacted by default** in reports. Disclosure requires explicit override and the override is written to the audit chain.
 
+**Enforcement differs by entry point.** The web UI always enforces case-based gating: no case, no active RoE → the action is refused, full stop. The CLI (`argo-osint`) enforces the *same* case-based gate only when you pass `--case-id <id>` (referencing a case created via the web UI/API) — this is the path to use for anything that needs an audited legal basis and a declared scope. Without `--case-id`, the CLI falls back to its own lighter, consent-flag-based gate (`--confirm-authorization`, `--allow-network-scan`, `--allow-darkweb`) — real checks, but no declared scope and no case audit trail. That mode exists for quick, single-operator, ad hoc lookups; it is not a substitute for a case when the investigation needs one under the rules above.
+
 ## Rate limiting and Terms of Service
 
 All connectors respect per-minute / per-day rate limits and target `robots.txt` where applicable. Do not patch this to be more aggressive. If you need faster throughput, upgrade your BYOK tier — do not violate ToS.

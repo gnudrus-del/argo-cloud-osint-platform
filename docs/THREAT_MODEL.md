@@ -143,7 +143,7 @@ Argo does **not** defend against:
 | Outbound HTTP (AI agent, opt-in) | Kill switch + per-case consent + per-analyst BYOK key (all three required); `_safe_http`; audit-logged every call |
 | Outbound HTTP (RFC3161 timestamp, opt-in) | `TSA_URL` must be configured (single light gate — only a 32-byte hash ever leaves); `_safe_http`; audit-logged every call |
 | Report file integrity | Ed25519 signature over a manifest of evidence + report files, always on, zero egress; optional RFC3161 timestamp |
-| CLI | Local file access; assumes local trust |
+| CLI | Local file access; assumes local trust. Two authorization modes: with `--case-id` (referencing a case created via the web UI/API), external-tool and connector calls go through the same case-based RoE/scope gate as the web UI (`authorize_action`, `osint_bot/safety.py`); without it (the historical default), only the CLI's own consent-flag gate applies (`--confirm-authorization`, `--allow-network-scan`, `--allow-darkweb`, per-tool target-type allow-lists in `EXTERNAL_TOOL_TARGETS`) — no declared scope, no case audit trail. |
 | Storage | SQLite/Postgres via parameterized queries; no dynamic SQL |
 | Reports | Content sanitization for HTML embedding; PDF via `reportlab` (no HTML rendering) |
 

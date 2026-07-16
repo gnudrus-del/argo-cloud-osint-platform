@@ -1,148 +1,150 @@
-# Codice di Condotta della Comunità Argo Cloud OSINT Platform
+> 🇮🇹 [Leggi in italiano](docs/CODE_OF_CONDUCT.it.md)
 
-Il progetto adotta il [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/) come proprio codice di condotta. Il presente documento ne costituisce un adattamento sintetico e si applica a tutti gli spazi ufficiali del progetto: repository, discussioni, issue, pull request e canali di comunicazione della comunità.
+# Code of Conduct of the Argo Cloud OSINT Platform Community
 
-## 1. Impegno
+The project adopts the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/) as its code of conduct. This document is a condensed adaptation of it and applies to all official project spaces: repository, discussions, issues, pull requests, and community communication channels.
 
-I manutentori e i collaboratori del progetto si impegnano a garantire che la partecipazione ad Argo Cloud OSINT Platform costituisca un'esperienza libera da molestie per chiunque, senza distinzione di età, corporatura, disabilità visibili o invisibili, etnia, caratteristiche sessuali, identità ed espressione di genere, livello di esperienza, formazione, condizione socio-economica, nazionalità, aspetto, razza, religione od orientamento sessuale.
+## 1. Our pledge
 
-Ci impegniamo ad agire e a interagire in modi che contribuiscano a una comunità aperta, accogliente, diversificata, inclusiva e responsabile.
+The maintainers and contributors of the project pledge to make participation in Argo Cloud OSINT Platform a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual orientation.
 
-## 2. Comportamenti attesi
+We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
 
-- Utilizzare un linguaggio accogliente, inclusivo e rispettoso;
-- Rispettare punti di vista, esperienze e prospettive differenti;
-- Fornire e ricevere critiche costruttive con professionalità;
-- Assumersi la responsabilità dei propri errori, presentare le proprie scuse a chi ne sia stato coinvolto e imparare dall'esperienza;
-- Anteporre l'interesse della comunità nel suo complesso agli obiettivi personali;
-- Mostrare empatia e considerazione verso gli altri membri della comunità.
+## 2. Expected behavior
 
-## 3. Comportamenti inaccettabili
+- Using welcoming, inclusive, and respectful language;
+- Respecting differing viewpoints, experiences, and perspectives;
+- Giving and gracefully accepting constructive feedback;
+- Taking responsibility for our mistakes, apologizing to those affected by them, and learning from the experience;
+- Prioritizing the interest of the community as a whole over personal goals;
+- Showing empathy and consideration toward other community members.
 
-Sono considerati incompatibili con la partecipazione al progetto:
+## 3. Unacceptable behavior
 
-- L'uso di linguaggio o immagini a sfondo sessuale e le attenzioni sessuali indesiderate;
-- Trolling, insulti, commenti dispregiativi, attacchi personali o politici;
-- Molestie, intimidazioni o discriminazioni, pubbliche o private;
-- La pubblicazione di informazioni riservate di terzi — indirizzi fisici o digitali, recapiti, credenziali, dati identificativi — senza il loro esplicito e verificabile consenso. Ciò include qualsiasi informazione ottenuta tramite l'utilizzo di Argo: gli esempi condivisi in issue, pull request o documentazione devono impiegare dati fittizi o già di pubblico dominio;
-- L'utilizzo improprio di Argo per attività di stalking, doxxing, sorveglianza non autorizzata o qualsiasi altra violazione della privacy di persone reali;
-- L'utilizzo di Argo per condotte che integrino gli estremi di reato di cui alla Sezione 8 del presente documento;
-- Ogni altra condotta ragionevolmente considerata inadeguata in un contesto professionale.
+The following are considered incompatible with participation in the project:
 
-## 4. Segnalazione delle violazioni
+- The use of sexualized language or imagery, and unwelcome sexual attention;
+- Trolling, insulting remarks, derogatory comments, personal or political attacks;
+- Harassment, intimidation, or discrimination, whether public or private;
+- Publishing third parties' confidential information — physical or digital addresses, contact details, credentials, identifying data — without their explicit and verifiable consent. This includes any information obtained through the use of Argo: examples shared in issues, pull requests, or documentation must use fictitious data or data that is already in the public domain;
+- Improper use of Argo for stalking, doxxing, unauthorized surveillance, or any other violation of real people's privacy;
+- Use of Argo for conduct that meets the elements of the offenses referred to in Section 8 of this document;
+- Any other conduct which could reasonably be considered inappropriate in a professional setting.
 
-Le violazioni del presente codice possono essere segnalate attraverso i canali privati messi a disposizione dal progetto:
+## 4. Reporting violations
 
-- Utilizzando lo strumento [GitHub Security Advisories](https://github.com/gnudrus-del/argo-cloud-osint-platform/security/advisories/new), che consente di aprire una segnalazione riservata e non pubblicamente visibile;
-- Contattando i manutentori attraverso i canali indicati nel file [`SECURITY.md`](SECURITY.md).
+Violations of this code may be reported through the private channels made available by the project:
 
-Ogni segnalazione sarà esaminata con la massima riservatezza. I manutentori si impegnano a comunicare al segnalante l'esito dell'istruttoria entro un termine ragionevole e a tutelare l'identità di chi effettui la segnalazione in buona fede, nei limiti consentiti dalla normativa applicabile.
+- Using the [GitHub Security Advisories](https://github.com/gnudrus-del/argo-cloud-osint-platform/security/advisories/new) tool, which allows opening a confidential report that is not publicly visible;
+- Contacting the maintainers through the channels indicated in the [`SECURITY.md`](SECURITY.md) file.
 
-## 5. Provvedimenti
+Every report will be reviewed with the utmost confidentiality. Maintainers commit to communicating the outcome of the review to the reporter within a reasonable timeframe and to protecting the identity of anyone reporting in good faith, to the extent permitted by applicable law.
 
-A esito della valutazione, i manutentori possono adottare — a propria discrezione e in modo proporzionato alla gravità e alla reiterazione della condotta — uno o più dei seguenti provvedimenti:
+## 5. Enforcement
 
-1. **Chiarimento privato** — comunicazione scritta al soggetto interessato con richiesta di correzione del comportamento;
-2. **Ammonimento pubblico** — nota pubblica nel thread interessato, eventualmente con richiesta di scuse;
-3. **Sospensione temporanea** — divieto di interazione con il progetto per un periodo definito;
-4. **Esclusione permanente** — divieto definitivo di partecipare al progetto e ai canali ufficiali della comunità.
+Following an assessment, maintainers may adopt — at their own discretion and proportionate to the severity and recurrence of the conduct — one or more of the following measures:
 
-I manutentori si riservano il diritto di rimuovere, modificare o respingere commenti, commit, contributi di codice, issue e pull request che non siano allineati al presente codice, motivando ove possibile ogni decisione. Restano ferme le comunicazioni all'Autorità giudiziaria nei casi di condotte penalmente rilevanti.
+1. **Private clarification** — written communication to the individual concerned requesting correction of the behavior;
+2. **Public warning** — a public note in the relevant thread, possibly with a request for an apology;
+3. **Temporary suspension** — a ban on interacting with the project for a defined period;
+4. **Permanent exclusion** — a permanent ban from participating in the project and its official community channels.
 
-## 6. Ambito di applicazione
+Maintainers reserve the right to remove, edit, or reject comments, commits, code contributions, issues, and pull requests that are not aligned with this code, explaining the reasons for any decision where possible. This is without prejudice to reports made to the judicial authority in cases of criminally relevant conduct.
 
-Il presente codice si applica a tutti gli spazi ufficiali del progetto e a chi rappresenti pubblicamente il progetto in occasione di eventi online o in presenza. Rientrano in tale ambito l'utilizzo di indirizzi email istituzionali del progetto, la pubblicazione tramite account social ufficiali, i contributi tecnici pubblicati a nome del progetto e la partecipazione a eventi in qualità di relatore.
+## 6. Scope
 
-## 7. Uso responsabile della piattaforma
+This code applies to all official project spaces and to anyone officially representing the project at online or in-person events. This includes using an official project email address, posting via official social media accounts, technical contributions published on behalf of the project, and participation in events as a representative.
 
-Argo Cloud OSINT Platform è progettata per attività **difensive e autorizzate** di *open source intelligence*. Gli utilizzatori sono tenuti a operare esclusivamente su asset di propria titolarità, su asset per i quali dispongano di specifico mandato o incarico verificabile, o nell'ambito di finalità di pubblico interesse tutelate dall'ordinamento (ricerca scientifica, giornalismo investigativo, intelligence a fini difensivi, esercizio della funzione giudiziaria e di polizia).
+## 7. Responsible use of the platform
 
-L'utilizzo della piattaforma è espressamente vietato per finalità di stalking, doxxing, sorveglianza non autorizzata, aggregazione massiva di dati personali di soggetti terzi, elusione di misure di sicurezza informatica o accesso non autorizzato a sistemi altrui.
+Argo Cloud OSINT Platform is designed for **defensive and authorized** *open source intelligence* activities. Users are required to operate exclusively on assets they own, on assets for which they hold a specific and verifiable mandate or engagement, or within the scope of purposes of public interest protected by law (scientific research, investigative journalism, defensive intelligence, and the exercise of judicial and law-enforcement functions).
 
-Per un'analisi operativa del principio di proporzionalità e delle regole di ingaggio si rinvia al documento [`docs/RESPONSIBLE_USE.md`](docs/RESPONSIBLE_USE.md).
+Use of the platform is expressly prohibited for the purposes of stalking, doxxing, unauthorized surveillance, mass aggregation of third parties' personal data, circumvention of computer security measures, or unauthorized access to others' systems.
 
-## 8. Riferimenti normativi applicabili
+For an operational analysis of the principle of proportionality and the rules of engagement, see the document [`docs/RESPONSIBLE_USE.md`](docs/RESPONSIBLE_USE.md).
 
-Il progetto opera nel rispetto della normativa vigente in materia di protezione dei dati personali, sicurezza informatica, tutela della persona e proprietà intellettuale. Chiunque utilizzi Argo, contribuisca al codice o partecipi alla comunità è tenuto a osservare, per quanto di propria competenza, le disposizioni indicate di seguito e le eventuali disposizioni di settore applicabili nella giurisdizione dell'utilizzatore.
+## 8. Applicable legal references
 
-### 8.1 Diritto dell'Unione Europea — Protezione dei dati personali
+The project operates in compliance with applicable law on personal data protection, cybersecurity, protection of the person, and intellectual property. Anyone who uses Argo, contributes to the code, or participates in the community is required to observe, to the extent applicable to them, the provisions listed below and any sector-specific provisions applicable in the user's jurisdiction.
 
-- **Regolamento (UE) 2016/679** — *Regolamento generale sulla protezione dei dati personali (GDPR)*
-- **Regolamento (UE) 2018/1725** — Protezione dei dati trattati dalle istituzioni, organi ed organismi dell'Unione
-- **Direttiva (UE) 2016/680** — Trattamento dei dati personali da parte delle autorità competenti a fini di prevenzione, indagine, accertamento e perseguimento di reati
-- **Direttiva 2002/58/CE (ePrivacy)** — Trattamento dei dati personali nelle comunicazioni elettroniche
+### 8.1 European Union law — Personal data protection
 
-### 8.2 Diritto dell'Unione Europea — Cybersicurezza
+- **Regulation (EU) 2016/679** — *General Data Protection Regulation (GDPR)*
+- **Regulation (EU) 2018/1725** — Protection of data processed by Union institutions, bodies, and agencies
+- **Directive (EU) 2016/680** — Processing of personal data by competent authorities for the purposes of prevention, investigation, detection, or prosecution of criminal offenses
+- **Directive 2002/58/EC (ePrivacy)** — Processing of personal data in electronic communications
 
-- **Direttiva (UE) 2022/2555 (NIS2)** — Misure per un livello comune elevato di cybersicurezza nell'Unione
-- **Regolamento (UE) 2019/881** — *Cybersecurity Act* (quadro europeo di certificazione)
-- **Regolamento (UE) 2024/2847** — *Cyber Resilience Act* (requisiti di cybersicurezza dei prodotti con elementi digitali)
-- **Regolamento (UE) 2022/2554 (DORA)** — Resilienza operativa digitale per il settore finanziario
+### 8.2 European Union law — Cybersecurity
 
-### 8.3 Ordinamento italiano — Protezione dei dati personali
+- **Directive (EU) 2022/2555 (NIS2)** — Measures for a high common level of cybersecurity across the Union
+- **Regulation (EU) 2019/881** — *Cybersecurity Act* (European certification framework)
+- **Regulation (EU) 2024/2847** — *Cyber Resilience Act* (cybersecurity requirements for products with digital elements)
+- **Regulation (EU) 2022/2554 (DORA)** — Digital operational resilience for the financial sector
 
-- **Decreto Legislativo 30 giugno 2003, n. 196** — Codice in materia di protezione dei dati personali, come modificato dal **D.Lgs. 10 agosto 2018, n. 101** di adeguamento al GDPR
-- Provvedimenti e linee guida del **Garante per la Protezione dei Dati Personali**
+### 8.3 Italian law — Personal data protection
 
-### 8.4 Ordinamento italiano — Reati informatici e tutela della persona
+- **Legislative Decree no. 196 of 30 June 2003** — Personal Data Protection Code, as amended by **Legislative Decree no. 101 of 10 August 2018** implementing the GDPR
+- Measures and guidelines of the **Italian Data Protection Authority (Garante per la Protezione dei Dati Personali)**
 
-**Codice penale**:
+### 8.4 Italian law — Computer crimes and protection of the person
 
-- **Art. 494 c.p.** — Sostituzione di persona
-- **Art. 595 c.p.** — Diffamazione, con aggravante nell'uso di mezzi di pubblicità o telematici
-- **Art. 612-bis c.p.** — Atti persecutori (*stalking*)
-- **Art. 612-ter c.p.** — Diffusione illecita di immagini o video sessualmente espliciti (*revenge porn*)
-- **Art. 615-bis c.p.** — Interferenze illecite nella vita privata
-- **Art. 615-ter c.p.** — Accesso abusivo ad un sistema informatico o telematico
-- **Art. 615-quater c.p.** — Detenzione, diffusione e installazione abusiva di apparecchiature, codici e altri mezzi di accesso a sistemi informatici o telematici
-- **Art. 615-quinquies c.p.** — Detenzione, diffusione e installazione abusiva di apparecchiature, dispositivi o programmi informatici diretti a danneggiare o interrompere un sistema informatico o telematico
-- **Artt. 617-bis, 617-quater, 617-quinquies, 617-sexies c.p.** — Intercettazione, impedimento, interruzione o falsificazione di comunicazioni informatiche o telematiche
-- **Artt. 635-bis, 635-ter, 635-quater, 635-quinquies c.p.** — Danneggiamento di informazioni, dati e programmi informatici; danneggiamento di sistemi informatici o telematici
-- **Art. 640-ter c.p.** — Frode informatica
-- **Art. 660 c.p.** — Molestia o disturbo alle persone
+**Italian Criminal Code (Codice penale)**:
 
-**Leggi speciali**:
+- **Art. 494 c.p.** — Impersonation (*sostituzione di persona*)
+- **Art. 595 c.p.** — Defamation, with an aggravating circumstance when committed through publicity or electronic means
+- **Art. 612-bis c.p.** — Stalking (*atti persecutori*)
+- **Art. 612-ter c.p.** — Unlawful dissemination of sexually explicit images or videos (*revenge porn*)
+- **Art. 615-bis c.p.** — Unlawful interference in private life
+- **Art. 615-ter c.p.** — Unauthorized access to a computer or telecommunications system
+- **Art. 615-quater c.p.** — Unlawful possession, distribution, or installation of equipment, codes, or other means of access to computer systems
+- **Art. 615-quinquies c.p.** — Unlawful possession, distribution, or installation of equipment, devices, or software designed to damage or interrupt a computer or telecommunications system
+- **Artt. 617-bis, 617-quater, 617-quinquies, 617-sexies c.p.** — Interception, prevention, interruption, or falsification of computer or telecommunications communications
+- **Artt. 635-bis, 635-ter, 635-quater, 635-quinquies c.p.** — Damage to information, data, and computer programs; damage to computer or telecommunications systems
+- **Art. 640-ter c.p.** — Computer fraud
+- **Art. 660 c.p.** — Harassment or disturbance of persons
 
-- **Legge 20 novembre 2017, n. 71** — Disposizioni a tutela dei minori per la prevenzione ed il contrasto del fenomeno del cyberbullismo
-- **Legge 28 giugno 2024, n. 90** — *Disposizioni in materia di rafforzamento della cybersicurezza nazionale e di reati informatici*
-- **Legge 19 luglio 2019, n. 69** — *Codice rosso* — Modifiche al codice penale in materia di tutela delle vittime di violenza domestica e di genere
+**Special laws**:
 
-### 8.5 Ordinamento italiano — Sicurezza cibernetica e infrastrutture critiche
+- **Law no. 71 of 20 November 2017** — Provisions for the protection of minors for the prevention and countering of cyberbullying
+- **Law no. 90 of 28 June 2024** — *Provisions on strengthening national cybersecurity and on computer crimes*
+- **Law no. 69 of 19 July 2019** — *Codice rosso* — Amendments to the Criminal Code on the protection of victims of domestic and gender-based violence
 
-- **Decreto-Legge 21 settembre 2019, n. 105**, convertito con modificazioni dalla **L. 18 novembre 2019, n. 133** — Perimetro di sicurezza nazionale cibernetica
-- **Decreto Legislativo 4 settembre 2024, n. 138** — Attuazione della Direttiva (UE) 2022/2555 (NIS2)
-- Atti e provvedimenti dell'**Agenzia per la Cybersicurezza Nazionale (ACN)**
+### 8.5 Italian law — Cybersecurity and critical infrastructure
 
-### 8.6 Attività professionali e regolamentate
+- **Decree-Law no. 105 of 21 September 2019**, converted with amendments by **Law no. 133 of 18 November 2019** — National cybersecurity perimeter
+- **Legislative Decree no. 138 of 4 September 2024** — Implementation of Directive (EU) 2022/2555 (NIS2)
+- Acts and measures of the **National Cybersecurity Agency (Agenzia per la Cybersicurezza Nazionale, ACN)**
 
-Chi opera nel quadro di specifiche categorie professionali è tenuto altresì al rispetto delle relative discipline di settore:
+### 8.6 Professional and regulated activities
 
-- **Investigatori privati**: R.D. 18 giugno 1931, n. 773 (TULPS), artt. 134-138; **D.M. 1° dicembre 2010, n. 269** (regolamento sulle licenze investigative)
-- **Giornalisti**: **L. 3 febbraio 1963, n. 69**; Codice deontologico dei giornalisti; Testo Unico dei doveri del giornalista (2016)
-- **Avvocati**: R.D.L. 27 novembre 1933, n. 1578; Codice deontologico forense
-- **Forze dell'ordine e magistratura**: Codice di procedura penale e discipline di settore
-- **Enti pubblici e imprese**: **D.Lgs. 8 giugno 2001, n. 231** — Responsabilità amministrativa degli enti
-- **Trattamento di dati per finalità giornalistiche, scientifiche, storiche o statistiche**: art. 2-quater e norme correlate del D.Lgs. 196/2003
+Anyone operating within specific regulated professional categories is also required to comply with the relevant sector-specific rules:
 
-### 8.7 Convenzioni internazionali
+- **Private investigators**: Royal Decree no. 773 of 18 June 1931 (TULPS), articles 134-138; **Ministerial Decree no. 269 of 1 December 2010** (regulation on investigative licenses)
+- **Journalists**: **Law no. 69 of 3 February 1963**; the Journalists' Code of Ethics; the Consolidated Text of Journalists' Duties (2016)
+- **Lawyers**: Royal Legislative Decree no. 1578 of 27 November 1933; the Forensic Code of Ethics
+- **Law enforcement and the judiciary**: the Code of Criminal Procedure and related sector-specific rules
+- **Public bodies and enterprises**: **Legislative Decree no. 231 of 8 June 2001** — Administrative liability of entities
+- **Processing of data for journalistic, scientific, historical, or statistical purposes**: art. 2-quater and related provisions of Legislative Decree 196/2003
 
-- **Convenzione sul Cybercrime** del Consiglio d'Europa (Budapest, 23 novembre 2001), ratificata dall'Italia con **L. 18 marzo 2008, n. 48**
-- **Convenzione 108+** del Consiglio d'Europa sulla protezione delle persone rispetto al trattamento automatizzato dei dati personali
-- **Convenzione europea dei diritti dell'uomo (CEDU)** — art. 8 (rispetto della vita privata e familiare) e art. 10 (libertà di espressione)
-- **Carta dei diritti fondamentali dell'Unione europea** — art. 7 (rispetto della vita privata) e art. 8 (protezione dei dati personali)
+### 8.7 International conventions
 
-### 8.8 Divulgazione responsabile delle vulnerabilità
+- The Council of Europe's **Convention on Cybercrime** (Budapest, 23 November 2001), ratified by Italy with **Law no. 48 of 18 March 2008**
+- The Council of Europe's **Convention 108+** on the protection of individuals with regard to the automatic processing of personal data
+- The **European Convention on Human Rights (ECHR)** — art. 8 (right to respect for private and family life) and art. 10 (freedom of expression)
+- The **Charter of Fundamental Rights of the European Union** — art. 7 (respect for private life) and art. 8 (protection of personal data)
 
-Le segnalazioni di vulnerabilità di sicurezza afferenti al progetto sono trattate secondo il modello di *Coordinated Vulnerability Disclosure* (CVD) promosso dall'**Agenzia per la Cybersicurezza Nazionale**. La procedura è illustrata nel documento [`SECURITY.md`](SECURITY.md).
+### 8.8 Responsible disclosure of vulnerabilities
 
-### 8.9 Avvertenza
+Security vulnerability reports relating to the project are handled according to the *Coordinated Vulnerability Disclosure* (CVD) model promoted by the **National Cybersecurity Agency**. The procedure is described in the document [`SECURITY.md`](SECURITY.md).
 
-L'elenco che precede ha finalità **meramente informativa e ricognitiva**. Non costituisce parere legale, non esaurisce il quadro normativo applicabile e non sostituisce la consulenza di un professionista qualificato. Il quadro normativo può variare in ragione della giurisdizione dell'utilizzatore, della natura del trattamento, della qualifica soggettiva di chi opera e della finalità perseguita. Per attività professionali di investigazione, giornalismo, sicurezza informatica o trattamento sistematico di dati personali si raccomanda di rivolgersi a un consulente legale specializzato.
+### 8.9 Disclaimer
 
-## 9. Attribuzione
+The foregoing list is **for informational and indicative purposes only**. It does not constitute legal advice, does not exhaustively cover the applicable legal framework, and does not replace consultation with a qualified professional. The applicable legal framework may vary depending on the user's jurisdiction, the nature of the processing, the capacity in which a person operates, and the purpose pursued. For professional investigative, journalistic, cybersecurity, or systematic personal-data-processing activities, it is recommended to consult a specialized legal advisor.
 
-Il presente documento è adattato dal [Contributor Covenant, versione 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html), disponibile con licenza [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).
+## 9. Attribution
 
-Per la versione integrale del Contributor Covenant e per le *Community Impact Guidelines* si rinvia a <https://www.contributor-covenant.org/version/2/1/code_of_conduct/>.
+This document is adapted from the [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html), available under the [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) license.
 
-Le risposte alle domande frequenti sul Contributor Covenant sono disponibili all'indirizzo <https://www.contributor-covenant.org/faq>.
+For the full text of the Contributor Covenant and the *Community Impact Guidelines*, see <https://www.contributor-covenant.org/version/2/1/code_of_conduct/>.
+
+Answers to frequently asked questions about the Contributor Covenant are available at <https://www.contributor-covenant.org/faq>.
