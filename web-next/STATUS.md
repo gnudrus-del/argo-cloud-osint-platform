@@ -27,8 +27,17 @@ instance and inside the Docker image.
     behind the `web-next` Compose profile (`docker compose --profile
     web-next up`) so it stays opt-in and a plain `docker compose up`
     behavior is unchanged.
+  - **End-to-end tests** — `web-next/e2e/` (Playwright, `npm run
+    test:e2e`) covers all four routes rendering without a client-side
+    exception, the CSRF token being attached with its exact value on a
+    state-changing call and that call being rejected when
+    `/api/auth/status` comes back unauthenticated, the reset-on-403
+    re-fetch actually triggering a fresh token fetch, and the Sidebar
+    links routing to the right pages. Every `/api/*` call is mocked
+    in-browser via Playwright's `page.route()`, so no real Python
+    backend is needed; it runs as a step in the `web-next` CI job right
+    after the build.
 - Still missing:
-  - No end-to-end tests.
   - No production-grade auth flow of its own (by design — see CSRF
     note above; this console is not meant to run without the Python
     backend already up and an analyst already logged into it).
