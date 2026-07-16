@@ -1,0 +1,33 @@
+# /opt/argo-osint/.env — chmod 600
+# Genera un valore reale per ogni segreto qui sotto prima del deploy; non
+# riusare mai un valore di esempio da questo template.
+
+# Auth secrets
+OSINT_WEB_TOKEN=
+# python -c "import secrets; print(secrets.token_hex(32))"
+EMAIL_VERIFICATION_SECRET=PLACEHOLDER_GENERATE_YOUR_OWN_64_HEX_CHARS
+
+# Email (Resend)
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=PLACEHOLDER_RESEND_API_KEY
+EMAIL_FROM_ADDR=noreply@PLACEHOLDER_DOMAIN
+EMAIL_FROM_NAME=Argo
+
+# Base URL nei link di verifica
+EMAIL_VERIFICATION_BASE_URL=https://PLACEHOLDER_DOMAIN
+
+# Cookie sicurezza
+OSINT_SECURE_COOKIE=1
+OSINT_SESSION_TTL_SECONDS=28800
+
+# Job dir
+OSINT_JOB_DIR=/opt/argo-osint/web_jobs
+
+# RFC3161 trusted timestamp (report sealing) — empty = the "Request RFC3161
+# timestamp" button stays hidden in the UI (404 on the endpoint). Ed25519
+# report signing itself needs no config and is always on regardless of this.
+# Pick a TSA you are authorized to use under its terms of service, e.g.:
+#   https://freetsa.org/tsr
+#   http://timestamp.digicert.com
+#   http://timestamp.sectigo.com
+TSA_URL=

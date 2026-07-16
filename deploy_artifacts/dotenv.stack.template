@@ -1,0 +1,39 @@
+# Argo — variabili d'ambiente per lo stack avanzato (Postgres/Neo4j/OpenSearch/Celery).
+# Appendi le righe che ti servono al file /opt/argo-osint/.env (chmod 600).
+# Ogni blocco è indipendente: senza queste var la relativa capability resta OFF
+# e la piattaforma gira identica (degradazione graceful).
+
+# ── Storage Postgres ─────────────────────────────────────────────────────────
+# Se impostata, get_storage() usa Postgres invece di SQLite. Deve combaciare con
+# le credenziali del servizio argo-postgres (stack-compose.yml, profile "db").
+# Richiede l'extra Python: pip install -e '.[postgres]'
+#DATABASE_URL=postgresql://argo:CAMBIA_ME@127.0.0.1:5433/argo
+
+# ── Neo4j (grafo entità-relazioni) ───────────────────────────────────────────
+# neo4j_sync.py parla via HTTP Cypher (nessuna dep Python). Password = quella
+# passata a NEO4J_AUTH nel compose (profile "graph").
+#NEO4J_HTTP_URL=http://127.0.0.1:7475
+#NEO4J_DATABASE=neo4j
+#NEO4J_USER=neo4j
+#NEO4J_PASSWORD=CAMBIA_ME
+
+# ── OpenSearch (ricerca full-text findings) ──────────────────────────────────
+# opensearch_index.py parla via REST (nessuna dep Python). Con il security
+# plugin disabilitato (compose profile "search", internal-only) niente user/pass.
+#OPENSEARCH_URL=http://127.0.0.1:9200
+#OPENSEARCH_INDEX=argo-findings
+#OPENSEARCH_VERIFY=1
+#OPENSEARCH_USER=
+#OPENSEARCH_PASSWORD=
+
+# ── Coda Celery / Redis ───────────────────────────────────────────────────────
+# Attiva il backend Celery al posto della coda in-process. Richiede l'extra
+# Python: pip install -e '.[queue]' e il servizio argo-celery.service attivo.
+#QUEUE_BACKEND=celery
+#CELERY_BROKER_URL=redis://127.0.0.1:6380/0
+#CELERY_RESULT_BACKEND=redis://127.0.0.1:6380/1
+
+# ── MISP (opzionale, se hai un'istanza MISP) ─────────────────────────────────
+#MISP_URL=https://misp.tuodominio
+#MISP_KEY=CAMBIA_ME
+#MISP_VERIFY=1

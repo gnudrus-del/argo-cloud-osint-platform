@@ -12,11 +12,12 @@ tools/
 # Screenshot/temporanei
 tmp-*.png
 
-# Deploy secrets — mai in git
-deploy_artifacts/
+# Deploy secrets — mai in git (i template/script/unit generici in
+# deploy_artifacts/ SONO invece tracciati: sono referenziati da DEPLOY-STACK.md)
 .env
 *.env
-secrets.env
+deploy_artifacts/secrets.env
+deploy_artifacts/*.tar.gz
 
 # Python build artifacts (rigenerati con `python -m build`)
 dist/

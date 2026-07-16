@@ -1,13 +1,17 @@
-# Deploy dello stack avanzato Argo (Fasi 4-13)
+# Deploy dello stack avanzato Argo
 
-Guida per portare in produzione, sulla VM, tutto ciò che è stato aggiunto:
-export STIX/MISP, connettori nativi, AI locale, storage Postgres, frontend
-Next.js, Neo4j, OpenSearch, coda Celery — **sostituendo** i componenti resi
-ridondanti (vedi `deploy_artifacts/REPLACEMENTS.md`).
+Guida per portare in produzione, sulla VM, le capability opzionali dello stack
+completo: export STIX/MISP, connettori nativi, AI locale, storage Postgres,
+frontend Next.js, Neo4j, OpenSearch, coda Celery — e per **sostituire** con i
+loro equivalenti nativi eventuali componenti esterni ridondanti che stessi già
+usando (vedi `deploy_artifacts/REPLACEMENTS.md`).
 
 > Principio guida: **ogni cosa nuova rimpiazza una vecchia, che va decommissionata.**
-> Niente doppioni in esecuzione. Su una VM da 5.9 GB (che gira già FlowSINT ~1 GB)
-> lo stack Argo prende il posto di quello FlowSINT.
+> Niente doppioni in esecuzione. Se sulla stessa VM gira già uno stack FlowSINT
+> standalone, i profili nativi Argo (§3-4) coprono lo stesso perimetro
+> (grafo, ricerca, coda, storage) — puoi decommissionarlo dopo aver verificato
+> che gli equivalenti nativi funzionano (§5). Su una VM piccola, tenerli
+> entrambi attivi in parallelo può esaurire la RAM: vedi §6 per il sizing.
 
 ## 0. Prerequisiti
 - Codice aggiornato in `/opt/argo-osint` (usa `deploy.ps1`/`deploy.sh` come sempre).
@@ -78,9 +82,11 @@ Vedi `deploy_artifacts/REPLACEMENTS.md` per la matrice completa "nuovo → sosti
 
 ## 6. Sizing / attenzione OOM
 Heap tarati per VM piccola (OpenSearch 512m, Neo4j 512m+256m, Redis 192m,
-Postgres ~384m). **Spegnendo FlowSINT** liberi ~1 GB + il suo Postgres/Redis/Neo4j,
-che è esattamente ciò che lo stack Argo va a rimpiazzare. Se resti stretto,
-attiva i profili in modo incrementale (prima `queue`+`graph`, poi `search`).
+Postgres ~384m). Se stai migrando da uno stack esterno equivalente (es.
+FlowSINT standalone), decommissionarlo (§5) libera la RAM/CPU che i suoi
+container occupavano — è esattamente ciò che i profili nativi Argo vanno a
+rimpiazzare. Se resti stretto, attiva i profili in modo incrementale (prima
+`queue`+`graph`, poi `search`).
 
 ## 7. Sicurezza
 - Tutti i servizi dello stack sono bindati su **127.0.0.1** (mai pubblici).

@@ -1,6 +1,13 @@
 # Connectors
 
-Argo ships 58 native connectors: 43 key-free + 15 BYOK.
+Argo registers 58 connectors by default: 43 key-free + 15 BYOK. A 59th
+connector (`flowsint`) ships in the codebase but is **not registered** unless
+`FLOWSINT_ENABLE=1` — see the note at the end of the key-free table.
+
+Counts are derived from the live registry
+(`build_default_registry().catalog()` in `osint_bot/connectors/__init__.py`),
+not hand-counted — see `docs/CONTRIBUTING_MODULES.md` step 5 for keeping this
+file in sync when a connector is added or removed.
 
 ## Key-free (43)
 
@@ -9,22 +16,37 @@ Work out of the box, no signup, no API key.
 | Category | Connectors |
 | --- | --- |
 | DNS / certs | crt.sh, RDAP, DNS query, TLS cert, Wayback CDX |
-| Web fingerprint | Web fingerprint, Common Crawl, URL harvest |
+| Web fingerprint | Web fingerprint, Common Crawl, URL harvest, urlscan.io |
 | Threat intel | PhishTank, OpenPhish, ThreatFox, Shodan InternetDB |
 | Geo / civic | Nominatim (OSM), Overpass (OSM), GDELT |
-| Email OSINT | holehe (native + wrapper), Gravatar, Ignorant |
+| Email OSINT | holehe (native + wrapper), Gravatar, Ignorant, EmailRep |
+| IP / network | IPinfo |
 | Username OSINT | Sherlock-lite, Maigret |
-| Corporate | SEC Edgar |
+| Corporate | SEC Edgar, OpenCorporates |
 | Recon (active, gated) | Content discovery, Port scan, Subdomain enum, DNStwist |
 | Secrets scan | Secret scan (public repos) |
 | Domain OSINT | theHarvester |
 | Phone OSINT | phone_meta, phone_footprint |
 | Social reverse | GHunt (Google), Toutatis (Instagram), socid-extractor, LinkedIn2Username, Telegram checker |
 | Darkweb | Ahmia index |
+| Threat intel bridge | MISP (`MISP_URL`/`MISP_KEY` are operator-configured env vars, not a BYOK-panel key — see below) |
 | Aggregator | legit_scorer (native SION-like) |
 | ASN | ASN lookup |
 
 Some active-recon connectors (port scan, content discovery) require an in-scope case and produce audit events.
+
+`emailrep`, `ipinfo` and `opencorporates` work key-free but also accept an
+optional key for richer output — they're counted once here and listed again
+under BYOK below.
+
+**Not counted above — registers only when explicitly enabled**: `flowsint`,
+an optional bridge to a separately-run FlowSINT stack
+(`FLOWSINT_ENABLE=1` + `FLOWSINT_URL`/`FLOWSINT_USER`/`FLOWSINT_PASSWORD`).
+
+MISP is grouped with the key-free connectors, not BYOK, because its
+credentials (`MISP_URL`, `MISP_KEY`) are read from environment variables for
+an operator-run instance rather than entered per-analyst in the BYOK key
+panel — see `osint_bot/connectors/misp_client.py`.
 
 ## BYOK (15)
 
@@ -39,16 +61,14 @@ Optional. Fill only what you have; missing keys are silently skipped.
 | SecurityTrails | `SECURITYTRAILS_API_KEY` | Historical DNS |
 | GreyNoise | `GREYNOISE_API_KEY` | Internet background noise labels |
 | AlienVault OTX | `OTX_API_KEY` | Threat pulses |
-| EmailRep | `EMAILREP_API_KEY` | Email reputation |
-| IPinfo | `IPINFO_API_KEY` | IP geolocation + ASN |
+| AbuseIPDB | `ABUSEIPDB_API_KEY` | IP abuse-report reputation |
+| GitHub code search | `GITHUB_TOKEN` | Secret/credential leak search across public repos |
+| LeakIX | `LEAKIX_API_KEY` | Exposed-service / leak search engine |
 | Etherscan | `ETHERSCAN_API_KEY` | Ethereum blockchain queries |
-| OpenCorporates | `OPENCORPORATES_API_KEY` | Global company registry |
 | Companies House | `COMPANIES_HOUSE_API_KEY` | UK company registry |
 | Brave Search | `BRAVE_SEARCH_API_KEY` | Web search API |
 | Google PSE | `GOOGLE_PSE_API_KEY` | Programmable search engine |
 | Influencers Club | `INFLUENCERS_CLUB_API_KEY` | Username → verified email |
-| Etherscan | `ETHERSCAN_API_KEY` | (see above) |
-| MISP | `MISP_URL` + `MISP_KEY` | Bring your own MISP instance |
 
 ## Anatomy of a connector
 

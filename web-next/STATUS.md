@@ -48,5 +48,6 @@ Two mutually-exclusive tracks are on the roadmap:
   vanilla-JS bundle for `osint_bot/web_static/` and remove the whole
   Next.js surface.
 
-The decision is tracked as issue `#H4` and will be made before the
-`v0.2` cut.
+The decision is tracked as issue `#H4`. It was not made before the
+`v0.2` cut — `web-next/` remains frozen and undecided, and this file
+is the current source of truth on its status until `#H4` closes.

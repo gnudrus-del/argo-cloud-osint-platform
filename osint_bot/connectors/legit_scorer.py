@@ -45,8 +45,17 @@ def _try_run(registry: ConnectorRegistry, name: str, ctx: ConnectorContext):
         conn = registry.get(name)
     except KeyError:
         return None
+    # Bypassiamo rate-limit/cache di BaseConnector.run (siamo già dentro un
+    # aggregatore passivo con il proprio rate-limit), ma il gate RoE/scope
+    # resta obbligatorio per ogni delegato — non solo per legit_scorer stesso
+    # — così un futuro delegato gated non erediterebbe silenziosamente
+    # l'autorizzazione passiva di legit_scorer.
+    from ..policy import check_policy
+    allowed, _reason = check_policy(ctx, conn.spec)
+    if not allowed:
+        return None
     try:
-        return conn._fetch(ctx)  # bypass rate-limit/cache: siamo dentro un aggregatore
+        return conn._fetch(ctx)
     except Exception:
         return None
 

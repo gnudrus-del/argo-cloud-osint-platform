@@ -1,0 +1,22 @@
+[Unit]
+Description=Argo frontend Next.js (console moderna, opzionale)
+After=network-online.target argo-osint.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/argo-osint/web-next
+Environment=NODE_ENV=production
+Environment=ARGO_API_BASE=http://127.0.0.1:7655
+# Richiede: npm ci && npm run build eseguiti una volta (vedi install-stack.sh).
+ExecStart=/usr/bin/npm run start
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

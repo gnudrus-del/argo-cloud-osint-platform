@@ -1,0 +1,20 @@
+# Sostituisci PLACEHOLDER_DOMAIN col tuo dominio DuckDNS reale prima di copiarlo in /etc/caddy/Caddyfile
+PLACEHOLDER_DOMAIN {
+    encode gzip
+    reverse_proxy 127.0.0.1:7655 {
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Real-IP {remote_host}
+    }
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), camera=(), microphone=()"
+        -Server
+    }
+    log {
+        output file /var/log/caddy/argo-access.log
+        format json
+    }
+}

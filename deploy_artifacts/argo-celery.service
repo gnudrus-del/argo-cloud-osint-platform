@@ -1,0 +1,27 @@
+[Unit]
+Description=Argo Celery worker (coda job OSINT)
+After=network-online.target
+Wants=network-online.target
+# Parte solo se Redis (broker) è raggiungibile; il worker riprova comunque.
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/argo-osint
+EnvironmentFile=/opt/argo-osint/.env
+# --concurrency 2: due job pesanti in parallelo max (VM piccola). Alza su VM grandi.
+ExecStart=/opt/argo-osint/.venv/bin/celery -A osint_bot.celery_queue:celery_app worker \
+    --loglevel=info --concurrency=2 --queues=argo-jobs --hostname=argo@%%h
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/argo-osint/web_jobs /opt/argo-osint/audit
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

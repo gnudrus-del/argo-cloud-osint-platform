@@ -36,8 +36,8 @@ una issue pubblica**: usa GitHub Security Advisories.
 ## Setup dev
 
 ```bash
-git clone https://github.com/<user>/argo-osint.git
-cd argo-osint
+git clone https://github.com/gnudrus-del/argo-cloud-osint-platform.git
+cd argo-cloud-osint-platform
 python -m venv .venv && . .venv/bin/activate   # oppure .venv\Scripts\activate
 pip install -e '.[ai,postgres,queue]'          # extras opzionali
 cp .env.example .env                           # configura almeno OSINT_WEB_TOKEN

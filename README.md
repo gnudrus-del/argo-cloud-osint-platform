@@ -54,7 +54,7 @@ The [`docs/samples/example-report/`](docs/samples/example-report/) directory con
 
 - [`example.com.md`](docs/samples/example-report/example.com.md) — narrative report (Markdown, ~19 KB)
 - [`example.com.json`](docs/samples/example-report/example.com.json) — structured findings (JSON, ~82 KB)
-- [`example.com.pdf`](docs/samples/example-report/example.com.pdf) — court-ready PDF (~15 KB)
+- [`example.com.pdf`](docs/samples/example-report/example.com.pdf) — PDF export (~15 KB), generated before report sealing shipped; a report generated today also carries an Ed25519 seal — see [the FAQ](docs/FAQ.md#is-the-audit-chain-court-ready) for what that does and does not guarantee in court
 
 No API key was configured; the report uses only the 43 key-free connectors. See [`docs/samples/README.md`](docs/samples/README.md) for details.
 
@@ -295,7 +295,7 @@ Work out of the box, no signup, no API key. Grouped by capability. Three of thes
 | `subdomain_enum` | Native subdomain enumeration (crt.sh + bruteforce + DNS) |
 | `dnstwist_native` | Typosquat / phishing domain generator + resolver |
 
-**Web fingerprint & content (5)**
+**Web fingerprint & content (6)**
 
 | Connector | What it does |
 | --- | --- |
@@ -304,6 +304,7 @@ Work out of the box, no signup, no API key. Grouped by capability. Three of thes
 | `content_discovery` | Native gobuster-lite (in-scope only) |
 | `url_harvest` | Extract external links, contacts, secrets from a page |
 | `secret_scan` | Public-repo secret scanning (regex + entropy) |
+| `urlscan` | urlscan.io historical scan lookup for a URL/domain |
 
 **Threat intelligence — no-key (4)**
 
@@ -380,18 +381,23 @@ Work out of the box, no signup, no API key. Grouped by capability. Three of thes
 | --- | --- |
 | `darkweb_scan` | Ahmia index scan for .onion mentions (no crawl) |
 
-**Aggregators (2)**
+**Aggregators (1)**
 
 | Connector | What it does |
 | --- | --- |
 | `legit_scorer` | Native SION-like aggregator: combines other connectors into a single trust score |
-| `flowsint` | Optional bridge to a running FlowSINT stack (disabled by default) |
 
 **Bridges (1)**
 
 | Connector | What it does |
 | --- | --- |
 | `misp_client` | Bidirectional bridge to your own MISP instance |
+
+**Not counted in the 43 — registers only when explicitly enabled**
+
+| Connector | What it does |
+| --- | --- |
+| `flowsint` | Optional bridge to a separately-run FlowSINT stack. Ships in the codebase but is **not registered** unless `FLOWSINT_ENABLE=1` — the connector count above (and `GET /api/capabilities`) reflects the default, disabled state. |
 
 **Blockchain (light) — no-key** — see BYOK for full-featured providers.
 

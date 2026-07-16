@@ -38,6 +38,7 @@ EXTRA_SCAN_FILES = [
     REPO_ROOT / "osint_bot" / "fetch.py",
     REPO_ROOT / "osint_bot" / "llm_client.py",
     REPO_ROOT / "osint_bot" / "tsa_client.py",
+    REPO_ROOT / "osint_bot" / "search.py",
 ]
 
 # Modules whose direct import from a connector triggers the guard.

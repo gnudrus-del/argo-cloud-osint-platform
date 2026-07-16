@@ -1,0 +1,126 @@
+# Argo — stack opzionale dei servizi di supporto.
+#
+# NB: la piattaforma Argo base NON richiede nessuno di questi servizi. Attivali
+# solo quando vuoi le capability avanzate:
+#   - postgres    storage relazionale al posto di SQLite
+#   - opensearch  ricerca full-text cross-caso sui findings
+#   - neo4j       grafo entità-relazioni persistente
+#   - redis       broker per la coda Celery
+#
+# Ogni servizio è dietro un PROFILE Docker: parti solo ciò che ti serve.
+#   docker compose -f stack-compose.yml --profile queue up -d              # solo redis
+#   docker compose -f stack-compose.yml --profile graph --profile search up -d
+#   docker compose -f stack-compose.yml --profile db --profile queue --profile graph --profile search up -d
+#
+# SICUREZZA: tutti i servizi sono bindati su 127.0.0.1 → raggiungibili SOLO dal
+# processo Argo sulla stessa VM, mai da Internet. Le porte sono spostate rispetto
+# ai default per non collidere con lo stack FlowSINT (che usa 5432/6379/7474/7687).
+#
+# MEMORIA: heap tarati per una VM piccola (5.9 GB) che gira già FlowSINT (~1 GB).
+# Se hai più RAM, alza i valori *_JAVA_OPTS / heap.
+
+services:
+  argo-postgres:
+    image: postgres:16-alpine
+    profiles: ["db"]
+    environment:
+      POSTGRES_USER: ${ARGO_PG_USER:-argo}
+      POSTGRES_PASSWORD: ${ARGO_PG_PASSWORD:?set ARGO_PG_PASSWORD}
+      POSTGRES_DB: ${ARGO_PG_DB:-argo}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - argo_pg:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ARGO_PG_USER:-argo}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  argo-redis:
+    image: redis:7-alpine
+    profiles: ["queue"]
+    command: ["redis-server", "--maxmemory", "192mb", "--maxmemory-policy", "noeviction", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - argo_redis:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  argo-neo4j:
+    image: neo4j:5-community
+    profiles: ["graph"]
+    environment:
+      NEO4J_AUTH: neo4j/${ARGO_NEO4J_PASSWORD:?set ARGO_NEO4J_PASSWORD}
+      NEO4J_server_memory_heap_initial__size: 384m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    ports:
+      - "127.0.0.1:7475:7474"   # HTTP (usato da neo4j_sync via Cypher REST)
+      - "127.0.0.1:7688:7687"   # Bolt (per Neo4j Browser / driver, opzionale)
+    volumes:
+      - argo_neo4j_data:/data
+    restart: unless-stopped
+    healthcheck:
+      # bash /dev/tcp: nessuna dipendenza da wget/curl dentro l'immagine neo4j.
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/7474' 2>/dev/null || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  argo-opensearch:
+    image: opensearchproject/opensearch:2.15.0
+    profiles: ["search"]
+    environment:
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+      # Internal-only (127.0.0.1): disabilito il security plugin per semplicità.
+      # NON esporre mai questa porta pubblicamente con security off.
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - argo_opensearch:/usr/share/opensearch/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+    deploy:
+      resources:
+        limits:
+          memory: 1200M
+
+volumes:
+  argo_pg:
+  argo_redis:
+  argo_neo4j_data:
+  argo_opensearch:

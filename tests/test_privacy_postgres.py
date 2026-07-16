@@ -1,9 +1,8 @@
 """Integrazione Privacy Center/DSAR contro un vero PostgresStorage.
 
 Gated da TEST_DATABASE_URL: skippato ovunque non ci sia un Postgres
-raggiungibile (nessun ambiente di sviluppo locale in questa sessione lo ha —
-gira solo nel job CI 'postgres-integration' con un container Postgres
-reale). Rispecchia gli stessi scenari di tests/test_dsar_erasure.py e
+raggiungibile — gira nel job CI 'postgres-integration' contro un
+container Postgres reale. Rispecchia gli stessi scenari di tests/test_dsar_erasure.py e
 tests/test_privacy_endpoints.py (SQLite) per provare che erase_actor_data,
 verify_audit_chain e select_owned_columns si comportano allo stesso modo su
 entrambi i backend — non solo che il codice Postgres "sembra giusto"."""

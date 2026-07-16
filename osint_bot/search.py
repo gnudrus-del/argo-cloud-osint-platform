@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import json
 import os
 import urllib.error
 import urllib.parse
-import urllib.request
 from dataclasses import dataclass, field
 
+from . import _safe_http
 from .models import SearchResult
 
 
@@ -185,15 +184,11 @@ def bing_search(query: str, config: SearchConfig) -> list[SearchResult]:
         raise SearchError("Chiave Bing non configurata.")
 
     params = urllib.parse.urlencode({"q": query, "count": min(config.max_results, 50), "responseFilter": "Webpages"})
-    request = urllib.request.Request(
+    payload = _provider_get_json(
         f"https://api.bing.microsoft.com/v7.0/search?{params}",
-        headers={
-            "Accept": "application/json",
-            "Ocp-Apim-Subscription-Key": api_key,
-            "User-Agent": "osint-bot/0.2",
-        },
+        headers={"Ocp-Apim-Subscription-Key": api_key},
+        timeout=config.timeout,
     )
-    payload = get_json(request, config.timeout)
     return [
         SearchResult(
             title=item.get("name", ""),
@@ -212,15 +207,11 @@ def brave_search(query: str, config: SearchConfig) -> list[SearchResult]:
         raise SearchError("Chiave Brave non configurata.")
 
     params = urllib.parse.urlencode({"q": query, "count": min(config.max_results, 20)})
-    request = urllib.request.Request(
+    payload = _provider_get_json(
         f"https://api.search.brave.com/res/v1/web/search?{params}",
-        headers={
-            "Accept": "application/json",
-            "X-Subscription-Token": api_key,
-            "User-Agent": "osint-bot/0.1",
-        },
+        headers={"X-Subscription-Token": api_key},
+        timeout=config.timeout,
     )
-    payload = get_json(request, config.timeout)
     web_results = payload.get("web", {}).get("results", [])
     return [
         SearchResult(
@@ -239,18 +230,12 @@ def serper_search(query: str, config: SearchConfig) -> list[SearchResult]:
     if not api_key:
         raise SearchError("Chiave Serper non configurata.")
 
-    body = json.dumps({"q": query, "num": min(config.max_results, 20)}).encode("utf-8")
-    request = urllib.request.Request(
+    payload = _provider_post_json(
         "https://google.serper.dev/search",
-        data=body,
-        method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "X-API-KEY": api_key,
-            "User-Agent": "osint-bot/0.1",
-        },
+        {"q": query, "num": min(config.max_results, 20)},
+        headers={"X-API-KEY": api_key},
+        timeout=config.timeout,
     )
-    payload = get_json(request, config.timeout)
     return [
         SearchResult(
             title=item.get("title", ""),
@@ -263,10 +248,25 @@ def serper_search(query: str, config: SearchConfig) -> list[SearchResult]:
     ]
 
 
-def get_json(request: urllib.request.Request, timeout: int) -> dict:
+def _provider_get_json(url: str, *, headers: dict[str, str], timeout: int) -> dict:
+    """GET verso un provider di ricerca, instradato attraverso ``_safe_http``
+    (unico gateway sanzionato per l'outbound HTTP di Argo)."""
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8", errors="replace"))
+        return _safe_http.get_json(url, headers=headers, timeout=timeout)
+    except _safe_http.SSRFBlocked as exc:
+        raise SearchError(f"URL provider ricerca bloccato: {exc}") from exc
+    except urllib.error.HTTPError as exc:
+        raise SearchError(f"Errore provider ricerca HTTP {exc.code}: {exc.reason}") from exc
+    except urllib.error.URLError as exc:
+        raise SearchError(f"Errore rete provider ricerca: {exc.reason}") from exc
+
+
+def _provider_post_json(url: str, payload: dict, *, headers: dict[str, str], timeout: int) -> dict:
+    """POST JSON verso un provider di ricerca, instradato attraverso ``_safe_http``."""
+    try:
+        return _safe_http.post_json(url, payload, headers=headers, timeout=timeout)
+    except _safe_http.SSRFBlocked as exc:
+        raise SearchError(f"URL provider ricerca bloccato: {exc}") from exc
     except urllib.error.HTTPError as exc:
         raise SearchError(f"Errore provider ricerca HTTP {exc.code}: {exc.reason}") from exc
     except urllib.error.URLError as exc:
