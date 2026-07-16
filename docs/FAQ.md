@@ -26,7 +26,7 @@ No. Zero telemetry — Argo's own servers (there are none) never see your data. 
 
 ## Can I run it on a Raspberry Pi?
 
-Yes for the base install (43 key-free connectors). The `ai` extra needs more memory and CPU.
+Yes for the base install (46 key-free connectors). The `ai` extra needs more memory and CPU.
 
 ## Does it work on Windows?
 

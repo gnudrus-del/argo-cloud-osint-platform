@@ -38,7 +38,7 @@ write_pdf_from_markdown(
 "
 ```
 
-The report was produced with **`--provider none`**: only the 43 key-free
+The report was produced with **`--provider none`**: only key-free
 connectors were involved. No BYOK provider was contacted, no API key was
 used. Re-running the command against `example.com` will produce
 substantially identical output.

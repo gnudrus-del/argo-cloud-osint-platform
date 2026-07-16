@@ -93,6 +93,28 @@ CATALOG: dict[str, dict[str, str]] = {
         "en": "LeakIX: leak type '{leak_type}' on {host}:{port}.",
     },
 
+    # -- cloud_buckets --------------------------------------------------------
+    "cloud_buckets.legal_note": {
+        "it": "Attivo: sonda solo endpoint pubblici standard S3/GCS/Azure con HEAD/GET. Nessun bypass di autenticazione. Solo con scope autorizzato.",
+        "en": "Active: probes only standard public S3/GCS/Azure endpoints with HEAD/GET. No authentication bypass. Only with authorized scope.",
+    },
+    "cloud_buckets.empty_target": {
+        "it": "Target vuoto.",
+        "en": "Empty target.",
+    },
+    "cloud_buckets.listable": {
+        "it": "Bucket {provider} '{candidate}' esiste ed espone un listing pubblico del contenuto.",
+        "en": "{provider} bucket '{candidate}' exists and exposes a public content listing.",
+    },
+    "cloud_buckets.exists": {
+        "it": "Bucket {provider} '{candidate}' esiste ed e' raggiungibile pubblicamente (listing non confermato).",
+        "en": "{provider} bucket '{candidate}' exists and is publicly reachable (listing not confirmed).",
+    },
+    "cloud_buckets.private": {
+        "it": "Bucket {provider} '{candidate}' esiste ma risulta privato (403).",
+        "en": "{provider} bucket '{candidate}' exists but appears private (403).",
+    },
+
     # -- content_discovery --------------------------------------------------
     "content_discovery.legal_note": {
         "it": "Attivo: invia molte richieste HTTP al target. Solo con scope autorizzato.",
@@ -456,6 +478,24 @@ CATALOG: dict[str, dict[str, str]] = {
     "dns_query.record_dig": {"it": "Record {rtype} per {target} via resolver di sistema.", "en": "{rtype} record for {target} via system resolver."},
     "dns_query.record_socket": {"it": "IP risolto per {target} (fallback socket).", "en": "IP resolved for {target} (socket fallback)."},
 
+    # -- email_security -------------------------------------------------------
+    "email_security.legal_note": {"it": "Interroga solo record DNS TXT pubblici del dominio (SPF/DMARC/MTA-STS/BIMI) e SOA per DNSSEC. Nessun contatto con server di posta o altri host del target.", "en": "Queries only the domain's public DNS TXT records (SPF/DMARC/MTA-STS/BIMI) and SOA for DNSSEC. No contact with mail servers or other target hosts."},
+    "email_security.empty_target": {"it": "Target vuoto.", "en": "Empty target."},
+    "email_security.dig_unavailable": {"it": "Impossibile eseguire i controlli: 'dig' non disponibile o irraggiungibile per ogni query effettuata.", "en": "Unable to run the checks: 'dig' is unavailable or unreachable for every query attempted."},
+    "email_security.spf_missing": {"it": "Nessun record SPF per {domain}: chiunque può inviare email spacciandosi per questo dominio, senza che i server riceventi possano verificarlo via SPF.", "en": "No SPF record for {domain}: anyone can send email spoofing this domain, with receiving servers unable to verify it via SPF."},
+    "email_security.spf_hardfail": {"it": "SPF di {domain} termina con '-all' (hardfail): i server riceventi sono istruiti a rifiutare la posta da IP non autorizzati. Postura corretta.", "en": "{domain}'s SPF ends with '-all' (hardfail): receiving servers are instructed to reject mail from unauthorized IPs. Correct posture."},
+    "email_security.spf_softfail": {"it": "SPF di {domain} termina con '~all' (softfail): la posta da IP non autorizzati viene marcata sospetta ma spesso comunque recapitata. Protezione parziale.", "en": "{domain}'s SPF ends with '~all' (softfail): mail from unauthorized IPs is flagged as suspicious but often still delivered. Partial protection."},
+    "email_security.spf_permissive": {"it": "SPF di {domain} è permissivo ('?all' o nessun qualificatore 'all' esplicito): offre poca o nessuna protezione anti-spoofing reale.", "en": "{domain}'s SPF is permissive ('?all' or no explicit 'all' qualifier): it offers little to no real anti-spoofing protection."},
+    "email_security.saas_tenant": {"it": "L'SPF di {domain} include un provider SaaS noto ({provider}): indizio che la posta del dominio è ospitata lì.", "en": "{domain}'s SPF includes a known SaaS provider ({provider}): a sign the domain's mail is hosted there."},
+    "email_security.dmarc_missing": {"it": "Nessun record DMARC per {domain}: manca la policy anti-spoofing, i domini possono essere impersonati liberamente nelle email.", "en": "No DMARC record for {domain}: no anti-spoofing policy in place, the domain can be freely impersonated in emails."},
+    "email_security.dmarc_none": {"it": "DMARC di {domain} ha policy 'p=none': i fallimenti SPF/DKIM vengono solo monitorati, non bloccati. Lo spoofing resta fattibile.", "en": "{domain}'s DMARC has policy 'p=none': SPF/DKIM failures are only monitored, not blocked. Spoofing remains feasible."},
+    "email_security.dmarc_quarantine": {"it": "DMARC di {domain} ha policy 'p=quarantine': la posta sospetta viene messa in quarantena (es. spam) invece di essere bloccata del tutto.", "en": "{domain}'s DMARC has policy 'p=quarantine': suspicious mail is quarantined (e.g. spam) instead of being blocked outright."},
+    "email_security.dmarc_reject": {"it": "DMARC di {domain} ha policy 'p=reject': la posta che fallisce SPF/DKIM viene rifiutata. Postura corretta.", "en": "{domain}'s DMARC has policy 'p=reject': mail failing SPF/DKIM is rejected. Correct posture."},
+    "email_security.dmarc_pct_note": {"it": " Nota: pct={pct}, quindi la policy si applica solo a una parte del traffico.", "en": " Note: pct={pct}, so the policy only applies to a portion of the traffic."},
+    "email_security.mta_sts_missing": {"it": "Nessun record MTA-STS per {domain}: la posta in transito verso questo dominio non è protetta da un downgrade/MITM SMTP forzato. Gap di hardening minore.", "en": "No MTA-STS record for {domain}: mail in transit to this domain is not protected against a forced SMTP downgrade/MITM. Minor hardening gap."},
+    "email_security.dnssec_not_enabled": {"it": "DNSSEC non risulta abilitato su {domain} (nessun RRSIG nella risposta SOA): le risposte DNS del dominio non sono firmate crittograficamente e sono in teoria falsificabili via cache poisoning.", "en": "DNSSEC does not appear to be enabled on {domain} (no RRSIG in the SOA response): the domain's DNS answers are not cryptographically signed and are in theory spoofable via cache poisoning."},
+    "email_security.bimi_absent": {"it": "Nessun record BIMI per {domain} (informativo): il dominio non pubblica un logo aziendale verificato per i client email compatibili.", "en": "No BIMI record for {domain} (informational): the domain does not publish a verified brand logo for compatible email clients."},
+
     # -- dnstwist_native ----------------------------------------------------
     "dnstwist_native.legal_note": {"it": "Genera varianti del dominio e risolve i candidati. Nessun contatto col target.", "en": "Generates domain variants and resolves the candidates. No contact with the target."},
     "dnstwist_native.invalid_target": {"it": "Target deve essere un dominio.", "en": "Target must be a domain."},
@@ -538,6 +578,13 @@ CATALOG: dict[str, dict[str, str]] = {
     "holehe_native.gravatar_profile": {"it": "Profilo Gravatar pubblico ({url}).", "en": "Public Gravatar profile ({url})."},
     "holehe_native.gravatar_account": {"it": "Account {shortname} collegato via Gravatar.", "en": "Account {shortname} linked via Gravatar."},
     "holehe_native.gmail_canonical": {"it": "Forma canonica Gmail (dot-trick/plus rimossi): stessa casella.", "en": "Canonical Gmail form (dot-trick/plus removed): same mailbox."},
+
+    # -- hudsonrock -----------------------------------------------------------
+    "hudsonrock.legal_note": {"it": "Interroga l'API pubblica gratuita di Hudson Rock Cavalier (corpus di log infostealer aggregati). Il tier gratuito non restituisce mai credenziali in chiaro: solo conteggi aggregati e URL di esempio parzialmente redatti.", "en": "Queries Hudson Rock Cavalier's free public API (aggregated infostealer log corpus). The free tier never returns plaintext credentials: only aggregate counts and partially redacted sample URLs."},
+    "hudsonrock.empty_target": {"it": "Target vuoto.", "en": "Empty target."},
+    "hudsonrock.no_corpus_hits": {"it": "Nessuna voce nel corpus breach Hudson Rock per questo target (non prova assenza di rischio).", "en": "No entries in the Hudson Rock breach corpus for this target (does not prove absence of risk)."},
+    "hudsonrock.domain_summary": {"it": "Corpus infostealer: {employees} dipendenti, {users} utenti, {third_parties} terze parti coinvolti. Famiglie stealer: {families}. Esempi URL dipendenti: {sample_urls}.", "en": "Infostealer corpus: {employees} employees, {users} users, {third_parties} third parties involved. Stealer families: {families}. Sample employee URLs: {sample_urls}."},
+    "hudsonrock.email_summary": {"it": "Email trovata in log infostealer. Famiglie stealer: {families}.", "en": "Email found in infostealer logs. Stealer families: {families}."},
 
     # -- hunter -------------------------------------------------------------
     "hunter.legal_note": {"it": "Hunter.io Domain Search — solo per domini di propria competenza o con autorizzazione scritta.", "en": "Hunter.io Domain Search — only for domains you own or have written authorization for."},

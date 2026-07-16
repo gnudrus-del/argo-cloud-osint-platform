@@ -1,6 +1,6 @@
 # Connectors
 
-Argo registers 58 connectors by default: 43 key-free + 15 BYOK. A 59th
+Argo registers 61 connectors by default: 46 key-free + 15 BYOK. A 62nd
 connector (`flowsint`) ships in the codebase but is **not registered** unless
 `FLOWSINT_ENABLE=1` — see the note at the end of the key-free table.
 
@@ -9,15 +9,16 @@ Counts are derived from the live registry
 not hand-counted — see `docs/CONTRIBUTING_MODULES.md` step 5 for keeping this
 file in sync when a connector is added or removed.
 
-## Key-free (43)
+## Key-free (46)
 
 Work out of the box, no signup, no API key.
 
 | Category | Connectors |
 | --- | --- |
-| DNS / certs | crt.sh, RDAP, DNS query, TLS cert, Wayback CDX |
+| DNS / certs | crt.sh, RDAP, DNS query, TLS cert, Wayback CDX, email security posture (SPF/DMARC/MTA-STS/DNSSEC) |
 | Web fingerprint | Web fingerprint, Common Crawl, URL harvest, urlscan.io |
-| Threat intel | PhishTank, OpenPhish, ThreatFox, Shodan InternetDB |
+| Threat intel | PhishTank, OpenPhish, ThreatFox, Shodan InternetDB, Hudson Rock Cavalier (infostealer breach corpus) |
+| Cloud exposure | Cloud bucket enumeration (S3/GCS/Azure — active, gated) |
 | Geo / civic | Nominatim (OSM), Overpass (OSM), GDELT |
 | Email OSINT | holehe (native + wrapper), Gravatar, Ignorant, EmailRep |
 | IP / network | IPinfo |

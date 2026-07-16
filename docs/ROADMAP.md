@@ -22,6 +22,7 @@ Public planning. Priorities can change; nothing here is a promise.
 
 ## Unreleased (on `main`, not yet tagged)
 
+- Three new key-free connectors: `cloud_buckets` (cloud storage exposure), `email_security` (SPF/DMARC/MTA-STS/DNSSEC posture), `hudsonrock` (infostealer breach corpus). 58 → 61 native connectors.
 - Signed report seals (Ed25519, always on) + optional RFC3161 trusted timestamping, `argo-verify-report` CLI.
 - Privacy Center / DSAR made backend-portable (works correctly on Postgres, not just SQLite).
 - Postgres recommended for production/multi-analyst deployments, wired into `docker-compose.yml`, exercised in CI against a real container. SQLite stays the zero-config default.

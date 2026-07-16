@@ -30,6 +30,7 @@ from . import (
     abuseipdb,
     asn_lookup,
     brave_search_api,
+    cloud_buckets,
     common_crawl,
     companies_house,
     content_discovery,
@@ -37,6 +38,7 @@ from . import (
     darkweb_scan,
     dns_query,
     dnstwist_native,
+    email_security,
     emailrep,
     etherscan,
     flowsint,
@@ -49,6 +51,7 @@ from . import (
     hibp,
     holehe,
     holehe_native,
+    hudsonrock,
     hunter,
     ignorant,
     influencers_club,
@@ -103,10 +106,12 @@ __all__ = [
     "shodan_internetdb", "overpass", "threatfox", "misp_client",
     "content_discovery", "port_scan", "subdomain_enum", "dnstwist_native",
     "secret_scan", "url_harvest", "holehe_native", "maigret", "holehe",
+    "hudsonrock",
     "theharvester",
     "phone_footprint", "ignorant", "ghunt", "toutatis", "socid_extractor",
     "telegram_checker", "linkedin2username", "influencers_club", "legit_scorer",
-    "darkweb_scan",
+    "darkweb_scan", "cloud_buckets",
+    "email_security",
     "build_default_registry",
 ]
 
@@ -169,6 +174,7 @@ def build_default_registry() -> ConnectorRegistry:
     # Phase 13 — sostituti nativi di tool CLI esterni
     reg.register(content_discovery.ContentDiscoveryConnector())
     reg.register(port_scan.PortScanConnector())
+    reg.register(cloud_buckets.CloudBucketsConnector())
     reg.register(subdomain_enum.SubdomainEnumConnector())
     reg.register(dnstwist_native.DNSTwistNativeConnector())
     reg.register(secret_scan.SecretScanConnector())
@@ -198,4 +204,8 @@ def build_default_registry() -> ConnectorRegistry:
     reg.register(scorer)
     # Phase 22 — darkweb_scan (Ahmia index, darkweb-gated).
     reg.register(darkweb_scan.DarkwebScanConnector())
+    # Phase 23 — Hudson Rock Cavalier (infostealer breach corpus, no-key).
+    reg.register(hudsonrock.HudsonRockConnector())
+    # Phase 24 — email_security (SPF/DMARC/DKIM/MTA-STS/DNSSEC posture, no-key).
+    reg.register(email_security.EmailSecurityConnector())
     return reg
