@@ -530,12 +530,12 @@ class OsintHandler(BaseHTTPRequestHandler):
             if path == "/api/capabilities":
                 self.require_auth()
                 sess = current_session(self)
-                unlocked = bool(sess and sess.get("admin_unlocked"))
+                unlocked = session_is_admin(sess)
                 return self.send_json(capabilities(actor_from_request(self), admin_unlocked=unlocked))
             if path == "/api/tools/health":
                 self.require_auth()
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     # Non-admin: rispondiamo senza svelare la lista tool.
                     raise WebError(HTTPStatus.FORBIDDEN, "Elenco tool riservato agli amministratori.")
                 return self.send_json({"tools": all_tools_health()})
@@ -543,7 +543,7 @@ class OsintHandler(BaseHTTPRequestHandler):
                 # La lista chiavi API è a sua volta segreto di piattaforma.
                 self.require_auth()
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per gestire le chiavi API.")
                 actor = actor_from_request(self)
                 return self.send_json({"keys": get_storage().list_api_keys(actor), "catalog": api_key_catalog_for(actor)})
@@ -574,7 +574,7 @@ class OsintHandler(BaseHTTPRequestHandler):
             if path == "/api/connectors":
                 self.require_auth()
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN,
                                    "Catalogo connettori riservato agli amministratori.")
                 return self.send_json({"connectors": CONNECTOR_REGISTRY.catalog()})
@@ -584,7 +584,7 @@ class OsintHandler(BaseHTTPRequestHandler):
             if path == "/api/admin/stats":
                 self.require_auth()
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN,
                                    "Statistiche di piattaforma riservate all'amministratore.")
                 return self.send_json(admin_stats())
@@ -699,7 +699,7 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.send_json(client.search(query, size=size, case_id=case_id))
             if path == "/api/keys":
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per gestire le chiavi API.")
                 payload = self.read_json()
                 actor = actor_from_request(self)
@@ -720,7 +720,7 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.send_json({"keys": store.list_api_keys(actor), "catalog": api_key_catalog_for(actor)})
             if path == "/api/keys/test":
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per testare le chiavi API.")
                 # Test on-demand di una chiave (NON la salva, solo verifica).
                 # Usa la chiave già salvata se non viene fornita "value" nel payload.
@@ -2470,6 +2470,33 @@ def current_session(handler: OsintHandler) -> dict | None:
     return session
 
 
+def session_is_admin(sess: dict | None) -> bool:
+    """RBAC check: is this session admin-privileged?
+
+    True via either door:
+      - The legacy per-session unlock (POST /api/admin/unlock with
+        ARGO_ADMIN_USER/ARGO_ADMIN_PASSWORD_HASH) -- unchanged, still the
+        only way to get admin access for operators who never assign roles.
+        This endpoint has no side effect on any account's persistent role.
+      - A persistent 'admin' role on the logged-in account. There is no web
+        endpoint that sets this -- by design, the only way to assign it is
+        the local ``argo-set-role <username> admin --yes`` CLI command
+        (osint_bot/cli_set_role.py), which requires shell access to the
+        host running Argo. No account, admin or otherwise, can grant the
+        role to another account over the web.
+
+    A DB lookup on every gated request is deliberate over caching the role
+    in the session: a demotion via the CLI takes effect on that user's very
+    next request, not only after their session expires and they log back in.
+    """
+    if not sess:
+        return False
+    if sess.get("admin_unlocked"):
+        return True
+    user = load_users().get(sess.get("username", ""))
+    return bool(user and user.get("role") == "admin")
+
+
 def load_users() -> dict:
     """Return the full users dict. Kept as a dict for backwards compat with
     existing call-sites that do ``load_users().get(username)``.
@@ -2559,6 +2586,10 @@ def public_user(user: dict) -> dict:
         "username": user.get("username", ""),
         "plan": user.get("plan", "free"),
         "created_at": user.get("created_at", ""),
+        # Persistent RBAC role ('analyst' default, 'admin' set only via the
+        # argo-set-role CLI — see session_is_admin()). Informational for the
+        # frontend; the server-side gate never trusts a client-supplied role.
+        "role": user.get("role", "analyst"),
     }
 
 
@@ -2767,6 +2798,7 @@ def admin_stats() -> dict:
             "last_login": last_event.get("timestamp", "") if last_event else "",
             "last_method": (last_event.get("details") or {}).get("method", "") if last_event else "",
             "provider": user.get("auth_provider", "password"),
+            "role": user.get("role", "analyst"),
             "_recency_rank": last_idx,
         })
     logins_detail.sort(key=lambda d: d["_recency_rank"], reverse=True)

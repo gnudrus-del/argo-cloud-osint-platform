@@ -22,6 +22,7 @@ Public planning. Priorities can change; nothing here is a promise.
 
 ## Unreleased (on `main`, not yet tagged)
 
+- **RBAC** — persistent per-account `role` (`analyst`/`admin`), alongside the existing shared-secret session unlock (unchanged, still works). Role assignment is a local CLI command (`argo-set-role`), not a web endpoint — no "admin promotes other admins over the web" surface by design.
 - `docs/METHODOLOGY.md` — the confidence/source-reliability/severity discipline the `Finding` model already carried in code, written down as one citable convention.
 - **`web-next/` CSRF + Docker wiring** (issue `#H4`, partial) — the experimental Next.js console gained CSRF protection and an opt-in Docker Compose profile. Still frozen, still not the production frontend; the complete-vs-delete decision on `#H4` stays open.
 - **Google Sign-In** (`GOOGLE_OAUTH_CLIENT_ID`, optional `[auth]` extra) — additional login door alongside email+password, not a replacement. First-time Google sign-in auto-provisions a user. Admin metrics gained a per-user login history table (who, when, how many times, which method).

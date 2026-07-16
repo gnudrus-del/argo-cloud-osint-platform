@@ -2255,10 +2255,12 @@ function renderLoginHistoryTable(logins) {
   if (!logins.length) return "";
   const shown = logins.slice(0, _LOGIN_HISTORY_ROW_CAP);
   const providerLabel = (p) => (p === "google" ? "Google" : t("db.providerPassword"));
+  const roleLabel = (r) => (r === "admin" ? `⚑ ${t("db.roleAdmin")}` : t("db.roleAnalyst"));
   const rows = shown.map((row) => `
     <tr>
       <td>${escapeHtml(row.username)}</td>
       <td>${escapeHtml(row.email || "—")}</td>
+      <td>${roleLabel(row.role)}</td>
       <td>${providerLabel(row.provider)}</td>
       <td style="text-align:right">${row.login_count}</td>
       <td>${row.last_login ? escapeHtml(row.last_login) : t("db.neverLoggedIn")}</td>
@@ -2273,6 +2275,7 @@ function renderLoginHistoryTable(logins) {
         <thead><tr>
           <th>${t("db.colUser")}</th>
           <th>${t("db.colEmail")}</th>
+          <th>${t("db.colRole")}</th>
           <th>${t("db.colProvider")}</th>
           <th style="text-align:right">${t("db.colLoginCount")}</th>
           <th>${t("db.colLastLogin")}</th>
@@ -2280,6 +2283,7 @@ function renderLoginHistoryTable(logins) {
         <tbody>${rows}</tbody>
       </table>
     </div>
+    <p class="muted" style="margin-top:6px">${t("db.roleManageHint")}</p>
     ${truncNote}
   `;
 }

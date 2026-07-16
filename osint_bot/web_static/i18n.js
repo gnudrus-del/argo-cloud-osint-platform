@@ -657,6 +657,13 @@
     "db.colUser": { en: "User", it: "Utente" },
     "db.colEmail": { en: "Email", it: "Email" },
     "db.colProvider": { en: "Login method", it: "Metodo di accesso" },
+    "db.colRole": { en: "Role", it: "Ruolo" },
+    "db.roleAdmin": { en: "Admin", it: "Admin" },
+    "db.roleAnalyst": { en: "Analyst", it: "Analista" },
+    "db.roleManageHint": {
+      en: "Roles are assigned from the server via \"argo-set-role &lt;user&gt; admin|analyst\" — not from this UI, by design.",
+      it: "I ruoli si assegnano dal server con \"argo-set-role &lt;utente&gt; admin|analyst\" — non da questa UI, per scelta.",
+    },
     "db.colLoginCount": { en: "Logins", it: "Accessi" },
     "db.colLastLogin": { en: "Last login", it: "Ultimo accesso" },
     "db.providerPassword": { en: "Password", it: "Password" },

@@ -26,6 +26,20 @@ python -c "import os,hashlib; s=os.urandom(16); h=hashlib.pbkdf2_hmac('sha256',b
 
 Set `ARGO_ADMIN_USER` alongside it. Both are required to unlock admin-only tools.
 
+### RBAC — persistent admin role
+
+The shared `ARGO_ADMIN_USER`/`ARGO_ADMIN_PASSWORD_HASH` secret above unlocks admin features for **one session at a time** — every browser tab, every login, re-enter the password. Each Argo account also carries a persistent `role` (`analyst`, the default, or `admin`), checked on every admin-gated request (`session_is_admin()` in `web.py`) alongside the legacy unlock, so an account only ever needs to be promoted once.
+
+Assigning the role is a **local CLI command, not a web endpoint** — deliberately: granting admin is an operator action that requires shell access to the machine Argo runs on, the same trust boundary as generating the password hash above. There is no "an admin can promote other users over the web" surface in Argo by design.
+
+```bash
+argo-set-role alice admin          # dry run: shows current vs requested role
+argo-set-role alice admin --yes    # applies it
+argo-set-role alice analyst --yes  # demote
+```
+
+Takes effect on the account's very next request — no service restart, since the role is read from storage per-request rather than cached in the session. `POST /api/admin/unlock` (the shared-secret path above) is unchanged by this and keeps working exactly as before, independent of any account's role — it stays the break-glass path if you never assign roles at all.
+
 ## Google Sign-In (optional, additional login door)
 
 Argo's normal signup/login (email + password) always works and is never removed by this. Setting `GOOGLE_OAUTH_CLIENT_ID` adds a "Sign in with Google" button alongside it — nothing else changes for existing password accounts.

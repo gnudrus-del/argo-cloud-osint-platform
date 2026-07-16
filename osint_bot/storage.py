@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS users (
     verified INTEGER NOT NULL DEFAULT 0,
     verified_at TEXT,
     auth_provider TEXT NOT NULL DEFAULT 'password',
-    google_sub TEXT
+    google_sub TEXT,
+    role TEXT NOT NULL DEFAULT 'analyst'
 );
 
 CREATE TABLE IF NOT EXISTS jobs (
@@ -255,6 +256,7 @@ class Storage:
             _migrate_jobs_case_id(boot)
             _migrate_users_email_verified(boot)
             _migrate_users_auth_provider(boot)
+            _migrate_users_role(boot)
             _migrate_cases_allowed_targets(boot)
             _migrate_cases_ai_enrichment(boot)
         finally:
@@ -298,8 +300,8 @@ class Storage:
 
     def get_user(self, username: str) -> dict | None:
         row = self._conn().execute(
-            "SELECT username, password, plan, created_at, disabled, email, verified, verified_at "
-            "FROM users WHERE username = ?",
+            "SELECT username, password, plan, created_at, disabled, email, verified, verified_at, "
+            "auth_provider, google_sub, role FROM users WHERE username = ?",
             (username,),
         ).fetchone()
         return _row_to_user(row) if row else None
@@ -307,15 +309,15 @@ class Storage:
     def all_users(self) -> dict[str, dict]:
         rows = self._conn().execute(
             "SELECT username, password, plan, created_at, disabled, email, verified, verified_at, "
-            "auth_provider, google_sub FROM users"
+            "auth_provider, google_sub, role FROM users"
         ).fetchall()
         return {row["username"]: _row_to_user(row) for row in rows}
 
     def put_user(self, user: dict) -> None:
         self._conn().execute(
             """
-            INSERT INTO users (username, password, plan, created_at, disabled, email, verified, verified_at, auth_provider, google_sub)
-            VALUES (:username, :password, :plan, :created_at, :disabled, :email, :verified, :verified_at, :auth_provider, :google_sub)
+            INSERT INTO users (username, password, plan, created_at, disabled, email, verified, verified_at, auth_provider, google_sub, role)
+            VALUES (:username, :password, :plan, :created_at, :disabled, :email, :verified, :verified_at, :auth_provider, :google_sub, :role)
             ON CONFLICT(username) DO UPDATE SET
                 password = excluded.password,
                 plan = excluded.plan,
@@ -324,7 +326,8 @@ class Storage:
                 verified = excluded.verified,
                 verified_at = excluded.verified_at,
                 auth_provider = excluded.auth_provider,
-                google_sub = excluded.google_sub
+                google_sub = excluded.google_sub,
+                role = excluded.role
             """,
             {
                 "username": user["username"],
@@ -337,6 +340,7 @@ class Storage:
                 "verified_at": user.get("verified_at") or None,
                 "auth_provider": user.get("auth_provider", "password"),
                 "google_sub": user.get("google_sub") or None,
+                "role": user.get("role", "analyst"),
             },
         )
 
@@ -1347,6 +1351,19 @@ def _migrate_users_auth_provider(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE users ADD COLUMN google_sub TEXT")
 
 
+def _migrate_users_role(conn: sqlite3.Connection) -> None:
+    """Add users.role (RBAC) — 'analyst' (default) or 'admin'.
+
+    Existing rows default to 'analyst': nobody is silently promoted by this
+    migration. The one already-privileged path (ARGO_ADMIN_USER +
+    ARGO_ADMIN_PASSWORD_HASH) keeps working unchanged and is what actually
+    promotes an account to 'admin' — see ``handle_admin_unlock`` in web.py.
+    """
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "role" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'analyst'")
+
+
 def _migrate_cases_allowed_targets(conn: sqlite3.Connection) -> None:
     """Add cases.allowed_targets per scope enforcement (round 6)."""
     cols = {row[1] for row in conn.execute("PRAGMA table_info(cases)").fetchall()}
@@ -1388,6 +1405,7 @@ def _row_to_user(row: sqlite3.Row) -> dict:
         "verified_at": row["verified_at"] if "verified_at" in keys else None,
         "auth_provider": row["auth_provider"] if "auth_provider" in keys else "password",
         "google_sub": row["google_sub"] if "google_sub" in keys else None,
+        "role": row["role"] if "role" in keys else "analyst",
     }
 
 

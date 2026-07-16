@@ -50,12 +50,16 @@ _SCHEMA_STATEMENTS = [
         verified INTEGER NOT NULL DEFAULT 0,
         verified_at TEXT,
         auth_provider TEXT NOT NULL DEFAULT 'password',
-        google_sub TEXT
+        google_sub TEXT,
+        role TEXT NOT NULL DEFAULT 'analyst'
     )""",
     # Google Sign-In (opt-in, additional login door) — same semantics as
     # storage._migrate_users_auth_provider (SQLite).
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider TEXT NOT NULL DEFAULT 'password'",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT",
+    # RBAC (opt-in, additional-privilege door) — same semantics as
+    # storage._migrate_users_role (SQLite).
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'analyst'",
     """
     CREATE TABLE IF NOT EXISTS jobs (
         id TEXT PRIMARY KEY,
@@ -292,25 +296,26 @@ class PostgresStorage:
     def get_user(self, username: str) -> dict | None:
         row = self._fetchone(
             "SELECT username, password, plan, created_at, disabled, email, verified, verified_at, "
-            "auth_provider, google_sub FROM users WHERE username = %s", (username,))
+            "auth_provider, google_sub, role FROM users WHERE username = %s", (username,))
         return _row_to_user(row) if row else None
 
     def all_users(self) -> dict[str, dict]:
         rows = self._fetchall(
             "SELECT username, password, plan, created_at, disabled, email, verified, verified_at, "
-            "auth_provider, google_sub FROM users")
+            "auth_provider, google_sub, role FROM users")
         return {row["username"]: _row_to_user(row) for row in rows}
 
     def put_user(self, user: dict) -> None:
         self._exec(
             """
-            INSERT INTO users (username, password, plan, created_at, disabled, email, verified, verified_at, auth_provider, google_sub)
-            VALUES (%(username)s, %(password)s, %(plan)s, %(created_at)s, %(disabled)s, %(email)s, %(verified)s, %(verified_at)s, %(auth_provider)s, %(google_sub)s)
+            INSERT INTO users (username, password, plan, created_at, disabled, email, verified, verified_at, auth_provider, google_sub, role)
+            VALUES (%(username)s, %(password)s, %(plan)s, %(created_at)s, %(disabled)s, %(email)s, %(verified)s, %(verified_at)s, %(auth_provider)s, %(google_sub)s, %(role)s)
             ON CONFLICT (username) DO UPDATE SET
                 password = EXCLUDED.password, plan = EXCLUDED.plan,
                 disabled = EXCLUDED.disabled, email = EXCLUDED.email,
                 verified = EXCLUDED.verified, verified_at = EXCLUDED.verified_at,
-                auth_provider = EXCLUDED.auth_provider, google_sub = EXCLUDED.google_sub
+                auth_provider = EXCLUDED.auth_provider, google_sub = EXCLUDED.google_sub,
+                role = EXCLUDED.role
             """,
             {
                 "username": user["username"], "password": user.get("password", ""),
@@ -322,6 +327,7 @@ class PostgresStorage:
                 "verified_at": user.get("verified_at") or None,
                 "auth_provider": user.get("auth_provider", "password"),
                 "google_sub": user.get("google_sub") or None,
+                "role": user.get("role", "analyst"),
             })
 
     # -------------------------------------------------------------------- jobs

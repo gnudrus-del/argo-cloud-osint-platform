@@ -91,6 +91,7 @@ osint-bot = "osint_bot.cli:main"
 argo-verify-report = "osint_bot.cli_verify:main"
 argo-rotate-master-key = "osint_bot.cli_rotate_key:main"
 argo-rotate-signing-key = "osint_bot.cli_rotate_signing_key:main"
+argo-set-role = "osint_bot.cli_set_role:main"
 
 [tool.setuptools]
 packages = ["osint_bot"]
