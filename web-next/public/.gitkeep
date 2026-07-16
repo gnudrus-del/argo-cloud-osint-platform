@@ -1,0 +1,4 @@
+# Keeps web-next/public/ present so the Dockerfile's
+# `COPY --from=build /app/public ./public` (standard Next.js multi-stage shape)
+# has a directory to copy. Drop static assets served at "/" here; remove this
+# file once the directory holds real content.

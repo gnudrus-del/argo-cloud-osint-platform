@@ -15,6 +15,26 @@ from osint_bot.google_auth import (
     verify_google_id_token,
 )
 
+# The ID-token verification tests below patch ``google.oauth2.id_token``, which
+# unittest.mock has to import to install the patch. That module ships in the
+# optional ``[auth]`` extra (google-auth); without it, entering the patch
+# context raises ModuleNotFoundError before the test can assert anything. Gate
+# those tests on the extra being present — same discipline as the Postgres
+# tests gated on TEST_DATABASE_URL — so a bare ``pip install -e .[dev]`` clone
+# (and CI without the extra) skips them gracefully instead of erroring. CI's
+# python job installs ``.[dev,auth]`` so they still run there for real coverage.
+try:
+    import google.oauth2.id_token  # noqa: F401  (imported only to detect availability)
+
+    _HAS_GOOGLE_AUTH = True
+except ImportError:
+    _HAS_GOOGLE_AUTH = False
+
+_needs_google_auth = unittest.skipUnless(
+    _HAS_GOOGLE_AUTH,
+    "requires the optional [auth] extra (google-auth) to patch google.oauth2.id_token",
+)
+
 
 class ConfigTests(unittest.TestCase):
     def setUp(self):
@@ -64,6 +84,7 @@ class VerifyTokenTests(unittest.TestCase):
         with self.assertRaises(GoogleTokenError):
             verify_google_id_token("")
 
+    @_needs_google_auth
     def test_valid_token_returns_identity_and_lowercases_email(self):
         with patch("google.oauth2.id_token.verify_oauth2_token",
                    return_value=self._valid_claims()):
@@ -72,36 +93,42 @@ class VerifyTokenTests(unittest.TestCase):
         self.assertEqual(identity.google_sub, "1234567890")
         self.assertEqual(identity.name, "Analyst Example")
 
+    @_needs_google_auth
     def test_wrong_issuer_rejected(self):
         with patch("google.oauth2.id_token.verify_oauth2_token",
                    return_value=self._valid_claims(iss="evil.example.com")):
             with self.assertRaises(GoogleTokenError):
                 verify_google_id_token("fake.jwt.token")
 
+    @_needs_google_auth
     def test_unverified_email_rejected(self):
         with patch("google.oauth2.id_token.verify_oauth2_token",
                    return_value=self._valid_claims(email_verified=False)):
             with self.assertRaises(GoogleTokenError):
                 verify_google_id_token("fake.jwt.token")
 
+    @_needs_google_auth
     def test_missing_email_rejected(self):
         with patch("google.oauth2.id_token.verify_oauth2_token",
                    return_value=self._valid_claims(email="")):
             with self.assertRaises(GoogleTokenError):
                 verify_google_id_token("fake.jwt.token")
 
+    @_needs_google_auth
     def test_missing_sub_rejected(self):
         with patch("google.oauth2.id_token.verify_oauth2_token",
                    return_value=self._valid_claims(sub="")):
             with self.assertRaises(GoogleTokenError):
                 verify_google_id_token("fake.jwt.token")
 
+    @_needs_google_auth
     def test_library_exception_wrapped(self):
         with patch("google.oauth2.id_token.verify_oauth2_token",
                    side_effect=ValueError("bad signature")):
             with self.assertRaises(GoogleTokenError):
                 verify_google_id_token("fake.jwt.token")
 
+    @_needs_google_auth
     def test_missing_name_falls_back_to_email_local_part(self):
         with patch("google.oauth2.id_token.verify_oauth2_token",
                    return_value=self._valid_claims(name="")):
