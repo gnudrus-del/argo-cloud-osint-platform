@@ -856,10 +856,14 @@ class PostgresStorage:
                 status TEXT NOT NULL DEFAULT 'pending',
                 reason TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL,
-                processed_at TEXT
+                processed_at TEXT,
+                resolved_by TEXT
             )
             """
         )
+        # Migrazione idempotente per DB creati prima della colonna resolved_by
+        # (admin che approva/rifiuta le cancellazioni — vedi web.py).
+        self._exec("ALTER TABLE privacy_requests ADD COLUMN IF NOT EXISTS resolved_by TEXT")
 
     def log_privacy_request(self, record: dict) -> None:
         self.ensure_privacy_table()
@@ -883,6 +887,43 @@ class PostgresStorage:
         self._exec(
             "UPDATE privacy_requests SET status = %s, processed_at = %s WHERE id = %s",
             ("processed", _now_iso(), request_id),
+        )
+
+    def get_privacy_request(self, request_id: str) -> dict | None:
+        self.ensure_privacy_table()
+        rows = self._fetchall(
+            "SELECT id, owner, type, status, reason, created_at, processed_at, resolved_by "
+            "FROM privacy_requests WHERE id = %s",
+            (request_id,),
+        )
+        return dict(rows[0]) if rows else None
+
+    def list_privacy_requests_admin(
+        self, status: str | None = None, req_type: str | None = None, limit: int = 200
+    ) -> list[dict]:
+        self.ensure_privacy_table()
+        clauses: list[str] = []
+        params: list = []
+        if status is not None:
+            clauses.append("status = %s")
+            params.append(status)
+        if req_type is not None:
+            clauses.append("type = %s")
+            params.append(req_type)
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        params.append(limit)
+        rows = self._fetchall(
+            "SELECT id, owner, type, status, reason, created_at, processed_at, resolved_by "
+            f"FROM privacy_requests {where} ORDER BY created_at DESC LIMIT %s",
+            tuple(params),
+        )
+        return [dict(r) for r in rows]
+
+    def resolve_privacy_request(self, request_id: str, status: str, resolved_by: str) -> None:
+        self.ensure_privacy_table()
+        self._exec(
+            "UPDATE privacy_requests SET status = %s, processed_at = %s, resolved_by = %s WHERE id = %s",
+            (status, _now_iso(), resolved_by, request_id),
         )
 
     def table_columns(self, table: str) -> list[str]:

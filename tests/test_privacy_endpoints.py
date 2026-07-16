@@ -101,33 +101,35 @@ class PrivacyExportTests(unittest.TestCase):
 
 
 class PrivacyEraseTests(unittest.TestCase):
-    def test_erase_records_request_with_reason(self):
-        from osint_bot.web import get_privacy_log, handle_privacy_erase
+    def test_erase_records_pending_request_without_deleting(self):
+        """La cancellazione NON è più self-service: la richiesta utente resta
+        'pending' (nessun dato toccato) finché un admin non la approva. Il caso
+        di 'alice' deve sopravvivere alla sola richiesta."""
+        from osint_bot.web import create_case, get_privacy_log, handle_privacy_erase
 
-        with _isolated_storage():
+        with _isolated_storage() as (_, stor):
+            create_case({"title": "X", "legal_basis": {"type": "consent"}}, actor="alice")
             res = handle_privacy_erase("alice", {"reason": "fine indagine"})
-            # After a real erasure the actor's privacy_requests rows are gone
-            # (they belong to the actor and are deleted with the account),
-            # so query as another user or check the tombstone directly.
-            log = get_privacy_log("system")
-        self.assertEqual(res["status"], "ok")
-        self.assertIn("tombstone_id", res)
-        self.assertTrue(res["tombstone_id"].startswith("TOMB-"))
-        self.assertIn("selector_sha256", res)
-        # The privacy_requests row for 'alice' should have been removed
-        # by the atomic erasure (belongs to alice, deleted with her data).
-        # 'system' has no privacy requests logged in this test.
-        self.assertEqual(log["requests"], [])
+            log = get_privacy_log("alice")
+            remaining_cases = stor._conn().execute(
+                "SELECT COUNT(*) FROM cases WHERE owner = ?", ("alice",)
+            ).fetchone()[0]
+        self.assertEqual(res["status"], "pending")
+        self.assertIn("request_id", res)
+        self.assertNotIn("tombstone_id", res)  # nessuna cancellazione immediata
+        # La richiesta 'erase' compare nel log dell'utente, in stato pending.
+        self.assertIn(("erase", "pending"), [(r["type"], r["status"]) for r in log["requests"]])
+        # I dati di alice sono ancora lì: la cancellazione attende l'admin.
+        self.assertGreaterEqual(remaining_cases, 1)
 
     def test_erase_reason_is_capped(self):
         """The reason field is truncated to 500 chars on the privacy_requests
-        row BEFORE the erasure deletes it, so we assert on the return value."""
+        row; the request is only recorded (pending), not executed."""
         from osint_bot.web import handle_privacy_erase
 
         with _isolated_storage():
             res = handle_privacy_erase("alice", {"reason": "a" * 5000})
-        self.assertEqual(res["status"], "ok")
-        # The request_id derives from a 500-char-capped reason path.
+        self.assertEqual(res["status"], "pending")
         self.assertIn("request_id", res)
 
 
@@ -159,21 +161,18 @@ class PrivacyLogIsolationTests(unittest.TestCase):
 
         with _isolated_storage():
             handle_privacy_export("alice")
+            # erase ora è solo una richiesta 'pending': NON cancella, quindi le
+            # righe privacy_requests di alice restano tutte (export + erase +
+            # dsar). L'isolamento per-utente è comunque garantito.
             handle_privacy_erase("alice", {"reason": "x"})
-            # erase_actor_data cancella anche le privacy_requests dell'attore
-            # (export + erase stessa) insieme al resto dell'account: tenerle
-            # in vita dopo una cancellazione GDPR sarebbe dato personale
-            # residuo che l'erasure dovrebbe rimuovere — la prova durevole
-            # che la cancellazione e' avvenuta e' il tombstone, non il log
-            # operativo delle richieste. Solo la dsar successiva, fatta DOPO
-            # l'erasure su un attore ormai cancellato, sopravvive.
             handle_privacy_dsar("alice")
             handle_privacy_export("bob")
             alice_log = get_privacy_log("alice")
             bob_log = get_privacy_log("bob")
 
-        self.assertEqual(len(alice_log["requests"]), 1)
-        self.assertEqual(alice_log["requests"][0]["type"], "dsar")
+        self.assertEqual(len(alice_log["requests"]), 3)
+        self.assertEqual(sorted(r["type"] for r in alice_log["requests"]),
+                         ["dsar", "erase", "export"])
         self.assertEqual(len(bob_log["requests"]), 1)
         # Nessuno degli ID di Bob compare nel log di Alice.
         alice_ids = {r["id"] for r in alice_log["requests"]}

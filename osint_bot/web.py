@@ -600,6 +600,13 @@ class OsintHandler(BaseHTTPRequestHandler):
                 self.require_auth()
                 actor = actor_from_request(self)
                 return self.send_json(get_privacy_log(actor))
+            if path == "/api/admin/privacy/pending":
+                self.require_auth()
+                sess = current_session(self)
+                if not session_is_admin(sess):
+                    raise WebError(HTTPStatus.FORBIDDEN,
+                                   "Approvazione cancellazioni riservata all'amministratore.")
+                return self.send_json(handle_admin_privacy_pending())
             return self.serve_static(path)
         except WebError as exc:
             self.send_json({"error": exc.message}, exc.status)
@@ -650,6 +657,27 @@ class OsintHandler(BaseHTTPRequestHandler):
                     {"username": username, "feature": "aggressive_hunt+tool_reveal"},
                 )
                 return self.send_json({"unlocked": True})
+            if path == "/api/admin/privacy/approve":
+                sess = current_session(self)
+                if not session_is_admin(sess):
+                    raise WebError(HTTPStatus.FORBIDDEN,
+                                   "Approvazione cancellazioni riservata all'amministratore.")
+                payload = self.read_json()
+                request_id = str((payload or {}).get("request_id", "")).strip()
+                return self.send_json(
+                    handle_admin_privacy_approve(actor_from_request(self), request_id)
+                )
+            if path == "/api/admin/privacy/reject":
+                sess = current_session(self)
+                if not session_is_admin(sess):
+                    raise WebError(HTTPStatus.FORBIDDEN,
+                                   "Rifiuto cancellazioni riservato all'amministratore.")
+                payload = self.read_json()
+                request_id = str((payload or {}).get("request_id", "")).strip()
+                note = str((payload or {}).get("note", "")).strip()
+                return self.send_json(
+                    handle_admin_privacy_reject(actor_from_request(self), request_id, note)
+                )
             if path == "/api/plan":
                 payload = self.read_json()
                 profile = build_profile(payload)
@@ -3152,54 +3180,132 @@ def handle_privacy_dsar(actor: str) -> dict:
 
 
 def handle_privacy_erase(actor: str, payload: dict) -> dict:
-    """GDPR art. 17 — right to erasure.
+    """GDPR art. 17 — richiesta di cancellazione (NON più self-service).
 
-    Executes a **real** atomic deletion instead of just logging a promise —
-    the actual redaction/tombstone/deletion logic lives in
-    ``Storage.erase_actor_data`` (SQLite) / ``PostgresStorage.erase_actor_data``
-    (Postgres), one implementation per backend in its own dialect, mirroring
-    how ``append_audit_event`` is already split per-backend. This function
-    only logs the request and formats the response.
+    Registra una richiesta 'pending' e ritorna: la cancellazione reale non
+    parte da qui. Un amministratore deve approvarla
+    (``POST /api/admin/privacy/approve``) — solo allora
+    ``Storage.erase_actor_data`` esegue la redazione/tombstone/delete atomico.
+    In alternativa l'admin può rifiutarla (``/reject``). Questo mette il
+    titolare del trattamento nel loop invece di lasciare che ogni utente
+    cancelli il proprio profilo (e i dati collegati) senza controllo.
 
-    The whole erasure is atomic; if any step fails inside
-    ``erase_actor_data`` the deletion is rolled back and the actor's account
-    is left intact.
+    Il flusso di esecuzione atomico resta identico a prima, solo spostato
+    dentro ``handle_admin_privacy_approve``.
     """
     reason = str(payload.get("reason", "")).strip()[:500]
     rec = _log_privacy_request(actor, "erase", reason)
-    LOG.warning("privacy.erase_request actor=%s request_id=%s reason=%s",
+    LOG.warning("privacy.erase_requested actor=%s request_id=%s reason=%s",
                 actor, rec["id"], reason[:80])
+    try:
+        get_storage().append_audit_event(
+            actor, "privacy_erase_requested",
+            {"request_id": rec["id"], "reason": reason[:200]},
+        )
+    except Exception:  # pragma: no cover - audit best-effort
+        LOG.exception("privacy.erase_request_audit_failed request_id=%s", rec["id"])
+    return {
+        "status": "pending",
+        "request_id": rec["id"],
+        "message": (
+            f"Richiesta di cancellazione registrata (ID {rec['id']}). "
+            f"Sarà eseguita solo dopo l'approvazione di un amministratore."
+        ),
+    }
+
+
+def handle_admin_privacy_pending() -> dict:
+    """Vista amministratore: richieste di cancellazione ('erase') in attesa di
+    approvazione, di TUTTI gli utenti. Riservata all'admin dal routing."""
+    reqs = get_storage().list_privacy_requests_admin(status="pending", req_type="erase")
+    return {"pending": reqs}
+
+
+def handle_admin_privacy_approve(admin_actor: str, request_id: str) -> dict:
+    """Approva ed ESEGUE la cancellazione richiesta da un utente.
+
+    Agisce solo sul proprietario registrato nella richiesta (un utente può
+    chiedere solo la cancellazione dei PROPRI dati), e solo se la richiesta è
+    di tipo 'erase' ancora 'pending'. La cancellazione reale/atomica resta in
+    ``erase_actor_data``. Registra chi ha approvato nella catena audit.
+    """
+    request_id = (request_id or "").strip()
+    req = get_storage().get_privacy_request(request_id)
+    if not req or req.get("type") != "erase":
+        raise WebError(HTTPStatus.NOT_FOUND, "Richiesta di cancellazione non trovata.")
+    if req.get("status") != "pending":
+        raise WebError(HTTPStatus.CONFLICT, "Richiesta già gestita.")
+    owner = req["owner"]
+    # Evento di approvazione PRIMA della cancellazione: erase_actor_data
+    # redigerà comunque l'identificativo del proprietario anche qui, ma il
+    # request_id + l'admin approvante restano nella catena come prova.
+    try:
+        get_storage().append_audit_event(
+            admin_actor, "privacy_erase_approved",
+            {"request_id": request_id, "owner": owner},
+        )
+    except Exception:  # pragma: no cover - audit best-effort
+        LOG.exception("privacy.erase_approve_audit_failed request_id=%s", request_id)
 
     redacted_placeholder = f"[REDACTED-DSAR-{now_iso()[:10]}]"
     try:
         result = get_storage().erase_actor_data(
-            actor, request_id=rec["id"], redacted_placeholder=redacted_placeholder,
+            owner, request_id=request_id, redacted_placeholder=redacted_placeholder,
         )
-        LOG.warning(
-            "privacy.erase_completed actor_hash=%s request_id=%s tombstone=%s "
-            "redacted_events=%d deleted=%s",
-            result["selector_sha256"][:16], rec["id"], result["tombstone_id"],
-            result["redacted_events_count"], result["deleted_counts"],
-        )
-        return {
-            "status": "ok",
-            "message": (
-                f"Cancellazione eseguita (richiesta {rec['id']}). "
-                f"Tombstone: {result['tombstone_id']}. L'account non è più recuperabile "
-                f"dal filesystem attivo; eventuali backup restano soggetti "
-                f"alla policy di rotazione del datastore."
-            ),
-            "request_id": rec["id"],
-            "tombstone_id": result["tombstone_id"],
-            "selector_sha256": result["selector_sha256"],
-            "erased_at": result["erased_at"],
-        }
     except Exception as exc:
-        LOG.exception("privacy.erase_failed actor=%s request_id=%s", actor, rec["id"])
+        LOG.exception("privacy.erase_approve_failed request_id=%s owner=%s", request_id, owner)
         return {
             "status": "error",
-            "message": f"Cancellazione fallita (ID {rec['id']}): {exc}. Nessun dato è stato modificato.",
+            "message": (
+                f"Cancellazione fallita (ID {request_id}): {exc}. "
+                f"Nessun dato è stato modificato."
+            ),
         }
+    LOG.warning(
+        "privacy.erase_approved by=%s owner_hash=%s request_id=%s tombstone=%s deleted=%s",
+        admin_actor, result["selector_sha256"][:16], request_id,
+        result["tombstone_id"], result["deleted_counts"],
+    )
+    return {
+        "status": "ok",
+        "message": (
+            f"Cancellazione dell'account '{owner}' approvata ed eseguita "
+            f"(richiesta {request_id}). Tombstone: {result['tombstone_id']}. "
+            f"L'account non è più recuperabile dal filesystem attivo."
+        ),
+        "request_id": request_id,
+        "owner": owner,
+        "tombstone_id": result["tombstone_id"],
+        "selector_sha256": result["selector_sha256"],
+        "erased_at": result["erased_at"],
+    }
+
+
+def handle_admin_privacy_reject(admin_actor: str, request_id: str, note: str = "") -> dict:
+    """Rifiuta una richiesta di cancellazione: la marca 'rejected' con l'admin
+    che l'ha gestita e registra l'evento in audit. Nessun dato viene toccato;
+    l'utente vede la richiesta come rifiutata nel proprio log privacy."""
+    request_id = (request_id or "").strip()
+    note = (note or "").strip()[:500]
+    req = get_storage().get_privacy_request(request_id)
+    if not req or req.get("type") != "erase":
+        raise WebError(HTTPStatus.NOT_FOUND, "Richiesta di cancellazione non trovata.")
+    if req.get("status") != "pending":
+        raise WebError(HTTPStatus.CONFLICT, "Richiesta già gestita.")
+    get_storage().resolve_privacy_request(request_id, "rejected", admin_actor)
+    try:
+        get_storage().append_audit_event(
+            admin_actor, "privacy_erase_rejected",
+            {"request_id": request_id, "owner": req["owner"], "note": note[:200]},
+        )
+    except Exception:  # pragma: no cover - audit best-effort
+        LOG.exception("privacy.erase_reject_audit_failed request_id=%s", request_id)
+    LOG.warning("privacy.erase_rejected by=%s request_id=%s", admin_actor, request_id)
+    return {
+        "status": "ok",
+        "message": f"Richiesta di cancellazione {request_id} rifiutata.",
+        "request_id": request_id,
+    }
 
 
 # ------------------------------------------------------------------------

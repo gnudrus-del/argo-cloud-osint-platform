@@ -2234,8 +2234,10 @@ async function loadAdminStats() {
       }</span></div>
       <div class="capability"><strong>Audit chain</strong><span>${a.chain_valid ? t("db.chainValid") : t("db.chainBroken")} (${a.events_total ?? 0} ${t("db.events")})</span></div>
       <div style="grid-column:1/-1">${renderLoginHistoryTable(s.logins || [])}</div>
+      <div id="pendingErasuresBox" style="display:contents"></div>
     `;
     box.hidden = false;
+    loadPendingErasures();
   } catch (err) {
     // 403 = non-admin: mostro CTA discreta.
     box.innerHTML = `
@@ -2286,6 +2288,91 @@ function renderLoginHistoryTable(logins) {
     <p class="muted" style="margin-top:6px">${t("db.roleManageHint")}</p>
     ${truncNote}
   `;
+}
+
+// --- Richieste di cancellazione profilo in attesa (solo admin) -------------
+// Le richieste GDPR art.17 degli utenti non partono più da sole: restano in
+// "pending" finché un admin non le approva (esegue) o rifiuta qui.
+async function loadPendingErasures() {
+  const box = document.getElementById("pendingErasuresBox");
+  if (!box) return;
+  try {
+    const data = await api("/api/admin/privacy/pending");
+    const pending = data.pending || [];
+    if (!pending.length) {
+      box.innerHTML = `
+        <div class="capability" style="grid-column:1/-1;margin-top:6px">
+          <strong>🗑️ ${t("db.pendingErasures")}</strong><span>${t("db.noPendingErasures")}</span>
+        </div>`;
+      return;
+    }
+    const rows = pending.map((r) => `
+      <tr>
+        <td>${escapeHtml(r.owner || "—")}</td>
+        <td>${escapeHtml(r.created_at || "—")}</td>
+        <td>${escapeHtml(r.reason || "")}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button type="button" class="btn eraseApproveBtn" data-id="${escapeHtml(r.id)}"
+            data-owner="${escapeHtml(r.owner || "")}"
+            style="border-color:var(--danger);color:var(--danger)">${t("db.approve")}</button>
+          <button type="button" class="btn eraseRejectBtn" data-id="${escapeHtml(r.id)}"
+            style="margin-left:6px">${t("db.reject")}</button>
+        </td>
+      </tr>`).join("");
+    box.innerHTML = `
+      <div class="capability" style="grid-column:1/-1;margin-top:6px"><strong>🗑️ ${t("db.pendingErasures")} (${pending.length})</strong></div>
+      <div style="grid-column:1/-1;overflow-x:auto">
+        <table class="entityTable">
+          <thead><tr>
+            <th>${t("db.colUser")}</th>
+            <th>${t("db.colRequestedAt")}</th>
+            <th>${t("db.colReason")}</th>
+            <th style="text-align:right">${t("db.colActions")}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p class="muted" style="grid-column:1/-1;margin-top:4px">${t("db.erasureHint")}</p>`;
+    box.querySelectorAll(".eraseApproveBtn").forEach((b) => {
+      b.addEventListener("click", () => approvePrivacyErase(b.dataset.id, b.dataset.owner));
+    });
+    box.querySelectorAll(".eraseRejectBtn").forEach((b) => {
+      b.addEventListener("click", () => rejectPrivacyErase(b.dataset.id));
+    });
+  } catch (err) {
+    // 403 (non-admin) o altro: lascio vuoto — il box statistiche mostra già la
+    // CTA di sblocco admin, non serve un secondo errore.
+    box.innerHTML = "";
+  }
+}
+
+async function approvePrivacyErase(id, owner) {
+  if (!confirm(t("db.approveConfirm", { owner: owner || "?" }))) return;
+  try {
+    const data = await api("/api/admin/privacy/approve", {
+      method: "POST", body: JSON.stringify({ request_id: id }),
+    });
+    alert(data.message || t("db.approveDone"));
+  } catch (err) {
+    alert(t("err.generic") + (err.message || err));
+  } finally {
+    loadPendingErasures();
+  }
+}
+
+async function rejectPrivacyErase(id) {
+  const note = prompt(t("db.rejectPrompt"));
+  if (note === null) return; // annullato
+  try {
+    const data = await api("/api/admin/privacy/reject", {
+      method: "POST", body: JSON.stringify({ request_id: id, note }),
+    });
+    alert(data.message || t("db.rejectDone"));
+  } catch (err) {
+    alert(t("err.generic") + (err.message || err));
+  } finally {
+    loadPendingErasures();
+  }
 }
 
 function renderDashError(message) {

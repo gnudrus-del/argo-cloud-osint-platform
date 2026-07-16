@@ -823,7 +823,8 @@ class Storage:
     _PRIVACY_ERASABLE_TABLES = ("artifacts", "roes", "jobs", "cases", "api_keys", "privacy_requests")
 
     def ensure_privacy_table(self) -> None:
-        self._conn().execute(
+        conn = self._conn()
+        conn.execute(
             """
             CREATE TABLE IF NOT EXISTS privacy_requests (
                 id TEXT PRIMARY KEY,
@@ -832,10 +833,19 @@ class Storage:
                 status TEXT NOT NULL DEFAULT 'pending',
                 reason TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL,
-                processed_at TEXT
+                processed_at TEXT,
+                resolved_by TEXT
             )
             """
         )
+        # Migrazione idempotente per DB creati prima della colonna resolved_by
+        # (traccia quale admin ha approvato/rifiutato una richiesta di
+        # cancellazione — vedi web.handle_admin_privacy_approve/reject).
+        if "resolved_by" not in self.table_columns("privacy_requests"):
+            try:
+                conn.execute("ALTER TABLE privacy_requests ADD COLUMN resolved_by TEXT")
+            except Exception:  # pragma: no cover - colonna già presente in gara
+                pass
 
     def log_privacy_request(self, record: dict) -> None:
         self.ensure_privacy_table()
@@ -858,6 +868,52 @@ class Storage:
         self._conn().execute(
             "UPDATE privacy_requests SET status = ?, processed_at = ? WHERE id = ?",
             ("processed", _now_iso(), request_id),
+        )
+
+    def get_privacy_request(self, request_id: str) -> dict | None:
+        """Una singola richiesta privacy per id (con owner), o None. Usata
+        dall'approvazione/rifiuto admin per risalire al proprietario e validare
+        stato/tipo prima di eseguire la cancellazione."""
+        self.ensure_privacy_table()
+        row = self._conn().execute(
+            "SELECT id, owner, type, status, reason, created_at, processed_at, resolved_by "
+            "FROM privacy_requests WHERE id = ?",
+            (request_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def list_privacy_requests_admin(
+        self, status: str | None = None, req_type: str | None = None, limit: int = 200
+    ) -> list[dict]:
+        """Richieste privacy di TUTTI i proprietari (vista admin), opzionalmente
+        filtrate per stato/tipo. Include la colonna owner, a differenza di
+        list_privacy_requests che è per singolo proprietario."""
+        self.ensure_privacy_table()
+        clauses: list[str] = []
+        params: list = []
+        if status is not None:
+            clauses.append("status = ?")
+            params.append(status)
+        if req_type is not None:
+            clauses.append("type = ?")
+            params.append(req_type)
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        params.append(limit)
+        rows = self._conn().execute(
+            "SELECT id, owner, type, status, reason, created_at, processed_at, resolved_by "
+            f"FROM privacy_requests {where} ORDER BY created_at DESC LIMIT ?",
+            tuple(params),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def resolve_privacy_request(self, request_id: str, status: str, resolved_by: str) -> None:
+        """Segna una richiesta come 'rejected' (o altro stato terminale) con
+        l'admin che l'ha gestita. L'approvazione di una cancellazione non passa
+        di qui: erase_actor_data cancella la riga stessa del proprietario."""
+        self.ensure_privacy_table()
+        self._conn().execute(
+            "UPDATE privacy_requests SET status = ?, processed_at = ?, resolved_by = ? WHERE id = ?",
+            (status, _now_iso(), resolved_by, request_id),
         )
 
     def table_columns(self, table: str) -> list[str]:
