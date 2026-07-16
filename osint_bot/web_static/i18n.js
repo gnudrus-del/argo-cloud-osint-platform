@@ -48,15 +48,15 @@
     "hero.w5": { en: "no", it: "lasci" },
     "hero.w6": { en: "trace.", it: "traccia." },
     "hero.lead": {
-      en: "Argo is the privacy-by-design OSINT engine, built for GDPR from day one. 58 native connectors, aggregated search, audit-chained reports. Zero data sent to third-party cloud services by default.",
-      it: "Argo è il motore OSINT italiano privacy-by-design. 58 connettori nativi, ricerca aggregata, report con catena audit verificabile. Zero dati inviati a servizi cloud terzi di default."
+      en: "Argo is the privacy-by-design OSINT engine, built for GDPR from day one. 63 native connectors, aggregated search, audit-chained reports. Zero data sent to third-party cloud services by default.",
+      it: "Argo è il motore OSINT italiano privacy-by-design. 63 connettori nativi, ricerca aggregata, report con catena audit verificabile. Zero dati inviati a servizi cloud terzi di default."
     },
     "hero.cta.primary": { en: "Try it free", it: "Prova gratis" },
     "hero.cta.ghost": { en: "How it works", it: "Come funziona" },
     "hero.scroll": { en: "Scroll", it: "Scorri" },
 
     // marquee
-    "mq.connectors": { en: "58 native connectors", it: "58 connettori nativi" },
+    "mq.connectors": { en: "63 native connectors", it: "63 connettori nativi" },
     "mq.saas": { en: "No mandatory SaaS", it: "Zero SaaS obbligatori" },
     "mq.audit": { en: "SHA-256 audit chain", it: "Audit chain SHA-256" },
     "mq.report": { en: "STIX 2.1 · MISP reports", it: "Report STIX 2.1 · MISP" },
@@ -79,7 +79,7 @@
     "how.s1.h": { en: "Open a case", it: "Apri un caso" },
     "how.s1.p": { en: "Legal basis, authorized scope, collaborators. Nothing starts without a mandate.", it: "Base giuridica, scope autorizzato, collaboratori. Nulla parte senza mandato." },
     "how.s2.h": { en: "Search the entity", it: "Cerca l'entità" },
-    "how.s2.p": { en: "Email, phone, username, domain, wallet, IP. Argo picks the right connectors among 58.", it: "Email, telefono, username, dominio, wallet, IP. Argo sceglie i 58 connettori giusti." },
+    "how.s2.p": { en: "Email, phone, username, domain, wallet, IP. Argo picks the right connectors among 63.", it: "Email, telefono, username, dominio, wallet, IP. Argo sceglie i 63 connettori giusti." },
     "how.s3.h": { en: "Verify the sources", it: "Verifica le fonti" },
     "how.s3.p": { en: "Entity-relationship graph, Admiralty scoring, cross-source corroboration, why_linked.", it: "Grafo entità-relazioni, scoring Admiralty, corroborazioni cross-source, why_linked." },
     "how.s4.h": { en: "Generate the report", it: "Genera il report" },
@@ -87,7 +87,7 @@
 
     // stack
     "stack.kicker": { en: "The engine", it: "Il motore" },
-    "stack.title": { en: '<span class="brand-gold">58</span> connectors. One engine.', it: '<span class="brand-gold">58</span> connettori. Un solo motore.' },
+    "stack.title": { en: '<span class="brand-gold">63</span> connectors. One engine.', it: '<span class="brand-gold">63</span> connettori. Un solo motore.' },
     "stack.email": { en: "Email", it: "Email" },
     "stack.username": { en: "Username", it: "Username" },
     "stack.phone": { en: "Phone", it: "Telefono" },
@@ -151,7 +151,7 @@
     "faq.q5": { en: "Why is Argo built around EU compliance?", it: 'Perché "italiano"? Cosa cambia rispetto ad altri tool OSINT?' },
     "faq.a5": { en: "Argo starts from the idea that professional OSINT in the EU has specific requirements: <strong>GDPR</strong>, <strong>a documented legal basis for every case</strong>, <strong>signed Rules of Engagement</strong>, <strong>ready-to-serve DSARs</strong>, <strong>configurable retention</strong>. It isn't a US tool with a translation bolted on: it's designed for Italian and European compliance from day zero. UI, documentation, warnings and reports are available in both Italian and English.", it: "Argo nasce con l'idea che l'OSINT professionale in Italia (e in UE) ha requisiti specifici: <strong>GDPR</strong>, <strong>base giuridica documentata per ogni caso</strong>, <strong>Rules of Engagement firmate</strong>, <strong>DSAR pronti</strong>, <strong>retention configurabile</strong>. Non è un tool americano tradotto: è pensato per la compliance italiana ed europea dal giorno zero. UI, documentazione, warning e report escono in italiano e inglese." },
     "faq.q6": { en: "Which connectors can I use without paying anyone?", it: "Quali connettori posso usare senza pagare nessuno?" },
-    "faq.a6": { en: 'Out of 58 connectors, <strong>43 are no-key</strong>: crt.sh, RDAP, DNS, TLS cert, Wayback, Gravatar, GDELT, Nominatim, PhishTank, OpenPhish, subdomain enumeration, port scan (active, gated), holehe, maigret, telegram checker, and more. The 15 BYOK ones (Shodan, VirusTotal, HIBP, etc.) become available the moment you paste your own key into the "API keys" tab.', it: 'Su 58 connettori totali, <strong>43 sono no-key</strong>: crt.sh, RDAP, DNS, TLS cert, Wayback, Gravatar, GDELT, Nominatim, PhishTank, OpenPhish, subdomain enumeration, port scan (attivo, gated), holehe, maigret, telegram checker, ecc. I 15 BYOK (Shodan, VirusTotal, HIBP, ecc.) diventano disponibili nel momento in cui incolli la tua chiave nel tab "Chiavi API".' },
+    "faq.a6": { en: 'Out of 63 connectors, <strong>46 are no-key</strong>: crt.sh, RDAP, DNS, TLS cert, Wayback, Gravatar, GDELT, Nominatim, PhishTank, OpenPhish, subdomain enumeration, port scan (active, gated), holehe, maigret, telegram checker, and more. The 17 BYOK ones (Shodan, VirusTotal, HIBP, ContactOut, Lusha, etc.) become available the moment you paste your own key into the "API keys" tab.', it: 'Su 63 connettori totali, <strong>46 sono no-key</strong>: crt.sh, RDAP, DNS, TLS cert, Wayback, Gravatar, GDELT, Nominatim, PhishTank, OpenPhish, subdomain enumeration, port scan (attivo, gated), holehe, maigret, telegram checker, ecc. I 17 BYOK (Shodan, VirusTotal, HIBP, ContactOut, Lusha, ecc.) diventano disponibili nel momento in cui incolli la tua chiave nel tab "Chiavi API".' },
     "faq.q7": { en: "Can I contribute? How do I add a connector?", it: "Posso contribuire? Come si aggiunge un connettore?" },
     "faq.a7": { en: "Yes, PRs welcome. A connector is a class that extends <code>BaseConnector</code>, declares a typed <code>spec</code> (input types, rate limit, cache TTL, legal note) and implements <code>_fetch()</code>, with an offline test that simulates its output. The pattern is documented in <code>CONTRIBUTING.md</code> with a minimal template. Golden rules: passive by default, graceful degradation when a key is missing, no mandatory SaaS service.", it: "Sì, PR benvenute. Un connettore è una classe che estende <code>BaseConnector</code>, dichiara uno <code>spec</code> tipizzato (input types, rate limit, cache TTL, legal note) e implementa <code>_fetch()</code>. Con un test offline che simula l'output. Il pattern è documentato in <code>CONTRIBUTING.md</code> con un template minimale. Regole d'oro: passivo di default, degradazione graceful se manca la chiave, nessun servizio SaaS obbligatorio." },
     "faq.q8": { en: "Is there commercial support? Training? On-premise deployment for companies?", it: "C'è supporto commerciale? Formazione? Deploy on-premise per aziende?" },

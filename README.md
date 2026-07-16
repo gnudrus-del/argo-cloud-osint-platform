@@ -11,7 +11,7 @@
 [![Bilingual](https://img.shields.io/badge/UI-IT%20%2F%20EN-f5b740)](docs/README.it.md)
 [![Live demo](https://img.shields.io/badge/live_demo-argo--cloud.duckdns.org-orange)](https://argo-cloud.duckdns.org)
 
-Argo runs entirely on your infrastructure. It aggregates public sources (61 native connectors, key-free and BYOK), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. UI and connector output are bilingual (Italian / English). No telemetry, no cloud dependency, no vendor lock-in.
+Argo runs entirely on your infrastructure. It aggregates public sources (63 native connectors, key-free and BYOK), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. UI and connector output are bilingual (Italian / English). No telemetry, no cloud dependency, no vendor lock-in.
 
 ---
 
@@ -71,7 +71,7 @@ Existing OSINT SaaS tools work well until you cannot send your case data to a th
 - **Case-based investigations** — every query lives in a case with scope, Rules of Engagement, and DSAR (GDPR) endpoints.
 - **Privacy-by-design target handling** — personal targets require an explicit legal basis; contacts are redacted by default.
 - **BYOK provider model** — 15 optional providers (Shodan, VirusTotal, HIBP, SecurityTrails, etc.) use *your* API keys, never intermediated. Three additional providers (EmailRep, IPinfo, OpenCorporates) work without a key but return richer results if one is configured.
-- **61 native connectors** — 46 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, cloud bucket exposure, email security posture, infostealer breach corpus, and more) + 15 BYOK.
+- **63 native connectors** — 46 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, cloud bucket exposure, email security posture, infostealer breach corpus, and more) + 17 BYOK.
 - **Sourced findings** — every finding carries evidence URLs, timestamps and confidence scoring.
 - **Audit chain (SHA-256)** — every event (login, search, finding, deletion) is appended to a hash-chained log. Tampering with a past event invalidates every subsequent hash. Same pattern as Certificate Transparency and Git.
 - **Signed report seals (Ed25519, always on)** — every completed job is automatically sealed: evidence and report files are hashed into a manifest, signed with the instance's Ed25519 key, and recorded in the audit chain. Optional RFC3161 trusted timestamping against a TSA you configure (only a 32-byte SHA-256 digest ever leaves, never case content) closes the gap between "our own audit log says so" and independent, offline-verifiable proof — verify with `argo-verify-report` or standard tools (`openssl ts -verify`). See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for exactly what this does and does not prove.
@@ -195,7 +195,7 @@ More: [`docs/EXAMPLES.md`](docs/EXAMPLES.md).
 
 ## Architecture at a glance
 
-Argo is a three-layer pipeline: **input** (CLI or web UI) → **orchestrator** (with policy, audit, storage) → **connectors** (61 native sources, key-free or BYOK) → **exports**. Every finding is sourced, timestamped, hash-linked into the audit chain, and gated by the case's Rules of Engagement.
+Argo is a three-layer pipeline: **input** (CLI or web UI) → **orchestrator** (with policy, audit, storage) → **connectors** (63 native sources, key-free or BYOK) → **exports**. Every finding is sourced, timestamped, hash-linked into the audit chain, and gated by the case's Rules of Engagement.
 
 ```mermaid
 flowchart TB
@@ -228,10 +228,10 @@ flowchart TB
         LLM[("BYOK LLM<br/>narrative · entity · triage")]
     end
 
-    subgraph REG["Connector Registry — 61 native sources"]
+    subgraph REG["Connector Registry — 63 native sources"]
         direction TB
         KFREE["46 key-free connectors"]
-        BYOK["15 BYOK connectors"]
+        BYOK["17 BYOK connectors"]
     end
 
     subgraph EXPORT["Export Layer"]
@@ -284,7 +284,7 @@ flowchart TB
 
 ### The 46 key-free connectors
 
-Work out of the box, no signup, no API key. Grouped by capability. Three of these (`emailrep`, `ipinfo`, `opencorporates`) accept a BYOK for richer output but do not require one — they are also listed under **The 15 BYOK connectors** below.
+Work out of the box, no signup, no API key. Grouped by capability. Three of these (`emailrep`, `ipinfo`, `opencorporates`) accept a BYOK for richer output but do not require one — they are also listed under **The 17 BYOK connectors** below.
 
 **Domain & DNS intelligence (8)**
 
@@ -420,9 +420,9 @@ Work out of the box, no signup, no API key. Grouped by capability. Three of thes
 | `ipinfo` | IP geolocation + ASN (works key-free, higher rate limit with `IPINFO_API_KEY`) |
 | `opencorporates` | Global company registry (works key-free, higher rate limit with `OPENCORPORATES_API_KEY`) |
 
-These three also appear in **The 15 BYOK connectors** below — they are counted once in the 46 key-free (no key is *required*) and listed again there because a key is *accepted*.
+These three also appear in **The 17 BYOK connectors** below — they are counted once in the 46 key-free (no key is *required*) and listed again there because a key is *accepted*.
 
-### The 15 BYOK connectors
+### The 17 BYOK connectors
 
 Fill only what you have; missing keys are silently skipped (`missing_key` status).
 
@@ -446,8 +446,10 @@ Fill only what you have; missing keys are silently skipped (`missing_key` status
 | `abuseipdb` | AbuseIPDB | `ABUSEIPDB_API_KEY` | Reported abusive IPs |
 | `github_search` | GitHub Search | `GITHUB_TOKEN` | Code / secret search across GitHub |
 | `leakix` | LeakIX | `LEAKIX_API_KEY` | Leak & exposure intelligence |
+| `contactout` | ContactOut | `CONTACTOUT_API_KEY` | LinkedIn/email → personal email/phone |
+| `lusha` | Lusha | `LUSHA_API_KEY` | LinkedIn/email → professional email/phone |
 
-> The table lists 18 rows: **15** connectors declare a required API key (Argo reports `missing_key` cleanly when unset) and **3** more (`emailrep`, `ipinfo`, `opencorporates`) accept an optional key for richer results but function without one. Tenant-owned bridges (`misp_client`, `flowsint`) are counted separately in the key-free list and expect credentials to *your own* instance rather than a third-party API key from Argo's side.
+> The table lists 20 rows: **17** connectors declare a required API key (Argo reports `missing_key` cleanly when unset) and **3** more (`emailrep`, `ipinfo`, `opencorporates`) accept an optional key for richer results but function without one. Tenant-owned bridges (`misp_client`, `flowsint`) are counted separately in the key-free list and expect credentials to *your own* instance rather than a third-party API key from Argo's side.
 
 ### Data flow — one investigation, end to end
 

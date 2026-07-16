@@ -126,6 +126,9 @@ API_KEY_CATALOG: list[dict] = [
     {"service": "companies_house","label": "Companies House (UK)","env_var": "COMPANIES_HOUSE_API_KEY","doc": "https://developer.company-information.service.gov.uk/", "category": "Corporate registry"},
     {"service": "google_pse", "label": "Google PSE (key|cx)","env_var": "GOOGLE_PSE_API_KEY", "doc": "https://programmablesearchengine.google.com/", "category": "Search providers"},
     {"service": "influencers_club","label": "Influencers Club","env_var": "INFLUENCERS_CLUB_API_KEY","doc": "https://influencers.club/", "category": "Reverse account"},
+    # Phase 25
+    {"service": "contactout",  "label": "ContactOut", "env_var": "CONTACTOUT_API_KEY", "doc": "https://api.contactout.com/", "category": "Reverse account"},
+    {"service": "lusha",       "label": "Lusha",       "env_var": "LUSHA_API_KEY",      "doc": "https://docs.lusha.com/", "category": "Reverse account"},
 ]
 
 # Agenti IA (LLM) opt-in — vedi osint_bot/llm_client.py. Esclusi da

@@ -50,7 +50,7 @@
         </h1>
         <p class="heroLead reveal delay-7" data-i18n="hero.lead">
           Argo è il motore OSINT italiano privacy-by-design.
-          58 connettori nativi, ricerca aggregata, report con catena audit verificabile.
+          63 connettori nativi, ricerca aggregata, report con catena audit verificabile.
           Zero dati inviati a servizi cloud terzi di default.
         </p>
         <div class="heroCtas reveal delay-8">
@@ -69,7 +69,7 @@
       <!-- STICKY MARQUEE: numeri chiave che scorrono al posto delle "logos" -->
       <section class="marquee" aria-label="Numeri chiave">
         <div class="marqueeTrack">
-          <span data-i18n="mq.connectors">58 connettori nativi</span>
+          <span data-i18n="mq.connectors">63 connettori nativi</span>
           <span>·</span>
           <span data-i18n="mq.saas">Zero SaaS obbligatori</span>
           <span>·</span>
@@ -81,7 +81,7 @@
           <span>·</span>
           <span data-i18n="mq.license">Codice open source Apache 2.0</span>
           <span>·</span>
-          <span data-i18n="mq.connectors">58 connettori nativi</span>
+          <span data-i18n="mq.connectors">63 connettori nativi</span>
           <span>·</span>
           <span data-i18n="mq.saas">Zero SaaS obbligatori</span>
           <span>·</span>
@@ -139,7 +139,7 @@
             <span class="howStep__index">02</span>
             <div>
               <h3 data-i18n="how.s2.h">Cerca l'entità</h3>
-              <p data-i18n="how.s2.p">Email, telefono, username, dominio, wallet, IP. Argo sceglie i 58 connettori giusti.</p>
+              <p data-i18n="how.s2.p">Email, telefono, username, dominio, wallet, IP. Argo sceglie i 63 connettori giusti.</p>
             </div>
           </li>
           <li class="howStep revealUp">
@@ -162,7 +162,7 @@
       <!-- STACK — mosaic di categorie connettori -->
       <section class="stack" id="stack">
         <p class="sectionKicker" data-i18n="stack.kicker">Il motore</p>
-        <h2 class="sectionTitle" data-i18n="stack.title" data-i18n-html><span class="brand-gold">58</span> connettori. Un solo motore.</h2>
+        <h2 class="sectionTitle" data-i18n="stack.title" data-i18n-html><span class="brand-gold">63</span> connettori. Un solo motore.</h2>
         <div class="stackGrid">
           <div class="stackCell revealUp"><strong data-i18n="stack.email">Email</strong><span>holehe · gravatar · hunter · hibp</span></div>
           <div class="stackCell revealUp"><strong data-i18n="stack.username">Username</strong><span>maigret · sherlock · socid</span></div>
@@ -274,7 +274,7 @@
               <span data-i18n="free.c1.s">Nessun quota-limit imposto da noi.</span>
             </div>
             <div class="freeCell">
-              <span class="freeCell__num">58</span>
+              <span class="freeCell__num">63</span>
               <strong data-i18n="free.c2.h">Connettori</strong>
               <span data-i18n="free.c2.s">Tutti quelli integrati, subito.</span>
             </div>
@@ -326,7 +326,7 @@
           </details>
           <details class="faqItem revealUp">
             <summary data-i18n="faq.q6">Quali connettori posso usare senza pagare nessuno?</summary>
-            <div class="faqBody"><p data-i18n="faq.a6" data-i18n-html>Su 58 connettori totali, <strong>43 sono no-key</strong>: crt.sh, RDAP, DNS, TLS cert, Wayback, Gravatar, GDELT, Nominatim, PhishTank, OpenPhish, subdomain enumeration, port scan (attivo, gated), holehe, maigret, telegram checker, ecc. I 15 BYOK (Shodan, VirusTotal, HIBP, ecc.) diventano disponibili nel momento in cui incolli la tua chiave nel tab "Chiavi API".</p></div>
+            <div class="faqBody"><p data-i18n="faq.a6" data-i18n-html>Su 63 connettori totali, <strong>46 sono no-key</strong>: crt.sh, RDAP, DNS, TLS cert, Wayback, Gravatar, GDELT, Nominatim, PhishTank, OpenPhish, subdomain enumeration, port scan (attivo, gated), holehe, maigret, telegram checker, ecc. I 17 BYOK (Shodan, VirusTotal, HIBP, ContactOut, Lusha, ecc.) diventano disponibili nel momento in cui incolli la tua chiave nel tab "Chiavi API".</p></div>
           </details>
           <details class="faqItem revealUp">
             <summary data-i18n="faq.q7">Posso contribuire? Come si aggiunge un connettore?</summary>
@@ -1177,7 +1177,7 @@
 
           // Render results — resolve labels/values against the catalog at render time
           const items = FAKE[type] || FAKE.generic;
-          const n = Math.min(58, 4 + Math.floor(Math.random() * 8));
+          const n = Math.min(63, 4 + Math.floor(Math.random() * 8));
           let html = '<div class="demoResult">';
           html += '<div class="demoTargetLine">' + T("demo.targetLine", { value: escapeHtml(value), type: type, n: n }) + '</div>';
           items.forEach(f => {

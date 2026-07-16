@@ -22,6 +22,7 @@ Public planning. Priorities can change; nothing here is a promise.
 
 ## Unreleased (on `main`, not yet tagged)
 
+- Two new BYOK connectors: `contactout` and `lusha` (LinkedIn profile URL / email → personal or professional contact details, PII-gated). 61 → 63 native connectors, 15 → 17 BYOK.
 - Three new key-free connectors: `cloud_buckets` (cloud storage exposure), `email_security` (SPF/DMARC/MTA-STS/DNSSEC posture), `hudsonrock` (infostealer breach corpus). 58 → 61 native connectors.
 - Signed report seals (Ed25519, always on) + optional RFC3161 trusted timestamping, `argo-verify-report` CLI.
 - Privacy Center / DSAR made backend-portable (works correctly on Postgres, not just SQLite).

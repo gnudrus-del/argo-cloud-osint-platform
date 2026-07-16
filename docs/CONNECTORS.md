@@ -1,6 +1,6 @@
 # Connectors
 
-Argo registers 61 connectors by default: 46 key-free + 15 BYOK. A 62nd
+Argo registers 63 connectors by default: 46 key-free + 17 BYOK. A 64th
 connector (`flowsint`) ships in the codebase but is **not registered** unless
 `FLOWSINT_ENABLE=1` — see the note at the end of the key-free table.
 
@@ -49,7 +49,7 @@ credentials (`MISP_URL`, `MISP_KEY`) are read from environment variables for
 an operator-run instance rather than entered per-analyst in the BYOK key
 panel — see `osint_bot/connectors/misp_client.py`.
 
-## BYOK (15)
+## BYOK (17)
 
 Optional. Fill only what you have; missing keys are silently skipped.
 
@@ -70,6 +70,8 @@ Optional. Fill only what you have; missing keys are silently skipped.
 | Brave Search | `BRAVE_SEARCH_API_KEY` | Web search API |
 | Google PSE | `GOOGLE_PSE_API_KEY` | Programmable search engine |
 | Influencers Club | `INFLUENCERS_CLUB_API_KEY` | Username → verified email |
+| ContactOut | `CONTACTOUT_API_KEY` | LinkedIn/email → personal email/phone |
+| Lusha | `LUSHA_API_KEY` | LinkedIn/email → professional email/phone |
 
 ## Anatomy of a connector
 

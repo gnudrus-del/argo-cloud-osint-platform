@@ -33,6 +33,7 @@ from . import (
     cloud_buckets,
     common_crawl,
     companies_house,
+    contactout,
     content_discovery,
     crt_sh,
     darkweb_scan,
@@ -59,6 +60,7 @@ from . import (
     leakix,
     legit_scorer,
     linkedin2username,
+    lusha,
     maigret,
     misp_client,
     nominatim,
@@ -112,6 +114,7 @@ __all__ = [
     "telegram_checker", "linkedin2username", "influencers_club", "legit_scorer",
     "darkweb_scan", "cloud_buckets",
     "email_security",
+    "contactout", "lusha",
     "build_default_registry",
 ]
 
@@ -208,4 +211,7 @@ def build_default_registry() -> ConnectorRegistry:
     reg.register(hudsonrock.HudsonRockConnector())
     # Phase 24 — email_security (SPF/DMARC/DKIM/MTA-STS/DNSSEC posture, no-key).
     reg.register(email_security.EmailSecurityConnector())
+    # Phase 25 — ContactOut + Lusha (BYOK, LinkedIn/email → contatti personali).
+    reg.register(contactout.ContactOutConnector())
+    reg.register(lusha.LushaConnector())
     return reg

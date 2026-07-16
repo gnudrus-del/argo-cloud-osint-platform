@@ -768,6 +768,34 @@ CATALOG: dict[str, dict[str, str]] = {
     "influencers_club.email_why": {"it": "Influencers Club ha collegato @{username} all'email", "en": "Influencers Club linked @{username} to the email"},
     "influencers_club.field_note": {"it": "Campo '{field}' da Influencers Club per @{username}.", "en": "Field '{field}' from Influencers Club for @{username}."},
 
+    # -- contactout -----------------------------------------------------
+    "contactout.legal_note": {"it": "Servizio SaaS a pagamento (ContactOut). Restituisce email/telefoni personali associati a un profilo LinkedIn o a un indirizzo email. BYOK dell'analista.", "en": "Paid SaaS service (ContactOut). Returns personal emails/phones associated with a LinkedIn profile or an email address. Analyst's BYOK."},
+    "contactout.missing_key": {"it": "CONTACTOUT_API_KEY non configurata.", "en": "CONTACTOUT_API_KEY not configured."},
+    "contactout.empty_target": {"it": "Target vuoto.", "en": "Empty target."},
+    "contactout.invalid_target": {"it": "Target non valido: serve un URL profilo LinkedIn o un indirizzo email.", "en": "Invalid target: needs a LinkedIn profile URL or an email address."},
+    "contactout.auth_or_quota": {"it": "Chiave ContactOut non valida o quota esaurita.", "en": "ContactOut key invalid or quota exhausted."},
+    "contactout.rate_limit": {"it": "Rate limit ContactOut.", "en": "ContactOut rate limit."},
+    "contactout.unreachable": {"it": "ContactOut non raggiungibile.", "en": "ContactOut unreachable."},
+    "contactout.no_match": {"it": "Nessun match per {target}.", "en": "No match for {target}."},
+    "contactout.email_remediation": {"it": "Valutare l'esposizione dell'email personale/professionale su servizi di terze parti.", "en": "Assess exposure of the personal/professional email on third-party services."},
+    "contactout.email_found": {"it": "Email trovata da ContactOut per {target}.", "en": "Email found by ContactOut for {target}."},
+    "contactout.phone_found": {"it": "Telefono trovato da ContactOut per {target}.", "en": "Phone found by ContactOut for {target}."},
+    "contactout.name_found": {"it": "Nome dal profilo (ContactOut).", "en": "Name from profile (ContactOut)."},
+
+    # -- lusha ------------------------------------------------------------
+    "lusha.legal_note": {"it": "Servizio SaaS a pagamento (Lusha). Restituisce email/telefoni professionali associati a un profilo LinkedIn o a un indirizzo email. BYOK dell'analista.", "en": "Paid SaaS service (Lusha). Returns professional emails/phones associated with a LinkedIn profile or an email address. Analyst's BYOK."},
+    "lusha.missing_key": {"it": "LUSHA_API_KEY non configurata.", "en": "LUSHA_API_KEY not configured."},
+    "lusha.empty_target": {"it": "Target vuoto.", "en": "Empty target."},
+    "lusha.invalid_target": {"it": "Target non valido: serve un URL profilo LinkedIn o un indirizzo email.", "en": "Invalid target: needs a LinkedIn profile URL or an email address."},
+    "lusha.auth_or_quota": {"it": "Chiave Lusha non valida o quota esaurita.", "en": "Lusha key invalid or quota exhausted."},
+    "lusha.rate_limit": {"it": "Rate limit Lusha.", "en": "Lusha rate limit."},
+    "lusha.unreachable": {"it": "Lusha non raggiungibile.", "en": "Lusha unreachable."},
+    "lusha.no_match": {"it": "Nessun match per {target}.", "en": "No match for {target}."},
+    "lusha.email_remediation": {"it": "Valutare l'esposizione dell'email personale/professionale su servizi di terze parti.", "en": "Assess exposure of the personal/professional email on third-party services."},
+    "lusha.email_found": {"it": "Email trovata da Lusha per {target}.", "en": "Email found by Lusha for {target}."},
+    "lusha.phone_found": {"it": "Telefono trovato da Lusha per {target}.", "en": "Phone found by Lusha for {target}."},
+    "lusha.name_found": {"it": "Nome dal profilo (Lusha).", "en": "Name from profile (Lusha)."},
+
     # -- ai_agents (LLM, opt-in) ----------------------------------------
     "ai_agents.disclaimer": {"it": "Generato da AI — non verificato. Verifica ogni citazione contro la tabella evidenze.", "en": "AI-generated — unverified. Verify every citation against the evidence table."},
     "ai_agents.not_enabled": {"it": "Arricchimento AI non abilitato per questo caso.", "en": "AI enrichment is not enabled for this case."},
