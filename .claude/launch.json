@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "gufo-web",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "osint_bot.web", "--port", "8765"],
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-Command", "$env:OSINT_WEB_TOKEN='devtoken123'; python -m osint_bot.web --port 8765"],
       "port": 8765
     },
     {

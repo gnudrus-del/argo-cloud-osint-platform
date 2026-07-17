@@ -4944,3 +4944,885 @@ table tbody tr:hover { background: var(--amber-tint); }
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* ╔══════════════════════════════════════════════════════════════════════════
+   ║  ARGO — Premium Restyle  ·  feat/dashboard-restyle  ·  2026-07
+   ║  ──────────────────────────────────────────────────────────────────────
+   ║  Override mirati su palette, tipografia, interazioni e responsive.
+   ║  Tutti i selettori id/classe di app.js sono preservati intatti.
+   ║  Nessuna logica applicativa, endpoint API o stringa i18n modificata.
+   ╚══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. PALETTE: ciano/viola saturo — sovrascrive il blu piatto ──────────── */
+:root {
+  /* Accent principale: ciano elettrico */
+  --accent:        #22d3ee;
+  --accent-2:      #a78bfa;
+  --accent-strong: #67e8f9;
+  --magenta:       #f472b6;
+
+  /* Status semantici più saturi */
+  --green:  #10b981;
+  --amber:  #f59e0b;
+  --danger: #f43f5e;
+
+  /* Focus ring ciano */
+  --focus:      rgba(34, 211, 238, 0.20);
+  --grid-line:  rgba(34, 211, 238, 0.028);
+
+  /* Font premium: Outfit (Google Fonts) per UI body */
+  --font-main:    "Outfit", "Aptos", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Outfit", "Aptos Display", ui-sans-serif, system-ui, sans-serif;
+
+  /* Gradient CTA globale: ciano → viola */
+  --grad-cta:  linear-gradient(135deg, #22d3ee 0%, #a78bfa 100%);
+  --glow-cta:  0 4px 20px rgba(34, 211, 238, 0.30), 0 2px 8px rgba(0,0,0,0.42);
+
+  /* Fix variabili non definite da sessioni precedenti */
+  --gold-deep:   #d97706;
+  --shadow-glow: 0 0 20px rgba(245, 183, 64, 0.35);
+}
+
+/* ── 2. BODY: sfondo con gradient ciano/viola invece di blu piatto ────────── */
+body {
+  background:
+    radial-gradient(900px 480px at 12% -8%,  color-mix(in srgb, #22d3ee, transparent 88%), transparent 55%),
+    radial-gradient(700px 420px at 108%   0%, color-mix(in srgb, #a78bfa, transparent 90%), transparent 55%),
+    linear-gradient(90deg,  var(--grid-line) 1px, transparent 1px),
+    linear-gradient(0deg,   var(--grid-line) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, auto, 40px 40px, 40px 40px, auto;
+  background-attachment: fixed;
+  font-family: var(--font-main);
+  font-size: 14.5px;
+  letter-spacing: -0.01em;
+}
+
+/* ── 3. TIPOGRAFIA: scala gerarchica chiara ──────────────────────────────── */
+h1 {
+  font-size: 22px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+h2 {
+  font-size: 14px;
+  font-weight: 680;
+  letter-spacing: -0.01em;
+}
+h3 {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── 4. AUTH BOX: accent bar CTA, CTA button gradient ───────────────────── */
+.authBox::before {
+  background: var(--grad-cta);
+  opacity: 1;
+  height: 3px;
+}
+
+.authTabs button.active {
+  background: color-mix(in srgb, #22d3ee, var(--panel) 84%);
+  color: var(--accent-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+#authSubmit {
+  background: var(--grad-cta);
+  color: #040d10;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: var(--glow-cta);
+  transition: filter 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+}
+#authSubmit:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 30px rgba(34, 211, 238, 0.42), 0 2px 10px rgba(0,0,0,0.42);
+  transform: translateY(-1px);
+}
+#authSubmit:active { transform: translateY(0); }
+
+/* ── 5. APP SHELL ────────────────────────────────────────────────────────── */
+.shell {
+  grid-template-columns: 244px minmax(0, 1fr);
+}
+
+/* ── 6. SIDEBAR: gradient più vivido, active con glow ciano ─────────────── */
+.side {
+  width: 244px;
+  padding: 18px 10px 14px;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--sidebar), #22d3ee 3.5%) 0%,
+      var(--sidebar) 50%,
+      color-mix(in srgb, var(--sidebar), #000 12%) 100%);
+  border-right: 1px solid color-mix(in srgb, var(--line), transparent 20%);
+  gap: 18px;
+}
+
+.brand {
+  padding: 4px 4px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line), transparent 50%);
+}
+
+.brand img { width: 34px; height: 34px; }
+
+.brand strong {
+  font-size: 15px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+
+/* Nav item: più compatto, transizione più fluida */
+.nav {
+  min-height: 38px;
+  padding: 0 10px;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 560;
+  border-radius: var(--radius);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+/* Active nav: striscia laterale ciano + glow leggero */
+.nav.active {
+  color: var(--accent-strong);
+  background: linear-gradient(90deg,
+    color-mix(in srgb, #22d3ee, transparent 84%) 0%,
+    transparent 80%);
+  border-color: color-mix(in srgb, #22d3ee, transparent 62%);
+}
+
+.nav.active::before {
+  background: linear-gradient(180deg, #22d3ee, #a78bfa);
+  width: 3px;
+  top: 7px;
+  bottom: 7px;
+  left: -1px;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.45);
+}
+
+.nav:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel-2), transparent 45%);
+}
+
+/* Status area (health dot + lang switch) */
+.status {
+  margin-top: auto;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel-soft), transparent 25%);
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+}
+
+/* Health dot — pulse + glow cromatico */
+#healthDot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+}
+
+/* Logout button */
+.logout {
+  font-size: 13px;
+  border-radius: var(--radius);
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--line), transparent 25%);
+  color: var(--muted);
+  transition: color 140ms, border-color 140ms, box-shadow 140ms;
+}
+.logout:hover {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger), transparent 48%);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger), transparent 84%);
+}
+
+/* Lang switch (sidebar + landing) */
+.langSwitch {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.langSwitch:hover {
+  background: color-mix(in srgb, #22d3ee, transparent 91%);
+  border-color: color-mix(in srgb, #22d3ee, transparent 50%);
+  color: var(--accent-strong);
+  box-shadow: none;
+}
+
+/* ── 7. TOPBAR: bordo inferiore, titolo raffinato ───────────────────────── */
+.topbar {
+  padding-bottom: 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line), transparent 30%);
+  margin-bottom: 22px;
+}
+
+.topbar h1 {
+  font-size: 21px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  color: var(--text-strong);
+}
+
+.topbar p {
+  font-size: 13px;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.iconButton {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  transition: background 120ms, border-color 120ms, box-shadow 120ms;
+}
+.iconButton:hover {
+  background: color-mix(in srgb, #22d3ee, var(--panel-soft) 92%);
+  border-color: color-mix(in srgb, #22d3ee, transparent 48%);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
+}
+
+/* ── 8. SURFACES: gradient più definito, hover lift ─────────────────────── */
+.surface {
+  background:
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--panel), #22d3ee 2.5%) 0%,
+      var(--panel) 100%);
+  border: 1px solid color-mix(in srgb, var(--line), white 3%);
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.20),
+    0 4px 14px rgba(0,0,0,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+/* Accent bar superiore: gradient CTA */
+.surface::before {
+  background: var(--grad-cta);
+  opacity: 0.7;
+  height: 2px;
+}
+
+/* Lift on hover (non su devices touch per evitare tap-jump) */
+@media (hover: hover) {
+  .surface:hover {
+    border-color: color-mix(in srgb, var(--line), #22d3ee 10%);
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.22),
+      0 8px 20px rgba(0,0,0,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+}
+
+/* ── 9. BUTTONS: CTA gradient, focus ring ciano ─────────────────────────── */
+button {
+  font-family: var(--font-main);
+  font-size: 13.5px;
+  font-weight: 620;
+  letter-spacing: -0.005em;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease,
+    transform 110ms ease,
+    filter 140ms ease;
+}
+
+button:hover {
+  border-color: color-mix(in srgb, #22d3ee, transparent 48%);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.14);
+}
+
+button:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* Primary CTA — gradient ciano/viola */
+.btnPrimary,
+#runBtn {
+  background: var(--grad-cta) !important;
+  color: #040d10 !important;
+  border: none !important;
+  font-weight: 720 !important;
+  font-size: 14.5px !important;
+  box-shadow: var(--glow-cta) !important;
+  letter-spacing: 0.01em;
+}
+.btnPrimary:hover, #runBtn:hover {
+  filter: brightness(1.08) !important;
+  box-shadow: 0 6px 30px rgba(34, 211, 238, 0.42), 0 2px 10px rgba(0,0,0,0.44) !important;
+  transform: translateY(-1px);
+}
+.btnPrimary:active, #runBtn:active { transform: translateY(0) !important; }
+
+/* Ghost button */
+.btnGhost {
+  background: transparent !important;
+  border-color: color-mix(in srgb, #22d3ee, transparent 58%) !important;
+  color: var(--accent-strong) !important;
+  font-size: 13.5px !important;
+}
+.btnGhost:hover {
+  background: color-mix(in srgb, #22d3ee, transparent 92%) !important;
+  transform: translateY(-1px);
+}
+.btnGhost:active { transform: translateY(0) !important; }
+
+/* Secondary button */
+button.secondary {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--muted-strong);
+}
+button.secondary:hover {
+  border-color: color-mix(in srgb, #22d3ee, transparent 50%);
+  color: var(--accent-strong);
+}
+
+/* Actions block last button → CTA gradient */
+.actions button:not(.secondary):not(.btnGhost) {
+  background: var(--grad-cta);
+  color: #040d10;
+  border: none;
+  font-weight: 700;
+  box-shadow: var(--glow-cta);
+}
+.actions button:not(.secondary):not(.btnGhost):hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+/* ── 10. GLOBAL SEARCH BAR (dashboard) ──────────────────────────────────── */
+.heroSearch {
+  padding: 52px 28px 40px;
+  background:
+    radial-gradient(ellipse 100% 80% at 50% -5%,
+      color-mix(in srgb, #22d3ee, transparent 84%), transparent),
+    var(--panel);
+}
+
+.heroTitle {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 600;
+  color: var(--text-strong);
+  line-height: 1.2;
+}
+
+#globalSearch {
+  border: 1.5px solid color-mix(in srgb, var(--line-strong), #22d3ee 12%);
+  font-family: var(--font-main);
+  font-size: 0.97rem;
+  letter-spacing: -0.01em;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+#globalSearch:focus {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.16), 0 0 20px rgba(34, 211, 238, 0.07);
+}
+
+#globalSearchBtn {
+  background: var(--grad-cta) !important;
+  color: #040d10 !important;
+  border: none !important;
+  font-weight: 720 !important;
+  font-size: 0.97rem !important;
+  letter-spacing: 0.01em;
+  box-shadow: var(--glow-cta) !important;
+}
+#globalSearchBtn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 30px rgba(34, 211, 238, 0.42), 0 2px 10px rgba(0,0,0,0.44) !important;
+}
+
+/* ── 11. ONBOARDING STEPS ────────────────────────────────────────────────── */
+.obNum {
+  background: var(--grad-cta);
+  color: #040d10;
+  font-weight: 800;
+  font-size: 10.5px;
+  box-shadow: 0 2px 7px rgba(34, 211, 238, 0.25);
+}
+
+.onboarding li {
+  font-size: 12.5px;
+  font-weight: 560;
+}
+
+/* ── 12. QUICK MODES ─────────────────────────────────────────────────────── */
+.quickMode {
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  transition: background 120ms, border-color 120ms, color 120ms, transform 110ms;
+}
+@media (hover: hover) {
+  .quickMode:hover:not(.active) { transform: translateY(-1px); }
+}
+
+.quickMode.active {
+  border-color: color-mix(in srgb, #22d3ee, transparent 42%) !important;
+  background: linear-gradient(150deg,
+    color-mix(in srgb, #22d3ee, var(--panel)   80%) 0%,
+    color-mix(in srgb, #a78bfa, var(--panel-2) 83%) 100%) !important;
+  color: var(--accent-strong) !important;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.13), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+
+/* ── 13. TAGS / PILLS ────────────────────────────────────────────────────── */
+.tag {
+  border-color: color-mix(in srgb, #22d3ee, transparent 52%);
+  color: var(--accent-strong);
+  background: color-mix(in srgb, #22d3ee, transparent 88%);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+}
+
+/* ── 14. INPUTS: focus ciano + glow leggero ──────────────────────────────── */
+textarea:focus,
+input:focus,
+select:focus {
+  border-color: #22d3ee !important;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15), 0 1px 4px rgba(0,0,0,0.18) !important;
+  background: color-mix(in srgb, var(--input), #22d3ee 3.5%) !important;
+}
+
+label:has(+ input:focus),
+label:has(+ textarea:focus),
+label:has(+ select:focus) {
+  color: var(--accent-strong);
+}
+
+/* ── 15. STAT TILES: bordo colorato in alto per stato ───────────────────── */
+.statTile {
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  transition: border-color 150ms, transform 140ms;
+}
+@media (hover: hover) {
+  .statTile:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--line), #22d3ee 15%);
+  }
+}
+.statTile .statN { font-size: 2rem; font-weight: 760; }
+.statTile.complete { border-top: 2.5px solid var(--green);  }
+.statTile.error    { border-top: 2.5px solid var(--danger); }
+.statTile.running  { border-top: 2.5px solid var(--amber);  }
+
+/* ── 16. COVERAGE DOTS: glow cromatico per stato ────────────────────────── */
+.coverageDot { font-size: 11.5px; transition: border-color 140ms; }
+.coverageDot::before { width: 7px; height: 7px; flex-shrink: 0; }
+
+.coverageDot.ok::before   {
+  background: var(--green);
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.55);
+}
+.coverageDot.warn::before {
+  background: var(--amber);
+  box-shadow: 0 0 5px rgba(245, 158, 11, 0.55);
+}
+.coverageDot.ko::before  {
+  background: var(--danger);
+  box-shadow: 0 0 5px rgba(244, 63, 94, 0.55);
+}
+
+/* ── 17. WARN ITEMS ─────────────────────────────────────────────────────── */
+.warnItem {
+  border-radius: var(--radius);
+  border-left-width: 3px;
+}
+
+/* ── 18. FORM STEPS ─────────────────────────────────────────────────────── */
+.stepNum {
+  background: var(--grad-cta);
+  color: #040d10;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(34, 211, 238, 0.22);
+  border: none;
+}
+
+/* ── 19. AGGRESSIVE HUNT BUTTONS ────────────────────────────────────────── */
+.ahBtn {
+  border-radius: var(--radius-lg);
+  transition: background 140ms, border-color 140ms, transform 110ms, box-shadow 140ms;
+}
+@media (hover: hover) {
+  .ahBtn:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, #22d3ee, transparent 48%);
+    background: color-mix(in srgb, #22d3ee, var(--panel-soft) 94%);
+    box-shadow: 0 4px 14px rgba(34, 211, 238, 0.12);
+  }
+}
+.ahBtn.ahActive {
+  border-color: color-mix(in srgb, #22d3ee, transparent 32%);
+  background: linear-gradient(150deg,
+    color-mix(in srgb, #22d3ee, var(--panel)   82%),
+    color-mix(in srgb, #a78bfa, var(--panel-2) 85%));
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.14), 0 4px 12px rgba(34, 211, 238, 0.12);
+}
+
+/* ── 20. REPORT / ENTITY TABS: active line ciano ────────────────────────── */
+.reportTab.active {
+  color: var(--accent-strong) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+.entityTab.active {
+  color: var(--accent-strong) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+.forensicNavItem.active {
+  color: var(--accent-strong) !important;
+  border-left-color: var(--accent) !important;
+}
+
+/* ── 21. ENTITY PROFILE ──────────────────────────────────────────────────── */
+.entityAvatar {
+  background: var(--grad-cta);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  box-shadow: 0 4px 18px rgba(34, 211, 238, 0.28);
+}
+
+/* ── 22. SOURCE TIER BADGES ──────────────────────────────────────────────── */
+.sourceTier.gov    { background: rgba(34,211,238,0.14);  color: var(--accent-strong); border: 1px solid rgba(34,211,238,0.28); }
+.sourceTier.high   { background: rgba(167,139,250,0.14); color: var(--accent-2);      border: 1px solid rgba(167,139,250,0.28); }
+.sourceTier.medium { background: rgba(245,158,11,0.14);  color: var(--amber);         border: 1px solid rgba(245,158,11,0.28); }
+.sourceTier.low    { background: rgba(244,63,94,0.14);   color: var(--danger);        border: 1px solid rgba(244,63,94,0.28); }
+
+/* ── 23. PROGRESS TIMELINE / CONNECTOR DOTS ──────────────────────────────── */
+.connectorRow[data-status="ok"]      .connectorDot { background: var(--green);  box-shadow: 0 0 6px rgba(16,185,129,0.5);  }
+.connectorRow[data-status="running"] .connectorDot { background: var(--amber);  box-shadow: 0 0 6px rgba(245,158,11,0.5);  }
+.connectorRow[data-status="error"]   .connectorDot { background: var(--danger); box-shadow: 0 0 6px rgba(244,63,94,0.5);   }
+
+/* ── 24. GATED TOGGLE: checked → gradient ciano ──────────────────────────── */
+.gatedToggle:has(input:checked) {
+  border-color: color-mix(in srgb, #22d3ee, transparent 45%) !important;
+  background: linear-gradient(180deg,
+    rgba(34,211,238,0.10), rgba(167,139,250,0.06)) !important;
+  box-shadow: none !important;
+}
+.gatedToggle:has(input:checked) .gtSwitch {
+  background: var(--grad-cta) !important;
+  border-color: #22d3ee !important;
+  box-shadow: 0 0 10px rgba(34,211,238,0.38) !important;
+}
+.gatedToggle:has(input:checked) .gtSwitch::after {
+  background: #040d10 !important;
+}
+
+/* ── 25. UPLOAD DROP ZONE ────────────────────────────────────────────────── */
+.uploadDrop {
+  border-color: color-mix(in srgb, #22d3ee, transparent 55%) !important;
+}
+.uploadDrop:hover {
+  border-color: color-mix(in srgb, #22d3ee, transparent 28%) !important;
+  background: color-mix(in srgb, #22d3ee, transparent 96%) !important;
+}
+
+/* ── 26. CONFIDENCE BAR ──────────────────────────────────────────────────── */
+.confFill.high   { background: linear-gradient(90deg, var(--green), color-mix(in srgb,var(--green),#a78bfa 30%)); }
+.confFill.medium { background: linear-gradient(90deg, var(--amber), color-mix(in srgb,var(--amber),var(--green) 30%)); }
+.confFill.low    { background: linear-gradient(90deg, var(--danger), color-mix(in srgb,var(--danger),var(--amber) 30%)); }
+
+/* ── 27. SMALL LINKS (download / export) ────────────────────────────────── */
+.smallLink {
+  color: var(--accent-strong);
+  border-color: color-mix(in srgb, #22d3ee, transparent 55%);
+}
+
+/* ── 28. PANEL TRANSITION: più fluida ───────────────────────────────────── */
+@keyframes gufoFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.panel.active {
+  animation: gufoFadeUp 200ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* ── 29. MOBILE: sidebar → navbar orizzontale ────────────────────────────── */
+@media (max-width: 820px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+  }
+
+  .side {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: auto;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 10px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 6px;
+  }
+  .side::-webkit-scrollbar { display: none; }
+
+  .brand { display: none; }
+
+  .side nav {
+    flex-direction: row;
+    gap: 2px;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .side nav::-webkit-scrollbar { display: none; }
+
+  .nav {
+    min-height: 42px;
+    min-width: 48px;
+    padding: 6px 8px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 9.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: var(--radius-sm);
+  }
+
+  .nav svg { width: 18px; height: 18px; }
+
+  .nav.active::before {
+    top: auto;
+    bottom: -1px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    height: 2px;
+    border-radius: 2px;
+  }
+
+  .status {
+    margin-top: 0;
+    padding: 5px 8px;
+    flex-shrink: 0;
+    font-size: 10.5px;
+  }
+
+  #logoutBtn { display: none; }
+
+  main { padding: 14px 12px; }
+
+  .grid.two,
+  .casesLayout,
+  .jobsLayout,
+  .keysLayout,
+  .privacyLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .investigateLayout {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 540px) {
+  .nav span { display: none; }
+  .nav { min-width: 40px; }
+
+  .quickModes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .globalSearchBar { flex-direction: column; }
+  #globalSearch { padding-right: 14px; }
+  .detectedType { display: none; }
+  .heroTitle { font-size: 1.45rem; }
+  .onboarding { flex-wrap: wrap; }
+  .onboarding li { border: none; padding: 4px 6px; }
+}
+
+/* ── 30. LANDING PAGE: upgrade cosmetici ─────────────────────────────────── */
+/* Font landing: Outfit invece di Inter */
+#authScreen.landing {
+  font-family: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Hero title più grande e leggero */
+.heroTitle--wow {
+  font-size: clamp(3.2rem, 9.5vw, 8rem);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+/* Landing CTA primary: gradient ambra/viola brand (warm palette) */
+.heroCta--primary {
+  background: linear-gradient(135deg, #f5b740 0%, #b06ab3 100%) !important;
+  color: #0b0906 !important;
+  font-weight: 720 !important;
+  border: none !important;
+  box-shadow: 0 6px 22px rgba(245, 183, 64, 0.28) !important;
+  transition: filter 150ms ease, box-shadow 150ms ease, transform 120ms ease !important;
+}
+.heroCta--primary:hover {
+  filter: brightness(1.08) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 32px rgba(245, 183, 64, 0.40) !important;
+}
+.heroCta--primary:active { transform: translateY(0) !important; }
+
+/* Landing nav CTA */
+.landingNavCta {
+  background: linear-gradient(135deg, #f5b740, #b06ab3) !important;
+  color: #0b0906 !important;
+  font-weight: 700 !important;
+  border: none !important;
+  box-shadow: 0 3px 12px rgba(245, 183, 64, 0.22) !important;
+  transition: filter 140ms ease, transform 110ms ease, box-shadow 140ms ease !important;
+}
+.landingNavCta:hover {
+  filter: brightness(1.07) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(245, 183, 64, 0.32) !important;
+}
+
+/* Voice/testimonial cards: più premium */
+.voiceCard {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+@media (hover: hover) {
+  .voiceCard:hover { transform: translateY(-2px); }
+}
+
+/* Landing auth box accent bar: brand gradient */
+#start .authBox::before {
+  background: linear-gradient(90deg, #f5b740, #b06ab3, #4facfe);
+  opacity: 0.9;
+  height: 3px;
+}
+
+/* Why cards: hover leggero */
+.whyCard {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+@media (hover: hover) {
+  .whyCard:hover { transform: translateY(-2px); }
+}
+
+/* Stack cells: hover border accent */
+.stackCell {
+  transition: border-color 160ms, background 160ms, transform 140ms;
+}
+@media (hover: hover) {
+  .stackCell:hover {
+    border-color: rgba(245, 183, 64, 0.35);
+    transform: translateY(-2px);
+  }
+}
+
+/* ── 31. DEMO CHIPS (landing) ───────────────────────────────────────────── */
+.demoChip {
+  transition: background 130ms, color 130ms, border-color 130ms;
+}
+
+/* ── 32. FAQ ACCORDION: highlight su open ───────────────────────────────── */
+details.faqItem[open] > summary {
+  color: var(--gold-lit, #ffd57c);
+}
+
+/* ── 33. EMPTY STATES: centra e sfuma ───────────────────────────────────── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  color: var(--muted);
+  font-style: italic;
+  font-size: 13.5px;
+  text-align: center;
+  padding: 28px 20px;
+  gap: 10px;
+}
+
+/* ── 34. JOBS LIST ITEM hover ────────────────────────────────────────────── */
+.jobItem, .caseItem {
+  border-radius: var(--radius);
+  transition: background 130ms, border-color 130ms, transform 110ms;
+}
+@media (hover: hover) {
+  .jobItem:hover, .caseItem:hover {
+    transform: translateX(2px);
+    border-color: color-mix(in srgb, #22d3ee, transparent 58%);
+  }
+}
+.jobItem.selected, .caseItem.selected {
+  border-left-color: #22d3ee;
+  background: color-mix(in srgb, #22d3ee, var(--panel-soft) 94%);
+}
+
+/* ── 35. PRIVACY CARD ────────────────────────────────────────────────────── */
+.privacyCard {
+  border-radius: var(--radius-lg);
+  transition: border-color 150ms, box-shadow 150ms;
+}
+@media (hover: hover) {
+  .privacyCard:hover {
+    border-color: color-mix(in srgb, var(--line), #22d3ee 12%);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.16);
+  }
+}
+
+/* ── 36. MODEHINTT BORDER: usa accent ciano ──────────────────────────────── */
+.modeHint {
+  border-left-color: color-mix(in srgb, #22d3ee, transparent 40%);
+}
+
+/* ── 37. SCROLL BAR: sottile, coerente col tema ─────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--line-strong), #22d3ee 25%);
+}
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+
+/* ── 38. SELECTION: brand color ──────────────────────────────────────────── */
+::selection {
+  background: rgba(34, 211, 238, 0.25);
+  color: var(--text-strong);
+}
+
+/* ── Fine Premium Restyle ──────────────────────────────────────────────── */
