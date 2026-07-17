@@ -2,7 +2,7 @@
 
 > Una piattaforma OSINT difensiva self-hosted per analisti che hanno bisogno di indagini con fonti verificabili, catena audit e attenzione alla privacy.
 
-Argo gira interamente sulla tua infrastruttura. Aggrega fonti pubbliche (63 connettori nativi, key-free e BYOK), tiene una catena audit SHA-256 di ogni finding e produce report in Markdown, JSON, PDF, STIX 2.1 e MISP. UI e output dei connettori sono bilingui (italiano / inglese). Niente telemetria, niente dipendenza cloud, niente vendor lock-in.
+Argo gira interamente sulla tua infrastruttura. Aggrega fonti pubbliche (66 connettori nativi, key-free e BYOK, interrogati tutti insieme ad ogni ricerca — non una selezione ristretta), tiene una catena audit SHA-256 di ogni finding e produce report in Markdown, JSON, PDF, STIX 2.1 e MISP. UI e output dei connettori sono bilingui (italiano / inglese). Niente telemetria, niente dipendenza cloud, niente vendor lock-in.
 
 ## Perché Argo
 
@@ -15,7 +15,7 @@ Le SaaS OSINT esistenti funzionano bene finché non puoi inviare i dati del caso
 - **Investigazioni case-based** — ogni query vive dentro un caso con scope, Rules of Engagement e endpoint DSAR (GDPR).
 - **Target handling privacy-by-design** — target personali richiedono base giuridica esplicita; i contatti sono redatti di default.
 - **Modello BYOK** — 17 provider opzionali (Shodan, VirusTotal, HIBP, SecurityTrails, ContactOut, Lusha, ecc.) usano *le tue* chiavi, mai intermediati. Altri 3 (EmailRep, IPinfo, OpenCorporates) funzionano anche senza chiave, ma la sfruttano se configurata.
-- **63 connettori nativi** — 46 key-free + 17 BYOK.
+- **66 connettori nativi** — 49 key-free + 17 BYOK. Tutti i connettori compatibili con il tipo di target girano insieme, in parallelo, ad ogni ricerca — non una cernita per parola chiave.
 - **HTTP outbound hardened SSRF** — ogni connettore, più il fetcher usato da CLI e job queue (campo `seed_urls`), passa da `_safe_http`: blocco cloud metadata, loopback, RFC1918, schemi non-HTTP e redirect cross-boundary (inclusa la risoluzione di `robots.txt`). Enforced in CI.
 - **DSAR reale (GDPR Art. 15 / Art. 17)** — l'endpoint di cancellazione esegue una transazione atomica con prova hash-chained `dsar_tombstoned`.
 - **Finding con fonte** — ogni finding porta URL di evidenza, timestamp e confidence.

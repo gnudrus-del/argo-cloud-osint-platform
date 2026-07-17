@@ -896,7 +896,7 @@ function renderEntityGraph(report) {
   const links = relationships
     .filter((link) => nodeIds.has(link.source) && nodeIds.has(link.target))
     .slice(0, 70);
-  const positioned = positionNodes(nodes, 900, 360);
+  const positioned = positionNodes(nodes, links, 900, 360);
   const byId = Object.fromEntries(positioned.map((node) => [node.id, node]));
 
   const linkMarkup = links.map((link) => {
@@ -1001,25 +1001,84 @@ function graphRank(entity) {
   return roleBoost + (priority[entity.type] ?? 20) - Number(entity.confidence || 0);
 }
 
-function positionNodes(nodes, width, height) {
+// Force-directed layout (Fruchterman-Reingold-style spring embedder), pure
+// JS, no external library — keeps with the platform's zero-third-party-CDN
+// design. Replaces the old fixed two-ring layout, which placed nodes purely
+// by array index and completely ignored `links`: with up to 34 nodes and 70
+// relationships that produced an unreadable "hairball" where connected
+// nodes could land on opposite sides of the circle. This actually pulls
+// linked nodes together and pushes everything else apart.
+function positionNodes(nodes, links, width, height) {
   if (!nodes.length) return [];
+  const n = nodes.length;
   const centerX = width / 2;
   const centerY = height / 2;
-  const radiusX = width * 0.38;
-  const radiusY = height * 0.31;
-  return nodes.map((node, index) => {
-    if (index === 0) {
-      return { ...node, x: centerX, y: centerY, radius: 24 };
+  const margin = 34;
+
+  // Seed on a circle (not all-at-origin, which would give the repulsion
+  // force a 0/0 direction to resolve on the first iteration).
+  const seedR = Math.min(width, height) * 0.32;
+  const pos = nodes.map((node, i) => ({
+    ...node,
+    x: centerX + Math.cos((i / n) * Math.PI * 2) * seedR,
+    y: centerY + Math.sin((i / n) * Math.PI * 2) * seedR,
+    vx: 0, vy: 0,
+  }));
+  const indexById = Object.fromEntries(pos.map((p, i) => [p.id, i]));
+  const edges = links
+    .map((l) => [indexById[l.source], indexById[l.target]])
+    .filter(([a, b]) => a !== undefined && b !== undefined && a !== b);
+
+  const REPULSION = 2600;
+  const SPRING = 0.02;
+  const SPRING_LEN = 92;
+  const CENTER_PULL = 0.01;
+  const TARGET_PULL = 0.05; // extra pull so the pivot entity (index 0) anchors near the middle
+  const DAMPING = 0.85;
+  const ITERATIONS = 220;
+
+  for (let iter = 0; iter < ITERATIONS; iter++) {
+    // Repulsion between every pair. n is capped at 34 (selectGraphEntities),
+    // so O(n^2) is at most ~560 pair checks per iteration — cheap.
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const dx = pos[i].x - pos[j].x;
+        const dy = pos[i].y - pos[j].y;
+        const distSq = Math.max(dx * dx + dy * dy, 0.01);
+        const dist = Math.sqrt(distSq);
+        const force = REPULSION / distSq;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        pos[i].vx += fx; pos[i].vy += fy;
+        pos[j].vx -= fx; pos[j].vy -= fy;
+      }
     }
-    const angle = ((index - 1) / Math.max(1, nodes.length - 1)) * Math.PI * 2 - Math.PI / 2;
-    const ringOffset = index % 2 === 0 ? 1 : 0.78;
-    return {
-      ...node,
-      x: Math.round(centerX + Math.cos(angle) * radiusX * ringOffset),
-      y: Math.round(centerY + Math.sin(angle) * radiusY * ringOffset),
-      radius: 16,
-    };
-  });
+    // Spring attraction along real relationships.
+    for (const [a, b] of edges) {
+      const dx = pos[b].x - pos[a].x;
+      const dy = pos[b].y - pos[a].y;
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.01);
+      const force = SPRING * (dist - SPRING_LEN);
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      pos[a].vx += fx; pos[a].vy += fy;
+      pos[b].vx -= fx; pos[b].vy -= fy;
+    }
+    // Weak centering (everyone) + integrate + damp + clamp to canvas.
+    for (let i = 0; i < n; i++) {
+      const pull = i === 0 ? TARGET_PULL : CENTER_PULL;
+      pos[i].vx += (centerX - pos[i].x) * pull;
+      pos[i].vy += (centerY - pos[i].y) * pull;
+      pos[i].vx *= DAMPING; pos[i].vy *= DAMPING;
+      pos[i].x += pos[i].vx; pos[i].y += pos[i].vy;
+      pos[i].x = Math.max(margin, Math.min(width - margin, pos[i].x));
+      pos[i].y = Math.max(margin, Math.min(height - margin, pos[i].y));
+    }
+  }
+
+  return pos.map((p, i) => ({
+    ...p, x: Math.round(p.x), y: Math.round(p.y), radius: i === 0 ? 24 : 16,
+  }));
 }
 
 function renderGraphDetails(entity) {
@@ -1148,7 +1207,11 @@ async function api(path, options = {}, jsonContent = true, auth = true) {
   const response = await fetch(path, { ...options, headers });
   const text = await response.text();
   const data = text ? JSON.parse(text) : {};
-  if (!response.ok) throw new Error(data.error || response.statusText);
+  if (!response.ok) {
+    const err = new Error(data.error || response.statusText);
+    err.status = response.status;
+    throw err;
+  }
   return data;
 }
 
@@ -1740,8 +1803,12 @@ function renderCasesList(cases) {
     aiLabelSpan.dataset.i18n = "ai.caseSettings.toggle";
     aiLabelSpan.textContent = t("ai.caseSettings.toggle");
     aiRow.appendChild(aiLabelSpan);
-    aiCheckbox.addEventListener("change", () => setCaseAiEnrichment(c.id, aiCheckbox.checked, aiCheckbox));
+    const aiMsg = document.createElement("div");
+    aiMsg.className = "caseAiToggleMsg muted";
+    aiMsg.hidden = true;
+    aiCheckbox.addEventListener("change", () => setCaseAiEnrichment(c.id, aiCheckbox.checked, aiCheckbox, aiMsg));
     card.appendChild(aiRow);
+    card.appendChild(aiMsg);
 
     const scopeBox = document.createElement("div");
     scopeBox.className = "caseScopeBox hidden";
@@ -1770,7 +1837,7 @@ function renderCasesList(cases) {
   }
 }
 
-async function setCaseAiEnrichment(caseId, enabled, checkboxEl) {
+async function setCaseAiEnrichment(caseId, enabled, checkboxEl, msgEl) {
   try {
     const updated = await api(`/api/cases/${caseId}/ai-settings`, {
       method: "POST",
@@ -1779,10 +1846,20 @@ async function setCaseAiEnrichment(caseId, enabled, checkboxEl) {
     const idx = state.cases.findIndex((c) => c.id === caseId);
     if (idx >= 0) state.cases[idx] = updated;
     updateAiNarrativeButtonVisibility();
+    if (msgEl) { msgEl.hidden = true; msgEl.textContent = ""; }
   } catch (exc) {
     if (checkboxEl) checkboxEl.checked = !enabled;
     console.error("setCaseAiEnrichment failed:", exc.message || exc);
-    if (checkboxEl) checkboxEl.title = t("err.generic") + (exc.message || exc);
+    // 404 qui è il kill-switch server-side (OSINT_AI_AGENTS_ENABLED=0), non un
+    // errore generico: senza distinguerlo il checkbox tornava indietro in
+    // silenzio (solo un tooltip invisibile) e sembrava "non fare nulla".
+    const message = exc.status === 404 ? t("ai.caseSettings.serverDisabled") : t("err.generic") + (exc.message || exc);
+    if (checkboxEl) checkboxEl.title = message;
+    if (msgEl) {
+      msgEl.hidden = false;
+      msgEl.textContent = message;
+      msgEl.style.color = "var(--danger)";
+    }
   }
 }
 

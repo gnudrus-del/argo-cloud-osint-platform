@@ -140,6 +140,7 @@ def infer_target_type(target: str, text: str) -> str:
 ALWAYS_ON_AGENTS = [
     "planner", "web", "opsec", "geo", "socmint",
     "media", "crypto", "phone", "humint", "external", "reverse_account",
+    "connectors",
 ]
 
 
@@ -210,34 +211,38 @@ def choose_external_tools(
         if keyword in lower:
             selected.append(tool)
 
-    auto_requested = "auto" in lower or "scegli" in lower or "automatic" in lower or "tool" in lower
+    # Selezione per target_type: SEMPRE attiva quando autorizzata — non più
+    # condizionata a una parola chiave nel testo ("auto"/"scegli"/"tool") o a
+    # un modulo esplicitamente selezionato. Una gestione "intelligente" che
+    # tiene fuori i tool a meno che l'utente non indovini la parola giusta
+    # equivale, in pratica, a non usarli mai: la stragrande maggioranza delle
+    # ricerche è solo "analizza questo target", senza keyword speciali. I gate
+    # di sicurezza restano gli stessi (confirm_authorization, allow_network_scan);
+    # cambia solo *quando* vengono valutati, non *cosa* bloccano.
     module_set = set(modules or [])
-    if auto_requested or module_set:
-        if target_type == "handle" and confirm_authorization:
-            selected.extend(["sherlock", "maigret", "socialscan", "social_analyzer", "toutatis", "osintgram"])
-            if "phone_email" in module_set or "socmint" in module_set:
-                selected.append("socialscan")
-        if target_type == "email" and confirm_authorization and (
-            auto_requested or "phone_email" in module_set or not module_set
-        ):
-            selected.extend(["holehe", "socialscan", "h8mail", "ghunt", "mosint"])
-        if target_type == "phone" and confirm_authorization:
-            selected.extend(["phoneinfoga", "phunter"])
-        if target_type in {"domain", "ip"} and confirm_authorization and allow_network_scan:
-            selected.append("nmap")
-        if target_type == "domain" and ("company_domain" in module_set or "opsec" in module_set or "red_team" in module_set):
-            selected.extend(["theharvester", "amass", "subfinder", "waybackurls", "gau",
-                              "spiderfoot", "recon_ng", "shodan", "censys",
-                              "dnsx", "dnstwist", "whatweb", "httpx", "katana",
-                              "gospider", "hakrawler", "metagoofil", "wafw00f", "testssl"])
-            if confirm_authorization and allow_network_scan:
-                selected.extend(["nmap", "naabu", "nuclei"])
-        if target_type in {"company", "org"} and ("company_domain" in module_set or "opsec" in module_set):
-            selected.extend(["spiderfoot", "recon_ng", "theharvester", "dnstwist"])
-        if target_type == "ip" and ("company_domain" in module_set or "opsec" in module_set or "red_team" in module_set):
-            selected.extend(["spiderfoot", "shodan", "censys", "naabu", "nuclei", "whatweb"])
-        if target_type == "media" or "media" in module_set:
-            selected.extend(["exiftool", "ffprobe"])
+    if target_type == "handle" and confirm_authorization:
+        selected.extend(["sherlock", "maigret", "socialscan", "social_analyzer", "toutatis", "osintgram"])
+    if target_type == "email" and confirm_authorization:
+        selected.extend(["holehe", "socialscan", "h8mail", "ghunt", "mosint"])
+    if target_type == "phone" and confirm_authorization:
+        selected.extend(["phoneinfoga", "phunter"])
+    if target_type in {"domain", "ip"} and confirm_authorization and allow_network_scan:
+        selected.append("nmap")
+    if target_type == "domain" and confirm_authorization:
+        selected.extend(["theharvester", "amass", "subfinder", "waybackurls", "gau",
+                          "spiderfoot", "recon_ng", "shodan", "censys",
+                          "dnsx", "dnstwist", "whatweb", "httpx", "katana",
+                          "gospider", "hakrawler", "metagoofil", "wafw00f", "testssl"])
+        if allow_network_scan:
+            selected.extend(["nmap", "naabu", "nuclei"])
+    if target_type in {"company", "org"} and confirm_authorization:
+        selected.extend(["spiderfoot", "recon_ng", "theharvester", "dnstwist"])
+    if target_type == "ip" and confirm_authorization:
+        selected.extend(["spiderfoot", "shodan", "censys", "whatweb"])
+        if allow_network_scan:
+            selected.extend(["naabu", "nuclei"])
+    if target_type == "media" or "media" in module_set:
+        selected.extend(["exiftool", "ffprobe"])
 
     return unique(selected)
 

@@ -698,6 +698,25 @@ CATALOG: dict[str, dict[str, str]] = {
     "shodan_internetdb.cpe": {"it": "CPE (software/versione) inferito da Shodan.", "en": "CPE (software/version) inferred by Shodan."},
     "shodan_internetdb.vuln": {"it": "CVE potenziale associato a {ip} da Shodan. Verificare versione reale.", "en": "Potential CVE associated with {ip} by Shodan. Verify the actual version."},
 
+    # -- ripe_stat ------------------------------------------------------------
+    "ripe_stat.legal_note": {"it": "API pubblica gratuita RIPE NCC (Regional Internet Registry). Solo dati di routing/allocazione già pubblicati, nessuna scansione attiva.", "en": "Free public RIPE NCC (Regional Internet Registry) API. Only already-published routing/allocation data, no active scanning."},
+    "ripe_stat.invalid_ip": {"it": "Target non è un IP valido.", "en": "Target is not a valid IP."},
+    "ripe_stat.prefix_note": {"it": "Prefisso di rete che annuncia {ip} secondo RIPEstat.", "en": "Network prefix announcing {ip} per RIPEstat."},
+    "ripe_stat.asn_note": {"it": "Sistema autonomo (ASN) responsabile del routing di questo IP.", "en": "Autonomous system (ASN) responsible for routing this IP."},
+    "ripe_stat.abuse_note": {"it": "Contatto abuse ufficiale registrato per questo netblock — canale legittimo per segnalazioni.", "en": "Official abuse contact registered for this netblock — legitimate reporting channel."},
+
+    # -- hackertarget -----------------------------------------------------
+    "hackertarget.legal_note": {"it": "Endpoint gratuito HackerTarget (rate-limitato). Correlazione infrastrutturale passiva, nessuna scansione del target.", "en": "Free HackerTarget endpoint (rate-limited). Passive infrastructure correlation, no scanning of the target."},
+    "hackertarget.invalid_ip": {"it": "Target non è un IP valido.", "en": "Target is not a valid IP."},
+    "hackertarget.no_hosts": {"it": "Nessun altro dominio noto sullo stesso IP {ip} (o rate limit API esaurito).", "en": "No other known domains on the same IP {ip} (or API rate limit exhausted)."},
+    "hackertarget.cohosted_note": {"it": "Dominio che risolve sullo stesso IP {ip} — possibile stesso operatore/hosting condiviso, verificare.", "en": "Domain resolving to the same IP {ip} — possible same operator/shared hosting, verify."},
+
+    # -- wikipedia_search -----------------------------------------------------
+    "wikipedia_search.legal_note": {"it": "API pubblica Wikipedia (REST search), nessuna chiave. Wikipedia non è fonte primaria: usare come contesto iniziale, verificare le fonti citate in nota.", "en": "Public Wikipedia REST search API, no key. Wikipedia is not a primary source: use as initial context, verify the sources cited in its references."},
+    "wikipedia_search.empty_target": {"it": "Target vuoto.", "en": "Empty target."},
+    "wikipedia_search.no_match": {"it": "Nessuna voce Wikipedia trovata per '{query}'.", "en": "No Wikipedia article found for '{query}'."},
+    "wikipedia_search.article_note": {"it": "Voce Wikipedia ({lang}) — verificare le fonti primarie citate nella pagina.", "en": "Wikipedia article ({lang}) — verify the primary sources cited on the page."},
+
     # -- subdomain_enum -----------------------------------------------------
     "subdomain_enum.legal_note": {"it": "Fonti passive (CT logs) + risoluzione DNS di prefissi comuni. Nessuno scan attivo del target.", "en": "Passive sources (CT logs) + DNS resolution of common prefixes. No active scanning of the target."},
     "subdomain_enum.invalid_domain": {"it": "Target deve essere un dominio.", "en": "Target must be a domain."},

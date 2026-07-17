@@ -426,6 +426,10 @@
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V7l8-4z"/><path d="M9 12l2 2 4-5"/></svg>
             <span data-i18n="side.opsec">OPSEC</span>
           </button>
+          <button class="nav" data-panel="methodology">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v15.5"/><path d="M6 22a2 2 0 0 1 0-4h13v4z"/><path d="M9 8h8M9 11h5"/></svg>
+            <span data-i18n="side.methodology">Metodologia</span>
+          </button>
           <button class="nav" data-panel="privacy">
             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <span data-i18n="side.privacy">Privacy</span>
@@ -969,6 +973,44 @@
                 <li data-i18n="opsec.au4">Sessioni HttpOnly, CSRF, Secure cookie.</li>
                 <li data-i18n="opsec.au5">GDPR by-design: DSAR export/erase, tombstone, RoPA.</li>
               </ul>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-methodology" class="panel">
+          <div class="grid two">
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2 data-i18n="meth.confidence">Confidenza dei findings</h2>
+                <span class="tag" data-i18n="meth.tag">disciplina analitica</span>
+              </div>
+              <p class="modeHint" data-i18n="meth.intro">Ogni finding porta una confidenza (0.0–1.0) assegnata dal connettore che l'ha prodotto. Nessuna formula unica — solo tre livelli qualitativi di ancoraggio.</p>
+              <ul class="securityList">
+                <li data-i18n="meth.c1" data-i18n-html><strong>Tentative (&lt; 0.5):</strong> plausibile da evidenza indiretta, non verificata — una sola fonte passiva, un pattern inferito, un frammento di testo.</li>
+                <li data-i18n="meth.c2" data-i18n-html><strong>Firm (0.5–0.85):</strong> osservato direttamente, non ancora corroborato in modo indipendente — un record DNS che risolve, una API che risponde positivamente.</li>
+                <li data-i18n="meth.c3" data-i18n-html><strong>Confirmed (&gt; 0.85):</strong> corroborato da ≥2 fonti indipendenti, o verificato con interazione diretta e inequivocabile.</li>
+              </ul>
+              <p class="modeHint" data-i18n="meth.ruleOfThree" data-i18n-html><strong>Regola del tre:</strong> non attribuire un legame d'identità da un solo segnale debole. Servono due segnali deboli indipendenti, o uno forte + uno debole, prima di trattare un collegamento come Firm invece che Tentative.</p>
+            </section>
+            <section class="surface">
+              <div class="surfaceHead">
+                <h2 data-i18n="meth.admiralty">Grado Admiralty/NATO (STANAG 2511)</h2>
+                <span class="tag" data-i18n="meth.tag2">affidabilità della fonte</span>
+              </div>
+              <p class="modeHint" data-i18n="meth.admiraltyIntro">Ogni finding porta anche una lettera (affidabilità A–F) e un numero (credibilità 1–6), mostrati insieme nei report (es. "B2").</p>
+              <ul class="securityList">
+                <li data-i18n="meth.a1" data-i18n-html><strong>Affidabilità (la fonte):</strong> A completamente affidabile → F non giudicabile.</li>
+                <li data-i18n="meth.a2" data-i18n-html><strong>Credibilità (questa informazione):</strong> 1 confermata da altre fonti → 6 non giudicabile.</li>
+              </ul>
+              <div class="surfaceHead" style="margin-top:14px">
+                <h2 data-i18n="meth.severity">Severità</h2>
+              </div>
+              <ul class="securityList">
+                <li data-i18n="meth.s1" data-i18n-html><strong>Critical/High:</strong> esposizione con impatto diretto e verificato (credenziali valide, bucket listabile, RCE pre-auth).</li>
+                <li data-i18n="meth.s2" data-i18n-html><strong>Medium/Low:</strong> disclosure di informazioni, gap di hardening, esposizione marginale.</li>
+                <li data-i18n="meth.s3" data-i18n-html><strong>Info:</strong> degno di nota, nessuna azione immediata richiesta.</li>
+              </ul>
+              <p class="modeHint" data-i18n="meth.footer">Metodologia completa, con esempi ed estensioni per nuovi connettori: docs/METHODOLOGY.md nel repository.</p>
             </section>
           </div>
         </section>
