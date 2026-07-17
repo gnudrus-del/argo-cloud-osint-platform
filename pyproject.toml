@@ -62,6 +62,10 @@ ai = [
 postgres = [
     "psycopg[binary]>=3.1",
 ]
+auth = [
+    "google-auth>=2.35",
+    "requests>=2.31",
+]
 queue = [
     "celery>=5.3",
     "redis>=5.0",
@@ -87,6 +91,7 @@ osint-bot = "osint_bot.cli:main"
 argo-verify-report = "osint_bot.cli_verify:main"
 argo-rotate-master-key = "osint_bot.cli_rotate_key:main"
 argo-rotate-signing-key = "osint_bot.cli_rotate_signing_key:main"
+argo-set-role = "osint_bot.cli_set_role:main"
 
 [tool.setuptools]
 packages = ["osint_bot"]

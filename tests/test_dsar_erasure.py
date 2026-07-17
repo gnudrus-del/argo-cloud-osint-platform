@@ -1,8 +1,13 @@
-"""GDPR art. 17 — verify that handle_privacy_erase performs a *real*
+"""GDPR art. 17 — verify that the erase-approval flow performs a *real*
 atomic erasure: writes a tombstone, appends an audit_events entry with
 a valid hash chain, and removes the actor's business rows.
 
-These tests are the contract that the H3 hardening promise is met."""
+Since the deletion is now admin-gated, the user request only records a
+'pending' row and it's the admin approval that actually erases — so these
+tests drive both steps via ``_erase_via_admin`` and assert on the result of
+the approval. The erasure logic itself (``Storage.erase_actor_data``) is
+unchanged; only its trigger moved. These tests are the contract that the H3
+hardening promise is met."""
 from __future__ import annotations
 
 import contextlib
@@ -32,13 +37,26 @@ def _isolated_storage():
             web.STORAGE = original_storage
 
 
+def _erase_via_admin(actor: str, reason: str = "erase") -> dict:
+    """Nuovo flusso a due passi: l'utente RICHIEDE la cancellazione (rimane
+    'pending', nessun dato toccato), poi un amministratore la approva — ed è
+    l'approvazione che esegue l'erasure reale. Ritorna il risultato
+    dell'approvazione (stessa forma del vecchio handle_privacy_erase: status
+    ok, tombstone_id, selector_sha256, erased_at)."""
+    from osint_bot.web import handle_admin_privacy_approve, handle_privacy_erase
+
+    req = handle_privacy_erase(actor, {"reason": reason})
+    assert req["status"] == "pending", req
+    return handle_admin_privacy_approve("admin", req["request_id"])
+
+
 class DsarErasureTests(unittest.TestCase):
     def test_erase_writes_tombstone(self):
-        from osint_bot.web import create_case, handle_privacy_erase
+        from osint_bot.web import create_case
 
         with _isolated_storage() as (_, stor):
             create_case({"title": "X", "legal_basis": {"type": "consent"}}, actor="alice")
-            res = handle_privacy_erase("alice", {"reason": "end of engagement"})
+            res = _erase_via_admin("alice", "end of engagement")
             self.assertEqual(res["status"], "ok")
             self.assertIn("tombstone_id", res)
 
@@ -53,11 +71,11 @@ class DsarErasureTests(unittest.TestCase):
             self.assertEqual(len(audit_hash), 64)
 
     def test_erase_appends_audit_event(self):
-        from osint_bot.web import create_case, handle_privacy_erase
+        from osint_bot.web import create_case
 
         with _isolated_storage() as (_, stor):
             create_case({"title": "X", "legal_basis": {"type": "consent"}}, actor="alice")
-            handle_privacy_erase("alice", {"reason": "test"})
+            _erase_via_admin("alice", "test")
 
             rows = stor._conn().execute(
                 "SELECT action, actor FROM audit_events "
@@ -74,7 +92,6 @@ class DsarErasureTests(unittest.TestCase):
         from osint_bot.web import (
             create_case,
             create_job,
-            handle_privacy_erase,
         )
 
         with _isolated_storage() as (_, stor):
@@ -95,7 +112,7 @@ class DsarErasureTests(unittest.TestCase):
             self.assertGreaterEqual(pre_cases, 1)
             self.assertGreaterEqual(pre_jobs, 1)
 
-            handle_privacy_erase("alice", {"reason": "erase"})
+            _erase_via_admin("alice", "erase")
 
             post_cases = stor._conn().execute(
                 "SELECT COUNT(*) FROM cases WHERE owner = ?", ("alice",)
@@ -107,10 +124,8 @@ class DsarErasureTests(unittest.TestCase):
             self.assertEqual(post_jobs, 0)
 
     def test_erase_returns_selector_sha256(self):
-        from osint_bot.web import handle_privacy_erase
-
         with _isolated_storage():
-            res = handle_privacy_erase("alice", {"reason": "x"})
+            res = _erase_via_admin("alice", "x")
             self.assertEqual(res["status"], "ok")
             # SHA-256 of 'user:alice' (lowercased)
             import hashlib
@@ -125,7 +140,7 @@ class DsarErasureTests(unittest.TestCase):
         JSON-canonico), e la redazione di eventi passati non aggiornava il
         loro hash memorizzato. Verificato empiricamente sul codice originale
         prima di questo fix — non un problema ipotetico."""
-        from osint_bot.web import create_case, handle_privacy_erase
+        from osint_bot.web import create_case
 
         with _isolated_storage() as (_, stor):
             create_case({"title": "X", "legal_basis": {"type": "consent"}}, actor="alice")
@@ -133,7 +148,7 @@ class DsarErasureTests(unittest.TestCase):
             stor.append_audit_event("bob", "login_success", {"note": "bob logged in too"})
             self.assertTrue(stor.verify_audit_chain())
 
-            res = handle_privacy_erase("alice", {"reason": "test"})
+            res = _erase_via_admin("alice", "test")
             self.assertEqual(res["status"], "ok")
 
             self.assertTrue(
@@ -145,12 +160,12 @@ class DsarErasureTests(unittest.TestCase):
         """Il fix non deve indebolire la rilevazione di manomissione vera:
         solo le righe redatte da un tombstone documentato sono escluse dal
         controllo di auto-hash."""
-        from osint_bot.web import create_case, handle_privacy_erase
+        from osint_bot.web import create_case
 
         with _isolated_storage() as (_, stor):
             create_case({"title": "X", "legal_basis": {"type": "consent"}}, actor="alice")
             stor.append_audit_event("bob", "login_success", {"note": "bob logged in"})
-            handle_privacy_erase("alice", {"reason": "test"})
+            _erase_via_admin("alice", "test")
             self.assertTrue(stor.verify_audit_chain())
 
             # manomissione vera, mai passata da erase_actor_data/un tombstone

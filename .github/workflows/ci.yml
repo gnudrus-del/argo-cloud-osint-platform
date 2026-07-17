@@ -31,7 +31,11 @@ jobs:
       - name: Install package + dev extras
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          # [auth] pulls in google-auth so tests/test_google_auth.py's
+          # token-verification cases run here instead of skipping (they patch
+          # google.oauth2.id_token, which must be importable). Without it the
+          # suite still passes — those 7 tests skip via @_needs_google_auth.
+          pip install -e ".[dev,auth]"
 
       - name: Lint (ruff, blocking)
         run: ruff check osint_bot tests
@@ -169,6 +173,11 @@ jobs:
   # job is BLOCKING now that the lockfile is committed: silent breakage here
   # is a real signal, not noise.
   web-next:
+    # Keep this display name EXACTLY as the branch-protection required check
+    # expects ("Next.js typecheck + build (frozen prototype)"); renaming the
+    # job orphans that required status → it stays "Expected" forever and blocks
+    # merge. The job also runs e2e + a Docker smoke build (see steps below);
+    # the name stays terse only to match the protected-check string.
     name: Next.js typecheck + build (frozen prototype)
     runs-on: ubuntu-latest
     steps:
@@ -192,3 +201,24 @@ jobs:
       - name: Build
         working-directory: web-next
         run: npm run build
+
+      - name: Install Playwright browsers (chromium)
+        working-directory: web-next
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests (Playwright, mocked backend)
+        working-directory: web-next
+        run: npm run test:e2e
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (smoke, no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: web-next
+          push: false
+          load: true
+          tags: argo-web-next:ci
+          cache-from: type=gha,scope=web-next
+          cache-to: type=gha,mode=max,scope=web-next

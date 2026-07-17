@@ -8,13 +8,33 @@ import type {
   GraphData,
   Job,
 } from "./types";
+import { getCsrfToken, resetCsrfToken } from "./session";
+
+// Metodi che il backend Python gate-a dietro il controllo CSRF
+// (require_auth() in web.py confronta X-CSRF-Token contro session["csrf"]).
+// GET/HEAD non lo richiedono.
+const STATE_CHANGING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method || "GET").toUpperCase();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+  if (STATE_CHANGING_METHODS.has(method)) {
+    headers["X-CSRF-Token"] = await getCsrfToken();
+  }
   const res = await fetch(path, {
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
     ...init,
+    headers,
   });
+  if (res.status === 403 && STATE_CHANGING_METHODS.has(method)) {
+    // Il token in cache potrebbe essere di una sessione scaduta/ruotata —
+    // scartalo così la prossima richiesta ne recupera uno fresco invece di
+    // ripetere all'infinito lo stesso 403.
+    resetCsrfToken();
+  }
   if (!res.ok) {
     let detail = "";
     try {

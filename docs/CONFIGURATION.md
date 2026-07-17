@@ -26,6 +26,34 @@ python -c "import os,hashlib; s=os.urandom(16); h=hashlib.pbkdf2_hmac('sha256',b
 
 Set `ARGO_ADMIN_USER` alongside it. Both are required to unlock admin-only tools.
 
+### RBAC — persistent admin role
+
+The shared `ARGO_ADMIN_USER`/`ARGO_ADMIN_PASSWORD_HASH` secret above unlocks admin features for **one session at a time** — every browser tab, every login, re-enter the password. Each Argo account also carries a persistent `role` (`analyst`, the default, or `admin`), checked on every admin-gated request (`session_is_admin()` in `web.py`) alongside the legacy unlock, so an account only ever needs to be promoted once.
+
+Assigning the role is a **local CLI command, not a web endpoint** — deliberately: granting admin is an operator action that requires shell access to the machine Argo runs on, the same trust boundary as generating the password hash above. There is no "an admin can promote other users over the web" surface in Argo by design.
+
+```bash
+argo-set-role alice admin          # dry run: shows current vs requested role
+argo-set-role alice admin --yes    # applies it
+argo-set-role alice analyst --yes  # demote
+```
+
+Takes effect on the account's very next request — no service restart, since the role is read from storage per-request rather than cached in the session. `POST /api/admin/unlock` (the shared-secret path above) is unchanged by this and keeps working exactly as before, independent of any account's role — it stays the break-glass path if you never assign roles at all.
+
+## Google Sign-In (optional, additional login door)
+
+Argo's normal signup/login (email + password) always works and is never removed by this. Setting `GOOGLE_OAUTH_CLIENT_ID` adds a "Sign in with Google" button alongside it — nothing else changes for existing password accounts.
+
+1. Install the extra: `pip install -e ".[auth]"` (adds `google-auth` + `requests`; without it the login endpoint answers `501` even if the client ID is set).
+2. In [Google Cloud Console](https://console.cloud.google.com/), create (or pick) a project, then **APIs & Services → Credentials → Create Credentials → OAuth client ID → Web application**.
+3. Under **Authorized JavaScript origins**, add the exact origin Argo is served from (e.g. `https://argo-cloud.duckdns.org`, no trailing slash). Under **Authorized redirect URIs** you can leave it empty — this flow uses Google Identity Services' one-tap/button credential callback, not a server-side redirect.
+4. Copy the generated **Client ID** (ends in `.apps.googleusercontent.com`) into `GOOGLE_OAUTH_CLIENT_ID`. The Client ID is not a secret — it ends up embedded in the page's JS either way — but there is no Client *Secret* to configure: token verification happens by checking Google's signature, not by a server-to-server exchange.
+5. Restart the service. `GET /api/auth/status` now reports `google_login_enabled: true` and the button appears.
+
+First-time sign-in with a Google account Argo hasn't seen before auto-creates a user (already email-verified, since Google verified it) with no usable password — that account can only ever sign in via Google afterward. This is intentional, not a gap: password login stays impossible for it by construction (`verify_password` fails closed on an unset password hash).
+
+Admin metrics (`/api/admin/stats`, behind the admin unlock above) include a per-user login history table: username, email, login method (password/Google), total logins, and last login timestamp — sourced from the existing audit chain, no separate tracking table.
+
 ## Storage
 
 **Default (zero-config): SQLite** under `$OSINT_JOB_DIR` — nothing to set up, fine for a single analyst or evaluation (this is what runs if `DATABASE_URL` is unset).

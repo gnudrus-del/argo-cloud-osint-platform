@@ -58,6 +58,8 @@ Ogni dato utile deve diventare un `Finding` con:
 
 Non trasformare dork, ipotesi o semplici query in fatti. Il report separa fatti osservati, inferenze e ipotesi operative: il plugin deve fornire evidenze, non conclusioni non supportate.
 
+Per come assegnare `confidence`, `source_reliability`/`info_credibility` (grado Admiralty/NATO) e `severity` in modo coerente con gli altri 66 connettori — non "a sensazione" — vedi [`METHODOLOGY.md`](METHODOLOGY.md).
+
 ## Guardrail obbligatori
 
 - Le azioni passive devono essere default.

@@ -57,6 +57,13 @@ from .forensic_report import (
 from .forensic_report import (
     to_markdown as forensic_to_markdown,
 )
+from .google_auth import (
+    GoogleTokenError,
+    google_client_id,
+    google_login_enabled,
+    username_from_email,
+    verify_google_id_token,
+)
 from .high_risk import audit_event_payload as high_risk_audit
 from .high_risk import detect_high_risk
 from .job_queue import JobSpec
@@ -523,12 +530,12 @@ class OsintHandler(BaseHTTPRequestHandler):
             if path == "/api/capabilities":
                 self.require_auth()
                 sess = current_session(self)
-                unlocked = bool(sess and sess.get("admin_unlocked"))
+                unlocked = session_is_admin(sess)
                 return self.send_json(capabilities(actor_from_request(self), admin_unlocked=unlocked))
             if path == "/api/tools/health":
                 self.require_auth()
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     # Non-admin: rispondiamo senza svelare la lista tool.
                     raise WebError(HTTPStatus.FORBIDDEN, "Elenco tool riservato agli amministratori.")
                 return self.send_json({"tools": all_tools_health()})
@@ -536,7 +543,7 @@ class OsintHandler(BaseHTTPRequestHandler):
                 # La lista chiavi API è a sua volta segreto di piattaforma.
                 self.require_auth()
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per gestire le chiavi API.")
                 actor = actor_from_request(self)
                 return self.send_json({"keys": get_storage().list_api_keys(actor), "catalog": api_key_catalog_for(actor)})
@@ -567,7 +574,7 @@ class OsintHandler(BaseHTTPRequestHandler):
             if path == "/api/connectors":
                 self.require_auth()
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN,
                                    "Catalogo connettori riservato agli amministratori.")
                 return self.send_json({"connectors": CONNECTOR_REGISTRY.catalog()})
@@ -577,7 +584,7 @@ class OsintHandler(BaseHTTPRequestHandler):
             if path == "/api/admin/stats":
                 self.require_auth()
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN,
                                    "Statistiche di piattaforma riservate all'amministratore.")
                 return self.send_json(admin_stats())
@@ -593,6 +600,13 @@ class OsintHandler(BaseHTTPRequestHandler):
                 self.require_auth()
                 actor = actor_from_request(self)
                 return self.send_json(get_privacy_log(actor))
+            if path == "/api/admin/privacy/pending":
+                self.require_auth()
+                sess = current_session(self)
+                if not session_is_admin(sess):
+                    raise WebError(HTTPStatus.FORBIDDEN,
+                                   "Approvazione cancellazioni riservata all'amministratore.")
+                return self.send_json(handle_admin_privacy_pending())
             return self.serve_static(path)
         except WebError as exc:
             self.send_json({"error": exc.message}, exc.status)
@@ -610,6 +624,8 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.handle_signup()
             if path == "/api/auth/login":
                 return self.handle_login()
+            if path == "/api/auth/google":
+                return self.handle_google_login()
             if path == "/api/auth/logout":
                 session = current_session(self)
                 if session:
@@ -641,6 +657,27 @@ class OsintHandler(BaseHTTPRequestHandler):
                     {"username": username, "feature": "aggressive_hunt+tool_reveal"},
                 )
                 return self.send_json({"unlocked": True})
+            if path == "/api/admin/privacy/approve":
+                sess = current_session(self)
+                if not session_is_admin(sess):
+                    raise WebError(HTTPStatus.FORBIDDEN,
+                                   "Approvazione cancellazioni riservata all'amministratore.")
+                payload = self.read_json()
+                request_id = str((payload or {}).get("request_id", "")).strip()
+                return self.send_json(
+                    handle_admin_privacy_approve(actor_from_request(self), request_id)
+                )
+            if path == "/api/admin/privacy/reject":
+                sess = current_session(self)
+                if not session_is_admin(sess):
+                    raise WebError(HTTPStatus.FORBIDDEN,
+                                   "Rifiuto cancellazioni riservato all'amministratore.")
+                payload = self.read_json()
+                request_id = str((payload or {}).get("request_id", "")).strip()
+                note = str((payload or {}).get("note", "")).strip()
+                return self.send_json(
+                    handle_admin_privacy_reject(actor_from_request(self), request_id, note)
+                )
             if path == "/api/plan":
                 payload = self.read_json()
                 profile = build_profile(payload)
@@ -690,7 +727,7 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.send_json(client.search(query, size=size, case_id=case_id))
             if path == "/api/keys":
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per gestire le chiavi API.")
                 payload = self.read_json()
                 actor = actor_from_request(self)
@@ -711,7 +748,7 @@ class OsintHandler(BaseHTTPRequestHandler):
                 return self.send_json({"keys": store.list_api_keys(actor), "catalog": api_key_catalog_for(actor)})
             if path == "/api/keys/test":
                 sess = current_session(self)
-                if not (sess and sess.get("admin_unlocked")):
+                if not session_is_admin(sess):
                     raise WebError(HTTPStatus.FORBIDDEN, "Sblocca con la password amministratore per testare le chiavi API.")
                 # Test on-demand di una chiave (NON la salva, solo verifica).
                 # Usa la chiave già salvata se non viene fornita "value" nel payload.
@@ -1013,6 +1050,58 @@ class OsintHandler(BaseHTTPRequestHandler):
         store = get_storage()
         store.append_audit_event(username, "login_success", {
             "remote_ip": self.client_address[0],
+            "method": "password",
+        })
+        return self.start_session(username)
+
+    def handle_google_login(self) -> None:
+        """Sign-in with Google — additional login door onto the same user table.
+
+        First-time Google sign-in auto-provisions a user (already
+        email-verified by Google, no usable password: password login stays
+        impossible for that account since ``verify_password`` fails closed
+        on an empty/malformed stored hash).
+        """
+        if not google_login_enabled():
+            raise WebError(HTTPStatus.NOT_FOUND, "Login Google non configurato.")
+        payload = self.read_json()
+        credential = str(payload.get("credential", ""))
+        try:
+            identity = verify_google_id_token(credential)
+        except GoogleTokenError as exc:
+            raise WebError(HTTPStatus.UNAUTHORIZED, str(exc)) from exc
+
+        store = get_storage()
+        users = load_users()
+        username = next(
+            (u.get("username", "") for u in users.values()
+             if (u.get("email") or "").lower() == identity.email
+             and not u.get("disabled")),
+            "",
+        )
+        is_new = not username
+        if is_new:
+            username = username_from_email(identity.email, set(users.keys()))
+            users[username] = {
+                "username": username,
+                "email": identity.email,
+                "password": "",  # no password set — Google is the only login door
+                "plan": "free",
+                "created_at": now_iso(),
+                "disabled": False,
+                "verified": True,  # Google already verified the email
+                "verified_at": now_iso(),
+                "auth_provider": "google",
+                "google_sub": identity.google_sub,
+            }
+            save_users(users)
+            store.append_audit_event(username, "user_signup", {
+                "email": identity.email, "method": "google",
+            })
+
+        store.append_audit_event(username, "login_success", {
+            "remote_ip": self.client_address[0],
+            "method": "google",
         })
         return self.start_session(username)
 
@@ -1529,15 +1618,39 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         # Difesa clickjacking (retrocompatibile con CSP frame-ancestors 'none').
         self.send_header("X-Frame-Options", "DENY")
         # Isolamento cross-origin: previene attacchi Spectre-like e leaks.
-        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        # Google Identity Services apre un popup che deve fare postMessage verso
+        # la finestra madre; con COOP "same-origin" il riferimento all'opener
+        # viene reciso e il login Google si blocca. Rilassiamo a
+        # "same-origin-allow-popups" SOLO quando il login Google è configurato;
+        # senza Google la postura resta "same-origin" (stretta come prima).
+        google_on = google_login_enabled()
+        self.send_header(
+            "Cross-Origin-Opener-Policy",
+            "same-origin-allow-popups" if google_on else "same-origin",
+        )
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        self.send_header(
-            "Content-Security-Policy",
-            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
-            "connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
-        )
+        if google_on:
+            # Google Identity Services carica il proprio script, inietta stili,
+            # apre un iframe e scambia il token coi suoi endpoint /gsi/. Whitelist
+            # minima dei domini Google documentati, aggiunta SOLO con Google attivo
+            # (https://developers.google.com/identity/gsi/web/guides/csp).
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' https://accounts.google.com/gsi/client; "
+                "style-src 'self' https://accounts.google.com/gsi/style; "
+                "img-src 'self' data:; "
+                "connect-src 'self' https://accounts.google.com/gsi/; "
+                "frame-src https://accounts.google.com/gsi/; "
+                "object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+            )
+        else:
+            csp = (
+                "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+                "connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+            )
+        self.send_header("Content-Security-Policy", csp)
         if hasattr(self, "_pending_cookie"):
             self.send_header("Set-Cookie", self._pending_cookie)
             delattr(self, "_pending_cookie")
@@ -2368,15 +2481,27 @@ def capabilities(actor: str = "", admin_unlocked: bool = False) -> dict:
     }
 
 
+def _auth_capability_fields() -> dict:
+    # google_client_id is not a secret — it's meant to be embedded in
+    # frontend JS (Google Identity Services reads it from the page).
+    enabled = google_login_enabled()
+    return {
+        "signup_enabled": SIGNUPS_ENABLED,
+        "google_login_enabled": enabled,
+        "google_client_id": google_client_id() if enabled else "",
+    }
+
+
 def auth_status(handler: OsintHandler) -> dict:
     session = current_session(handler)
     if not session:
-        return {"authenticated": False, "signup_enabled": SIGNUPS_ENABLED}
+        return {"authenticated": False, **_auth_capability_fields()}
     user = load_users().get(session["username"])
     if not user:
         SESSION_STORE.delete(session["id"])
-        return {"authenticated": False, "signup_enabled": SIGNUPS_ENABLED}
-    return {"authenticated": True, "user": public_user(user), "csrf": session["csrf"], "signup_enabled": SIGNUPS_ENABLED}
+        return {"authenticated": False, **_auth_capability_fields()}
+    return {"authenticated": True, "user": public_user(user), "csrf": session["csrf"],
+            **_auth_capability_fields()}
 
 
 def current_session(handler: OsintHandler) -> dict | None:
@@ -2395,6 +2520,33 @@ def current_session(handler: OsintHandler) -> dict | None:
         return None
     SESSION_STORE.touch(session_id, time.time())
     return session
+
+
+def session_is_admin(sess: dict | None) -> bool:
+    """RBAC check: is this session admin-privileged?
+
+    True via either door:
+      - The legacy per-session unlock (POST /api/admin/unlock with
+        ARGO_ADMIN_USER/ARGO_ADMIN_PASSWORD_HASH) -- unchanged, still the
+        only way to get admin access for operators who never assign roles.
+        This endpoint has no side effect on any account's persistent role.
+      - A persistent 'admin' role on the logged-in account. There is no web
+        endpoint that sets this -- by design, the only way to assign it is
+        the local ``argo-set-role <username> admin --yes`` CLI command
+        (osint_bot/cli_set_role.py), which requires shell access to the
+        host running Argo. No account, admin or otherwise, can grant the
+        role to another account over the web.
+
+    A DB lookup on every gated request is deliberate over caching the role
+    in the session: a demotion via the CLI takes effect on that user's very
+    next request, not only after their session expires and they log back in.
+    """
+    if not sess:
+        return False
+    if sess.get("admin_unlocked"):
+        return True
+    user = load_users().get(sess.get("username", ""))
+    return bool(user and user.get("role") == "admin")
 
 
 def load_users() -> dict:
@@ -2486,6 +2638,10 @@ def public_user(user: dict) -> dict:
         "username": user.get("username", ""),
         "plan": user.get("plan", "free"),
         "created_at": user.get("created_at", ""),
+        # Persistent RBAC role ('analyst' default, 'admin' set only via the
+        # argo-set-role CLI — see session_is_admin()). Informational for the
+        # frontend; the server-side gate never trusts a client-supplied role.
+        "role": user.get("role", "analyst"),
     }
 
 
@@ -2671,6 +2827,35 @@ def admin_stats() -> dict:
                   if e.get("action") == "login_success" and e.get("timestamp", "") >= day_ago}
     signups_7d = sum(1 for e in events
                      if e.get("action") == "user_signup" and e.get("timestamp", "") >= week_ago)
+    # Storico accessi per utente: chi, quando (ultimo), quante volte, con che
+    # metodo (password/google) — costruito dagli stessi eventi login_success
+    # gia' letti sopra, nessuna query aggiuntiva.
+    # Two logins in the same second share an identical second-resolution
+    # timestamp string, so sorting/picking "most recent" by that string alone
+    # is ambiguous. ``events`` is already seq-ordered (Storage.all_audit_events:
+    # ORDER BY seq ASC) — use each event's position in that list as a tie-free
+    # recency rank instead.
+    login_events_by_user: dict[str, list[tuple[int, dict]]] = {}
+    for idx, e in enumerate(events):
+        if e.get("action") == "login_success":
+            login_events_by_user.setdefault(e.get("actor", ""), []).append((idx, e))
+    logins_detail = []
+    for uname, user in users.items():
+        user_logins = login_events_by_user.get(uname, [])
+        last_idx, last_event = user_logins[-1] if user_logins else (-1, None)
+        logins_detail.append({
+            "username": uname,
+            "email": user.get("email", ""),
+            "login_count": len(user_logins),
+            "last_login": last_event.get("timestamp", "") if last_event else "",
+            "last_method": (last_event.get("details") or {}).get("method", "") if last_event else "",
+            "provider": user.get("auth_provider", "password"),
+            "role": user.get("role", "analyst"),
+            "_recency_rank": last_idx,
+        })
+    logins_detail.sort(key=lambda d: d["_recency_rank"], reverse=True)
+    for row in logins_detail:
+        del row["_recency_rank"]
     # Job aggregati per stato
     jobs = store.list_jobs(limit=10_000)
     by_status: dict[str, int] = {}
@@ -2687,6 +2872,7 @@ def admin_stats() -> dict:
             "active_24h": len(logins_24h),
             "signups_7d": signups_7d,
         },
+        "logins": logins_detail,
         "jobs": {
             "total": len(jobs),
             "by_status": by_status,
@@ -2994,54 +3180,132 @@ def handle_privacy_dsar(actor: str) -> dict:
 
 
 def handle_privacy_erase(actor: str, payload: dict) -> dict:
-    """GDPR art. 17 — right to erasure.
+    """GDPR art. 17 — richiesta di cancellazione (NON più self-service).
 
-    Executes a **real** atomic deletion instead of just logging a promise —
-    the actual redaction/tombstone/deletion logic lives in
-    ``Storage.erase_actor_data`` (SQLite) / ``PostgresStorage.erase_actor_data``
-    (Postgres), one implementation per backend in its own dialect, mirroring
-    how ``append_audit_event`` is already split per-backend. This function
-    only logs the request and formats the response.
+    Registra una richiesta 'pending' e ritorna: la cancellazione reale non
+    parte da qui. Un amministratore deve approvarla
+    (``POST /api/admin/privacy/approve``) — solo allora
+    ``Storage.erase_actor_data`` esegue la redazione/tombstone/delete atomico.
+    In alternativa l'admin può rifiutarla (``/reject``). Questo mette il
+    titolare del trattamento nel loop invece di lasciare che ogni utente
+    cancelli il proprio profilo (e i dati collegati) senza controllo.
 
-    The whole erasure is atomic; if any step fails inside
-    ``erase_actor_data`` the deletion is rolled back and the actor's account
-    is left intact.
+    Il flusso di esecuzione atomico resta identico a prima, solo spostato
+    dentro ``handle_admin_privacy_approve``.
     """
     reason = str(payload.get("reason", "")).strip()[:500]
     rec = _log_privacy_request(actor, "erase", reason)
-    LOG.warning("privacy.erase_request actor=%s request_id=%s reason=%s",
+    LOG.warning("privacy.erase_requested actor=%s request_id=%s reason=%s",
                 actor, rec["id"], reason[:80])
+    try:
+        get_storage().append_audit_event(
+            actor, "privacy_erase_requested",
+            {"request_id": rec["id"], "reason": reason[:200]},
+        )
+    except Exception:  # pragma: no cover - audit best-effort
+        LOG.exception("privacy.erase_request_audit_failed request_id=%s", rec["id"])
+    return {
+        "status": "pending",
+        "request_id": rec["id"],
+        "message": (
+            f"Richiesta di cancellazione registrata (ID {rec['id']}). "
+            f"Sarà eseguita solo dopo l'approvazione di un amministratore."
+        ),
+    }
+
+
+def handle_admin_privacy_pending() -> dict:
+    """Vista amministratore: richieste di cancellazione ('erase') in attesa di
+    approvazione, di TUTTI gli utenti. Riservata all'admin dal routing."""
+    reqs = get_storage().list_privacy_requests_admin(status="pending", req_type="erase")
+    return {"pending": reqs}
+
+
+def handle_admin_privacy_approve(admin_actor: str, request_id: str) -> dict:
+    """Approva ed ESEGUE la cancellazione richiesta da un utente.
+
+    Agisce solo sul proprietario registrato nella richiesta (un utente può
+    chiedere solo la cancellazione dei PROPRI dati), e solo se la richiesta è
+    di tipo 'erase' ancora 'pending'. La cancellazione reale/atomica resta in
+    ``erase_actor_data``. Registra chi ha approvato nella catena audit.
+    """
+    request_id = (request_id or "").strip()
+    req = get_storage().get_privacy_request(request_id)
+    if not req or req.get("type") != "erase":
+        raise WebError(HTTPStatus.NOT_FOUND, "Richiesta di cancellazione non trovata.")
+    if req.get("status") != "pending":
+        raise WebError(HTTPStatus.CONFLICT, "Richiesta già gestita.")
+    owner = req["owner"]
+    # Evento di approvazione PRIMA della cancellazione: erase_actor_data
+    # redigerà comunque l'identificativo del proprietario anche qui, ma il
+    # request_id + l'admin approvante restano nella catena come prova.
+    try:
+        get_storage().append_audit_event(
+            admin_actor, "privacy_erase_approved",
+            {"request_id": request_id, "owner": owner},
+        )
+    except Exception:  # pragma: no cover - audit best-effort
+        LOG.exception("privacy.erase_approve_audit_failed request_id=%s", request_id)
 
     redacted_placeholder = f"[REDACTED-DSAR-{now_iso()[:10]}]"
     try:
         result = get_storage().erase_actor_data(
-            actor, request_id=rec["id"], redacted_placeholder=redacted_placeholder,
+            owner, request_id=request_id, redacted_placeholder=redacted_placeholder,
         )
-        LOG.warning(
-            "privacy.erase_completed actor_hash=%s request_id=%s tombstone=%s "
-            "redacted_events=%d deleted=%s",
-            result["selector_sha256"][:16], rec["id"], result["tombstone_id"],
-            result["redacted_events_count"], result["deleted_counts"],
-        )
-        return {
-            "status": "ok",
-            "message": (
-                f"Cancellazione eseguita (richiesta {rec['id']}). "
-                f"Tombstone: {result['tombstone_id']}. L'account non è più recuperabile "
-                f"dal filesystem attivo; eventuali backup restano soggetti "
-                f"alla policy di rotazione del datastore."
-            ),
-            "request_id": rec["id"],
-            "tombstone_id": result["tombstone_id"],
-            "selector_sha256": result["selector_sha256"],
-            "erased_at": result["erased_at"],
-        }
     except Exception as exc:
-        LOG.exception("privacy.erase_failed actor=%s request_id=%s", actor, rec["id"])
+        LOG.exception("privacy.erase_approve_failed request_id=%s owner=%s", request_id, owner)
         return {
             "status": "error",
-            "message": f"Cancellazione fallita (ID {rec['id']}): {exc}. Nessun dato è stato modificato.",
+            "message": (
+                f"Cancellazione fallita (ID {request_id}): {exc}. "
+                f"Nessun dato è stato modificato."
+            ),
         }
+    LOG.warning(
+        "privacy.erase_approved by=%s owner_hash=%s request_id=%s tombstone=%s deleted=%s",
+        admin_actor, result["selector_sha256"][:16], request_id,
+        result["tombstone_id"], result["deleted_counts"],
+    )
+    return {
+        "status": "ok",
+        "message": (
+            f"Cancellazione dell'account '{owner}' approvata ed eseguita "
+            f"(richiesta {request_id}). Tombstone: {result['tombstone_id']}. "
+            f"L'account non è più recuperabile dal filesystem attivo."
+        ),
+        "request_id": request_id,
+        "owner": owner,
+        "tombstone_id": result["tombstone_id"],
+        "selector_sha256": result["selector_sha256"],
+        "erased_at": result["erased_at"],
+    }
+
+
+def handle_admin_privacy_reject(admin_actor: str, request_id: str, note: str = "") -> dict:
+    """Rifiuta una richiesta di cancellazione: la marca 'rejected' con l'admin
+    che l'ha gestita e registra l'evento in audit. Nessun dato viene toccato;
+    l'utente vede la richiesta come rifiutata nel proprio log privacy."""
+    request_id = (request_id or "").strip()
+    note = (note or "").strip()[:500]
+    req = get_storage().get_privacy_request(request_id)
+    if not req or req.get("type") != "erase":
+        raise WebError(HTTPStatus.NOT_FOUND, "Richiesta di cancellazione non trovata.")
+    if req.get("status") != "pending":
+        raise WebError(HTTPStatus.CONFLICT, "Richiesta già gestita.")
+    get_storage().resolve_privacy_request(request_id, "rejected", admin_actor)
+    try:
+        get_storage().append_audit_event(
+            admin_actor, "privacy_erase_rejected",
+            {"request_id": request_id, "owner": req["owner"], "note": note[:200]},
+        )
+    except Exception:  # pragma: no cover - audit best-effort
+        LOG.exception("privacy.erase_reject_audit_failed request_id=%s", request_id)
+    LOG.warning("privacy.erase_rejected by=%s request_id=%s", admin_actor, request_id)
+    return {
+        "status": "ok",
+        "message": f"Richiesta di cancellazione {request_id} rifiutata.",
+        "request_id": request_id,
+    }
 
 
 # ------------------------------------------------------------------------

@@ -11,7 +11,7 @@
 [![Bilingual](https://img.shields.io/badge/UI-IT%20%2F%20EN-f5b740)](docs/README.it.md)
 [![Live demo](https://img.shields.io/badge/live_demo-argo--cloud.duckdns.org-orange)](https://argo-cloud.duckdns.org)
 
-Argo runs entirely on your infrastructure. It aggregates public sources (63 native connectors, key-free and BYOK), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. UI and connector output are bilingual (Italian / English). No telemetry, no cloud dependency, no vendor lock-in.
+Argo runs entirely on your infrastructure. It aggregates public sources (66 native connectors, key-free and BYOK, all queried together in every search — not a curated subset), keeps a SHA-256 audit chain of every finding, and produces reports in Markdown, JSON, PDF, STIX 2.1 and MISP formats. UI and connector output are bilingual (Italian / English). No telemetry, no cloud dependency, no vendor lock-in.
 
 ---
 
@@ -71,7 +71,7 @@ Existing OSINT SaaS tools work well until you cannot send your case data to a th
 - **Case-based investigations** — every query lives in a case with scope, Rules of Engagement, and DSAR (GDPR) endpoints.
 - **Privacy-by-design target handling** — personal targets require an explicit legal basis; contacts are redacted by default.
 - **BYOK provider model** — 15 optional providers (Shodan, VirusTotal, HIBP, SecurityTrails, etc.) use *your* API keys, never intermediated. Three additional providers (EmailRep, IPinfo, OpenCorporates) work without a key but return richer results if one is configured.
-- **63 native connectors** — 46 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, cloud bucket exposure, email security posture, infostealer breach corpus, and more) + 17 BYOK.
+- **66 native connectors** — 49 key-free (crt.sh, RDAP, DNS, TLS certs, Wayback, Gravatar, GDELT, Nominatim, PhishTank, holehe, maigret, subdomain enumeration, cloud bucket exposure, email security posture, infostealer breach corpus, RIPEstat, HackerTarget reverse-IP, Wikipedia, and more) + 17 BYOK. All connectors matching the search's target type run together, in parallel, on every job — not a keyword-triggered subset.
 - **Sourced findings** — every finding carries evidence URLs, timestamps and confidence scoring.
 - **Audit chain (SHA-256)** — every event (login, search, finding, deletion) is appended to a hash-chained log. Tampering with a past event invalidates every subsequent hash. Same pattern as Certificate Transparency and Git.
 - **Signed report seals (Ed25519, always on)** — every completed job is automatically sealed: evidence and report files are hashed into a manifest, signed with the instance's Ed25519 key, and recorded in the audit chain. Optional RFC3161 trusted timestamping against a TSA you configure (only a 32-byte SHA-256 digest ever leaves, never case content) closes the gap between "our own audit log says so" and independent, offline-verifiable proof — verify with `argo-verify-report` or standard tools (`openssl ts -verify`). See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for exactly what this does and does not prove.
@@ -461,7 +461,7 @@ Fill only what you have; missing keys are silently skipped (`missing_key` status
 6. **Export** — Markdown / JSON / PDF for humans; STIX 2.1 bundle + MISP event for TIP integration. `report_generated` event → audit chain.
 7. **DSAR (optional)** — subject rights: `privacy_requests` + `dsar_tombstones` tables record deletion/export with cryptographic proof-of-erasure.
 
-Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/CONNECTORS.md`](docs/CONNECTORS.md) · [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
+Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/CONNECTORS.md`](docs/CONNECTORS.md) · [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) · [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) (how confidence, source reliability, and severity are assigned to a finding).
 
 ---
 
@@ -525,7 +525,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md). Highlights of the near-term plan.
 
 **Frozen / experimental**
 
-- `web-next/` — Next.js prototype for graph visualization. Superseded by the production Python-served UI; kept as reference. See [`web-next/STATUS.md`](web-next/STATUS.md).
+- `web-next/` — Next.js prototype for graph visualization. Superseded by the production Python-served UI; kept as reference. Has CSRF protection and an opt-in Docker Compose profile (`docker compose --profile web-next up`) — still not promoted to production, decision tracked as issue `#H4`. See [`web-next/STATUS.md`](web-next/STATUS.md).
 
 ---
 

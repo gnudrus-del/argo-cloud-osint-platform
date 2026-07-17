@@ -49,6 +49,7 @@ from . import (
     google_pse,
     gravatar,
     greynoise,
+    hackertarget,
     hibp,
     holehe,
     holehe_native,
@@ -73,6 +74,7 @@ from . import (
     phone_meta,
     port_scan,
     rdap,
+    ripe_stat,
     sec_edgar,
     secret_scan,
     securitytrails,
@@ -90,6 +92,7 @@ from . import (
     virustotal,
     wayback,
     web_fingerprint,
+    wikipedia_search,
 )
 
 # Phase 18 — socid-extractor (URL profilo → ID/metadata social).
@@ -115,6 +118,7 @@ __all__ = [
     "darkweb_scan", "cloud_buckets",
     "email_security",
     "contactout", "lusha",
+    "ripe_stat", "hackertarget", "wikipedia_search",
     "build_default_registry",
 ]
 
@@ -214,4 +218,8 @@ def build_default_registry() -> ConnectorRegistry:
     # Phase 25 — ContactOut + Lusha (BYOK, LinkedIn/email → contatti personali).
     reg.register(contactout.ContactOutConnector())
     reg.register(lusha.LushaConnector())
+    # Phase 26 — RIPEstat, HackerTarget reverse-IP, Wikipedia (no-key).
+    reg.register(ripe_stat.RipeStatConnector())
+    reg.register(hackertarget.HackerTargetConnector())
+    reg.register(wikipedia_search.WikipediaSearchConnector())
     return reg

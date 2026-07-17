@@ -36,7 +36,10 @@ CREATE TABLE IF NOT EXISTS users (
     disabled INTEGER NOT NULL DEFAULT 0,
     email TEXT,
     verified INTEGER NOT NULL DEFAULT 0,
-    verified_at TEXT
+    verified_at TEXT,
+    auth_provider TEXT NOT NULL DEFAULT 'password',
+    google_sub TEXT,
+    role TEXT NOT NULL DEFAULT 'analyst'
 );
 
 CREATE TABLE IF NOT EXISTS jobs (
@@ -252,6 +255,8 @@ class Storage:
             boot.executescript(_SCHEMA)
             _migrate_jobs_case_id(boot)
             _migrate_users_email_verified(boot)
+            _migrate_users_auth_provider(boot)
+            _migrate_users_role(boot)
             _migrate_cases_allowed_targets(boot)
             _migrate_cases_ai_enrichment(boot)
         finally:
@@ -295,30 +300,34 @@ class Storage:
 
     def get_user(self, username: str) -> dict | None:
         row = self._conn().execute(
-            "SELECT username, password, plan, created_at, disabled, email, verified, verified_at "
-            "FROM users WHERE username = ?",
+            "SELECT username, password, plan, created_at, disabled, email, verified, verified_at, "
+            "auth_provider, google_sub, role FROM users WHERE username = ?",
             (username,),
         ).fetchone()
         return _row_to_user(row) if row else None
 
     def all_users(self) -> dict[str, dict]:
         rows = self._conn().execute(
-            "SELECT username, password, plan, created_at, disabled, email, verified, verified_at FROM users"
+            "SELECT username, password, plan, created_at, disabled, email, verified, verified_at, "
+            "auth_provider, google_sub, role FROM users"
         ).fetchall()
         return {row["username"]: _row_to_user(row) for row in rows}
 
     def put_user(self, user: dict) -> None:
         self._conn().execute(
             """
-            INSERT INTO users (username, password, plan, created_at, disabled, email, verified, verified_at)
-            VALUES (:username, :password, :plan, :created_at, :disabled, :email, :verified, :verified_at)
+            INSERT INTO users (username, password, plan, created_at, disabled, email, verified, verified_at, auth_provider, google_sub, role)
+            VALUES (:username, :password, :plan, :created_at, :disabled, :email, :verified, :verified_at, :auth_provider, :google_sub, :role)
             ON CONFLICT(username) DO UPDATE SET
                 password = excluded.password,
                 plan = excluded.plan,
                 disabled = excluded.disabled,
                 email = excluded.email,
                 verified = excluded.verified,
-                verified_at = excluded.verified_at
+                verified_at = excluded.verified_at,
+                auth_provider = excluded.auth_provider,
+                google_sub = excluded.google_sub,
+                role = excluded.role
             """,
             {
                 "username": user["username"],
@@ -329,6 +338,9 @@ class Storage:
                 "email": user.get("email") or None,
                 "verified": 1 if user.get("verified") else 0,
                 "verified_at": user.get("verified_at") or None,
+                "auth_provider": user.get("auth_provider", "password"),
+                "google_sub": user.get("google_sub") or None,
+                "role": user.get("role", "analyst"),
             },
         )
 
@@ -811,7 +823,8 @@ class Storage:
     _PRIVACY_ERASABLE_TABLES = ("artifacts", "roes", "jobs", "cases", "api_keys", "privacy_requests")
 
     def ensure_privacy_table(self) -> None:
-        self._conn().execute(
+        conn = self._conn()
+        conn.execute(
             """
             CREATE TABLE IF NOT EXISTS privacy_requests (
                 id TEXT PRIMARY KEY,
@@ -820,10 +833,19 @@ class Storage:
                 status TEXT NOT NULL DEFAULT 'pending',
                 reason TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL,
-                processed_at TEXT
+                processed_at TEXT,
+                resolved_by TEXT
             )
             """
         )
+        # Migrazione idempotente per DB creati prima della colonna resolved_by
+        # (traccia quale admin ha approvato/rifiutato una richiesta di
+        # cancellazione — vedi web.handle_admin_privacy_approve/reject).
+        if "resolved_by" not in self.table_columns("privacy_requests"):
+            try:
+                conn.execute("ALTER TABLE privacy_requests ADD COLUMN resolved_by TEXT")
+            except Exception:  # pragma: no cover - colonna già presente in gara
+                pass
 
     def log_privacy_request(self, record: dict) -> None:
         self.ensure_privacy_table()
@@ -846,6 +868,52 @@ class Storage:
         self._conn().execute(
             "UPDATE privacy_requests SET status = ?, processed_at = ? WHERE id = ?",
             ("processed", _now_iso(), request_id),
+        )
+
+    def get_privacy_request(self, request_id: str) -> dict | None:
+        """Una singola richiesta privacy per id (con owner), o None. Usata
+        dall'approvazione/rifiuto admin per risalire al proprietario e validare
+        stato/tipo prima di eseguire la cancellazione."""
+        self.ensure_privacy_table()
+        row = self._conn().execute(
+            "SELECT id, owner, type, status, reason, created_at, processed_at, resolved_by "
+            "FROM privacy_requests WHERE id = ?",
+            (request_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def list_privacy_requests_admin(
+        self, status: str | None = None, req_type: str | None = None, limit: int = 200
+    ) -> list[dict]:
+        """Richieste privacy di TUTTI i proprietari (vista admin), opzionalmente
+        filtrate per stato/tipo. Include la colonna owner, a differenza di
+        list_privacy_requests che è per singolo proprietario."""
+        self.ensure_privacy_table()
+        clauses: list[str] = []
+        params: list = []
+        if status is not None:
+            clauses.append("status = ?")
+            params.append(status)
+        if req_type is not None:
+            clauses.append("type = ?")
+            params.append(req_type)
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        params.append(limit)
+        rows = self._conn().execute(
+            "SELECT id, owner, type, status, reason, created_at, processed_at, resolved_by "
+            f"FROM privacy_requests {where} ORDER BY created_at DESC LIMIT ?",
+            tuple(params),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def resolve_privacy_request(self, request_id: str, status: str, resolved_by: str) -> None:
+        """Segna una richiesta come 'rejected' (o altro stato terminale) con
+        l'admin che l'ha gestita. L'approvazione di una cancellazione non passa
+        di qui: erase_actor_data cancella la riga stessa del proprietario."""
+        self.ensure_privacy_table()
+        self._conn().execute(
+            "UPDATE privacy_requests SET status = ?, processed_at = ?, resolved_by = ? WHERE id = ?",
+            (status, _now_iso(), resolved_by, request_id),
         )
 
     def table_columns(self, table: str) -> list[str]:
@@ -1328,6 +1396,30 @@ def _migrate_users_email_verified(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE users ADD COLUMN verified_at TEXT")
 
 
+def _migrate_users_auth_provider(conn: sqlite3.Connection) -> None:
+    """Add users.auth_provider/google_sub for Google Sign-In (opt-in, additional
+    login door alongside email+password). Pre-existing rows default to
+    'password' — their real (and only usable) login method already."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "auth_provider" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'password'")
+    if "google_sub" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN google_sub TEXT")
+
+
+def _migrate_users_role(conn: sqlite3.Connection) -> None:
+    """Add users.role (RBAC) — 'analyst' (default) or 'admin'.
+
+    Existing rows default to 'analyst': nobody is silently promoted by this
+    migration. The one already-privileged path (ARGO_ADMIN_USER +
+    ARGO_ADMIN_PASSWORD_HASH) keeps working unchanged and is what actually
+    promotes an account to 'admin' — see ``handle_admin_unlock`` in web.py.
+    """
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "role" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'analyst'")
+
+
 def _migrate_cases_allowed_targets(conn: sqlite3.Connection) -> None:
     """Add cases.allowed_targets per scope enforcement (round 6)."""
     cols = {row[1] for row in conn.execute("PRAGMA table_info(cases)").fetchall()}
@@ -1367,6 +1459,9 @@ def _row_to_user(row: sqlite3.Row) -> dict:
         "email": row["email"] if "email" in keys else None,
         "verified": bool(row["verified"]) if "verified" in keys else False,
         "verified_at": row["verified_at"] if "verified_at" in keys else None,
+        "auth_provider": row["auth_provider"] if "auth_provider" in keys else "password",
+        "google_sub": row["google_sub"] if "google_sub" in keys else None,
+        "role": row["role"] if "role" in keys else "analyst",
     }
 
 

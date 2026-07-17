@@ -602,6 +602,104 @@ class HumintAgent(BaseAgent):
         return AgentResult(name=self.name, status="ok", summary="Piano HUMINT etico generato.", findings=[finding], notes=notes)
 
 
+class ConnectorSweepAgent(BaseAgent):
+    """Runs every registered native connector whose ``input_types`` matches
+    the target, together, in one pass — not a curated subset picked by
+    keyword/target-type heuristics like ``choose_external_tools`` does for
+    CLI tools. This is deliberate: the connector registry (``connectors/``,
+    63+ pure-Python HTTP connectors) was previously invoked ONLY by the
+    manual single-connector UI panel (``POST /api/connectors/run``) and never
+    touched by the automated search pipeline — every job ran with zero of
+    them. Wiring this agent into ``ALWAYS_ON_AGENTS`` closes that gap.
+
+    Safety is unchanged, not widened: ``BaseConnector.run()`` still enforces
+    the RoE/case-scope policy gate (``policy.check_policy``) before every
+    call — passive connectors are permissive on an empty scope (exploratory
+    triage), active/PII/darkweb-gated ones are not. On top of that, this
+    agent pre-filters by the SAME opt-in flags the rest of the pipeline
+    already uses for the equivalent CLI tools/agents, so a plain search
+    never silently reaches for gated connectors just because a case happens
+    to carry scope:
+      - ``ACTION_DARKWEB_GATED``  -> requires ``context.allow_darkweb``
+      - ``ACTION_ACTIVE_GATED``   -> requires ``context.allow_network_scan``
+      - ``ACTION_PII_GATED``      -> requires ``context.include_contact``
+      - ``ACTION_PASSIVE``        -> always eligible (policy gate still applies)
+    """
+    name = "connectors"
+
+    def run(self, context: AgentContext) -> AgentResult:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        # Deferred imports: CONNECTOR_REGISTRY/resolve_api_key live in web.py,
+        # which imports this module transitively (web -> cli -> agents) --
+        # importing at module load time would cycle. By the time an agent's
+        # run() executes, web.py (or a CLI-only caller triggering the same
+        # lazy import) is already fully loaded. Same pattern used elsewhere
+        # in this codebase (e.g. connector.py's local `from .policy import`).
+        from .connector import (
+            ACTION_ACTIVE_GATED,
+            ACTION_DARKWEB_GATED,
+            ACTION_PII_GATED,
+            ConnectorContext,
+        )
+        from .web import CONNECTOR_REGISTRY, resolve_api_key
+
+        candidate_names = CONNECTOR_REGISTRY.by_input_type(context.target_type)
+        names: list[str] = []
+        for cname in candidate_names:
+            spec = CONNECTOR_REGISTRY.get(cname).spec
+            if spec.action_class == ACTION_DARKWEB_GATED and not context.allow_darkweb:
+                continue
+            if spec.action_class == ACTION_ACTIVE_GATED and not context.allow_network_scan:
+                continue
+            if spec.action_class == ACTION_PII_GATED and not context.include_contact:
+                continue
+            names.append(cname)
+
+        if not names:
+            return AgentResult(
+                name=self.name, status="skipped",
+                summary=f"Nessun connettore nativo applicabile a '{context.target_type}' con le autorizzazioni correnti.",
+            )
+
+        def _run_one(cname: str) -> tuple[str, object]:
+            ctx = ConnectorContext(
+                target=context.target,
+                target_type=context.target_type,
+                actor=context.actor or "system",
+                case_id=context.case_id or "",
+                api_key=resolve_api_key(cname, context.actor or ""),
+                timeout=min(context.timeout, 20) if context.timeout else 20,
+            )
+            return cname, CONNECTOR_REGISTRY.run(cname, ctx)
+
+        findings: list[Finding] = []
+        status_counts: dict[str, int] = {}
+        with ThreadPoolExecutor(max_workers=min(16, len(names))) as pool:
+            futures = [pool.submit(_run_one, cname) for cname in names]
+            for future in as_completed(futures):
+                try:
+                    _cname, result = future.result()
+                except Exception:
+                    status_counts["error"] = status_counts.get("error", 0) + 1
+                    continue
+                status_counts[result.status] = status_counts.get(result.status, 0) + 1
+                if result.status in ("ok", "cached"):
+                    findings.extend(result.findings)
+
+        ok_count = status_counts.get("ok", 0) + status_counts.get("cached", 0)
+        notes = [
+            "Connettori interrogati: " + ", ".join(f"{k}={v}" for k, v in sorted(status_counts.items())),
+        ]
+        return AgentResult(
+            name=self.name,
+            status="ok" if ok_count else "skipped",
+            summary=f"{ok_count}/{len(names)} connettori nativi hanno restituito dati per '{context.target}'.",
+            findings=findings,
+            notes=notes,
+        )
+
+
 def run_agents(context: AgentContext, requested_agents: list[str]) -> list[AgentResult]:
     registry: dict[str, BaseAgent] = {
         "planner": PlannerAgent(),
@@ -617,6 +715,7 @@ def run_agents(context: AgentContext, requested_agents: list[str]) -> list[Agent
         "humint": HumintAgent(),
         "reverse_account": ReverseAccountAgent(),
         "red_team": RedTeamAgent(),
+        "connectors": ConnectorSweepAgent(),
     }
     selected = list(registry) if "all" in requested_agents else requested_agents
     # Defense in depth: drop the darkweb agent before dispatch when the

@@ -163,6 +163,9 @@ async function boot() {
     $("appShell").classList.add("hidden");
     $("signupTab").disabled = !status.signup_enabled;
     if (!status.signup_enabled) setAuthMode("login");
+    if (status.google_login_enabled && status.google_client_id) {
+      setupGoogleSignIn(status.google_client_id);
+    }
     return;
   }
   state.user = status.user;
@@ -218,6 +221,59 @@ async function submitAuth() {
     state.user = data.user;
     state.csrf = data.csrf;
     $("authPass").value = "";
+    await boot();
+  } catch (error) {
+    $("authMessage").style.color = "";
+    $("authMessage").textContent = error.message;
+  }
+}
+
+// --- Google Sign-In (additional login door, alongside email+password) -----
+let _googleScriptPromise = null;
+
+function loadGoogleScript() {
+  if (_googleScriptPromise) return _googleScriptPromise;
+  _googleScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("Impossibile caricare Google Identity Services."));
+    document.head.appendChild(script);
+  });
+  return _googleScriptPromise;
+}
+
+async function setupGoogleSignIn(clientId) {
+  try {
+    await loadGoogleScript();
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) return;
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCredential,
+    });
+    $("googleAuthDivider").classList.remove("hidden");
+    $("googleAuthBox").classList.remove("hidden");
+    window.google.accounts.id.renderButton($("googleAuthBox"), {
+      theme: "outline", size: "large", width: 280,
+      text: "signin_with", locale: (window.I18N && window.I18N.get()) || "it",
+    });
+  } catch (err) {
+    // Feature-detect failure (e.g. offline, ad-blocker) — fail silently,
+    // the email+password form underneath still works.
+    console.warn("Google Sign-In non disponibile:", err.message);
+  }
+}
+
+async function handleGoogleCredential(response) {
+  try {
+    const data = await api("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential: response.credential }),
+    }, true, false);
+    state.user = data.user;
+    state.csrf = data.csrf;
     await boot();
   } catch (error) {
     $("authMessage").style.color = "";
@@ -840,7 +896,7 @@ function renderEntityGraph(report) {
   const links = relationships
     .filter((link) => nodeIds.has(link.source) && nodeIds.has(link.target))
     .slice(0, 70);
-  const positioned = positionNodes(nodes, 900, 360);
+  const positioned = positionNodes(nodes, links, 900, 360);
   const byId = Object.fromEntries(positioned.map((node) => [node.id, node]));
 
   const linkMarkup = links.map((link) => {
@@ -945,25 +1001,84 @@ function graphRank(entity) {
   return roleBoost + (priority[entity.type] ?? 20) - Number(entity.confidence || 0);
 }
 
-function positionNodes(nodes, width, height) {
+// Force-directed layout (Fruchterman-Reingold-style spring embedder), pure
+// JS, no external library — keeps with the platform's zero-third-party-CDN
+// design. Replaces the old fixed two-ring layout, which placed nodes purely
+// by array index and completely ignored `links`: with up to 34 nodes and 70
+// relationships that produced an unreadable "hairball" where connected
+// nodes could land on opposite sides of the circle. This actually pulls
+// linked nodes together and pushes everything else apart.
+function positionNodes(nodes, links, width, height) {
   if (!nodes.length) return [];
+  const n = nodes.length;
   const centerX = width / 2;
   const centerY = height / 2;
-  const radiusX = width * 0.38;
-  const radiusY = height * 0.31;
-  return nodes.map((node, index) => {
-    if (index === 0) {
-      return { ...node, x: centerX, y: centerY, radius: 24 };
+  const margin = 34;
+
+  // Seed on a circle (not all-at-origin, which would give the repulsion
+  // force a 0/0 direction to resolve on the first iteration).
+  const seedR = Math.min(width, height) * 0.32;
+  const pos = nodes.map((node, i) => ({
+    ...node,
+    x: centerX + Math.cos((i / n) * Math.PI * 2) * seedR,
+    y: centerY + Math.sin((i / n) * Math.PI * 2) * seedR,
+    vx: 0, vy: 0,
+  }));
+  const indexById = Object.fromEntries(pos.map((p, i) => [p.id, i]));
+  const edges = links
+    .map((l) => [indexById[l.source], indexById[l.target]])
+    .filter(([a, b]) => a !== undefined && b !== undefined && a !== b);
+
+  const REPULSION = 2600;
+  const SPRING = 0.02;
+  const SPRING_LEN = 92;
+  const CENTER_PULL = 0.01;
+  const TARGET_PULL = 0.05; // extra pull so the pivot entity (index 0) anchors near the middle
+  const DAMPING = 0.85;
+  const ITERATIONS = 220;
+
+  for (let iter = 0; iter < ITERATIONS; iter++) {
+    // Repulsion between every pair. n is capped at 34 (selectGraphEntities),
+    // so O(n^2) is at most ~560 pair checks per iteration — cheap.
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const dx = pos[i].x - pos[j].x;
+        const dy = pos[i].y - pos[j].y;
+        const distSq = Math.max(dx * dx + dy * dy, 0.01);
+        const dist = Math.sqrt(distSq);
+        const force = REPULSION / distSq;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        pos[i].vx += fx; pos[i].vy += fy;
+        pos[j].vx -= fx; pos[j].vy -= fy;
+      }
     }
-    const angle = ((index - 1) / Math.max(1, nodes.length - 1)) * Math.PI * 2 - Math.PI / 2;
-    const ringOffset = index % 2 === 0 ? 1 : 0.78;
-    return {
-      ...node,
-      x: Math.round(centerX + Math.cos(angle) * radiusX * ringOffset),
-      y: Math.round(centerY + Math.sin(angle) * radiusY * ringOffset),
-      radius: 16,
-    };
-  });
+    // Spring attraction along real relationships.
+    for (const [a, b] of edges) {
+      const dx = pos[b].x - pos[a].x;
+      const dy = pos[b].y - pos[a].y;
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 0.01);
+      const force = SPRING * (dist - SPRING_LEN);
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      pos[a].vx += fx; pos[a].vy += fy;
+      pos[b].vx -= fx; pos[b].vy -= fy;
+    }
+    // Weak centering (everyone) + integrate + damp + clamp to canvas.
+    for (let i = 0; i < n; i++) {
+      const pull = i === 0 ? TARGET_PULL : CENTER_PULL;
+      pos[i].vx += (centerX - pos[i].x) * pull;
+      pos[i].vy += (centerY - pos[i].y) * pull;
+      pos[i].vx *= DAMPING; pos[i].vy *= DAMPING;
+      pos[i].x += pos[i].vx; pos[i].y += pos[i].vy;
+      pos[i].x = Math.max(margin, Math.min(width - margin, pos[i].x));
+      pos[i].y = Math.max(margin, Math.min(height - margin, pos[i].y));
+    }
+  }
+
+  return pos.map((p, i) => ({
+    ...p, x: Math.round(p.x), y: Math.round(p.y), radius: i === 0 ? 24 : 16,
+  }));
 }
 
 function renderGraphDetails(entity) {
@@ -1092,7 +1207,11 @@ async function api(path, options = {}, jsonContent = true, auth = true) {
   const response = await fetch(path, { ...options, headers });
   const text = await response.text();
   const data = text ? JSON.parse(text) : {};
-  if (!response.ok) throw new Error(data.error || response.statusText);
+  if (!response.ok) {
+    const err = new Error(data.error || response.statusText);
+    err.status = response.status;
+    throw err;
+  }
   return data;
 }
 
@@ -1684,8 +1803,12 @@ function renderCasesList(cases) {
     aiLabelSpan.dataset.i18n = "ai.caseSettings.toggle";
     aiLabelSpan.textContent = t("ai.caseSettings.toggle");
     aiRow.appendChild(aiLabelSpan);
-    aiCheckbox.addEventListener("change", () => setCaseAiEnrichment(c.id, aiCheckbox.checked, aiCheckbox));
+    const aiMsg = document.createElement("div");
+    aiMsg.className = "caseAiToggleMsg muted";
+    aiMsg.hidden = true;
+    aiCheckbox.addEventListener("change", () => setCaseAiEnrichment(c.id, aiCheckbox.checked, aiCheckbox, aiMsg));
     card.appendChild(aiRow);
+    card.appendChild(aiMsg);
 
     const scopeBox = document.createElement("div");
     scopeBox.className = "caseScopeBox hidden";
@@ -1714,7 +1837,7 @@ function renderCasesList(cases) {
   }
 }
 
-async function setCaseAiEnrichment(caseId, enabled, checkboxEl) {
+async function setCaseAiEnrichment(caseId, enabled, checkboxEl, msgEl) {
   try {
     const updated = await api(`/api/cases/${caseId}/ai-settings`, {
       method: "POST",
@@ -1723,10 +1846,20 @@ async function setCaseAiEnrichment(caseId, enabled, checkboxEl) {
     const idx = state.cases.findIndex((c) => c.id === caseId);
     if (idx >= 0) state.cases[idx] = updated;
     updateAiNarrativeButtonVisibility();
+    if (msgEl) { msgEl.hidden = true; msgEl.textContent = ""; }
   } catch (exc) {
     if (checkboxEl) checkboxEl.checked = !enabled;
     console.error("setCaseAiEnrichment failed:", exc.message || exc);
-    if (checkboxEl) checkboxEl.title = t("err.generic") + (exc.message || exc);
+    // 404 qui è il kill-switch server-side (OSINT_AI_AGENTS_ENABLED=0), non un
+    // errore generico: senza distinguerlo il checkbox tornava indietro in
+    // silenzio (solo un tooltip invisibile) e sembrava "non fare nulla".
+    const message = exc.status === 404 ? t("ai.caseSettings.serverDisabled") : t("err.generic") + (exc.message || exc);
+    if (checkboxEl) checkboxEl.title = message;
+    if (msgEl) {
+      msgEl.hidden = false;
+      msgEl.textContent = message;
+      msgEl.style.color = "var(--danger)";
+    }
   }
 }
 
@@ -2177,8 +2310,11 @@ async function loadAdminStats() {
         Object.entries(j.by_status || {}).map(([k,v])=>`${k}: ${v}`).join(" · ") || "—"
       }</span></div>
       <div class="capability"><strong>Audit chain</strong><span>${a.chain_valid ? t("db.chainValid") : t("db.chainBroken")} (${a.events_total ?? 0} ${t("db.events")})</span></div>
+      <div style="grid-column:1/-1">${renderLoginHistoryTable(s.logins || [])}</div>
+      <div id="pendingErasuresBox" style="display:contents"></div>
     `;
     box.hidden = false;
+    loadPendingErasures();
   } catch (err) {
     // 403 = non-admin: mostro CTA discreta.
     box.innerHTML = `
@@ -2189,6 +2325,130 @@ async function loadAdminStats() {
     const b = document.getElementById("statsUnlockBtn");
     if (b) b.addEventListener("click", () => { if (typeof openAdminUnlockModal === "function") openAdminUnlockModal(); });
     box.hidden = false;
+  }
+}
+
+const _LOGIN_HISTORY_ROW_CAP = 100;
+
+function renderLoginHistoryTable(logins) {
+  if (!logins.length) return "";
+  const shown = logins.slice(0, _LOGIN_HISTORY_ROW_CAP);
+  const providerLabel = (p) => (p === "google" ? "Google" : t("db.providerPassword"));
+  const roleLabel = (r) => (r === "admin" ? `⚑ ${t("db.roleAdmin")}` : t("db.roleAnalyst"));
+  const rows = shown.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.username)}</td>
+      <td>${escapeHtml(row.email || "—")}</td>
+      <td>${roleLabel(row.role)}</td>
+      <td>${providerLabel(row.provider)}</td>
+      <td style="text-align:right">${row.login_count}</td>
+      <td>${row.last_login ? escapeHtml(row.last_login) : t("db.neverLoggedIn")}</td>
+    </tr>`).join("");
+  const truncNote = logins.length > _LOGIN_HISTORY_ROW_CAP
+    ? `<p class="muted" style="margin-top:6px">${t("db.loginHistoryTruncated", { shown: shown.length, total: logins.length })}</p>`
+    : "";
+  return `
+    <div class="capability" style="grid-column:1/-1;margin-top:6px"><strong>👤 ${t("db.loginHistory")}</strong></div>
+    <div style="overflow-x:auto">
+      <table class="entityTable">
+        <thead><tr>
+          <th>${t("db.colUser")}</th>
+          <th>${t("db.colEmail")}</th>
+          <th>${t("db.colRole")}</th>
+          <th>${t("db.colProvider")}</th>
+          <th style="text-align:right">${t("db.colLoginCount")}</th>
+          <th>${t("db.colLastLogin")}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <p class="muted" style="margin-top:6px">${t("db.roleManageHint")}</p>
+    ${truncNote}
+  `;
+}
+
+// --- Richieste di cancellazione profilo in attesa (solo admin) -------------
+// Le richieste GDPR art.17 degli utenti non partono più da sole: restano in
+// "pending" finché un admin non le approva (esegue) o rifiuta qui.
+async function loadPendingErasures() {
+  const box = document.getElementById("pendingErasuresBox");
+  if (!box) return;
+  try {
+    const data = await api("/api/admin/privacy/pending");
+    const pending = data.pending || [];
+    if (!pending.length) {
+      box.innerHTML = `
+        <div class="capability" style="grid-column:1/-1;margin-top:6px">
+          <strong>🗑️ ${t("db.pendingErasures")}</strong><span>${t("db.noPendingErasures")}</span>
+        </div>`;
+      return;
+    }
+    const rows = pending.map((r) => `
+      <tr>
+        <td>${escapeHtml(r.owner || "—")}</td>
+        <td>${escapeHtml(r.created_at || "—")}</td>
+        <td>${escapeHtml(r.reason || "")}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button type="button" class="btn eraseApproveBtn" data-id="${escapeHtml(r.id)}"
+            data-owner="${escapeHtml(r.owner || "")}"
+            style="border-color:var(--danger);color:var(--danger)">${t("db.approve")}</button>
+          <button type="button" class="btn eraseRejectBtn" data-id="${escapeHtml(r.id)}"
+            style="margin-left:6px">${t("db.reject")}</button>
+        </td>
+      </tr>`).join("");
+    box.innerHTML = `
+      <div class="capability" style="grid-column:1/-1;margin-top:6px"><strong>🗑️ ${t("db.pendingErasures")} (${pending.length})</strong></div>
+      <div style="grid-column:1/-1;overflow-x:auto">
+        <table class="entityTable">
+          <thead><tr>
+            <th>${t("db.colUser")}</th>
+            <th>${t("db.colRequestedAt")}</th>
+            <th>${t("db.colReason")}</th>
+            <th style="text-align:right">${t("db.colActions")}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p class="muted" style="grid-column:1/-1;margin-top:4px">${t("db.erasureHint")}</p>`;
+    box.querySelectorAll(".eraseApproveBtn").forEach((b) => {
+      b.addEventListener("click", () => approvePrivacyErase(b.dataset.id, b.dataset.owner));
+    });
+    box.querySelectorAll(".eraseRejectBtn").forEach((b) => {
+      b.addEventListener("click", () => rejectPrivacyErase(b.dataset.id));
+    });
+  } catch (err) {
+    // 403 (non-admin) o altro: lascio vuoto — il box statistiche mostra già la
+    // CTA di sblocco admin, non serve un secondo errore.
+    box.innerHTML = "";
+  }
+}
+
+async function approvePrivacyErase(id, owner) {
+  if (!confirm(t("db.approveConfirm", { owner: owner || "?" }))) return;
+  try {
+    const data = await api("/api/admin/privacy/approve", {
+      method: "POST", body: JSON.stringify({ request_id: id }),
+    });
+    alert(data.message || t("db.approveDone"));
+  } catch (err) {
+    alert(t("err.generic") + (err.message || err));
+  } finally {
+    loadPendingErasures();
+  }
+}
+
+async function rejectPrivacyErase(id) {
+  const note = prompt(t("db.rejectPrompt"));
+  if (note === null) return; // annullato
+  try {
+    const data = await api("/api/admin/privacy/reject", {
+      method: "POST", body: JSON.stringify({ request_id: id, note }),
+    });
+    alert(data.message || t("db.rejectDone"));
+  } catch (err) {
+    alert(t("err.generic") + (err.message || err));
+  } finally {
+    loadPendingErasures();
   }
 }
 

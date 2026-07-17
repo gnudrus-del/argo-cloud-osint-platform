@@ -4,3 +4,9 @@ out/
 .env.local
 *.tsbuildinfo
 next-env.d.ts.timestamp
+
+# Playwright (npm run test:e2e)
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/blob-report/
