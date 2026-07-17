@@ -1179,7 +1179,85 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         if len(parts) == 4 and parts[3] == "jobs":
             jobs = get_storage().list_jobs_by_case(case_id)
             return self.send_json({"jobs": jobs})
+        if len(parts) == 4 and parts[3] == "profile.json":
+            return self.handle_case_profile(case_id, case)
         raise WebError(HTTPStatus.NOT_FOUND, "Risorsa caso non trovata.")
+
+    def handle_case_profile(self, case_id: str, case: dict) -> None:
+        """Profilo entità aggregato del caso.
+
+        Unisce i findings di tutti i job completati dello stesso caso e
+        ri-esegue la stessa risoluzione entità usata per un singolo job
+        (entities.enrich_case_entities), ma sull'insieme: se un job username
+        e un job email condividono lo stesso valore (es. la stessa email
+        ricompare come finding in entrambi), i due collassano in una sola
+        entità collegata — invece di restare due report affiancati.
+        """
+        from .entities import enrich_case_entities
+        from .models import Evidence as _Ev
+        from .models import Finding as _F
+        from .models import Investigation as _Inv
+
+        jobs = get_storage().list_jobs_by_case(case_id)
+        investigations: list[_Inv] = []
+        include_contact = True
+        for job in jobs:
+            if job.get("status") != "complete":
+                continue
+            json_path = job.get("json_path")
+            if not json_path or not Path(json_path).exists():
+                continue
+            if not bool(job.get("settings", {}).get("include_contact")):
+                include_contact = False
+            raw = json.loads(Path(json_path).read_text(encoding="utf-8"))
+            findings: list[_F] = []
+            for fd in raw.get("findings") or []:
+                try:
+                    ev_list = [_Ev(**e) for e in (fd.get("evidence") or [])]
+                    findings.append(_F(
+                        kind=fd.get("kind", ""),
+                        value=fd.get("value", ""),
+                        confidence=float(fd.get("confidence", 0.5)),
+                        evidence=ev_list,
+                        notes=fd.get("notes", ""),
+                        source_reliability=fd.get("source_reliability", "F"),
+                        info_credibility=int(fd.get("info_credibility", 6)),
+                        severity=fd.get("severity", ""),
+                        attck_ttps=list(fd.get("attck_ttps") or []),
+                    ))
+                except Exception:
+                    continue
+            investigations.append(_Inv.create(
+                target=raw.get("target", ""),
+                target_type=raw.get("target_type", ""),
+                safety_note="",
+                queries=[],
+                search_results=[],
+                pages=[],
+                findings=findings,
+            ))
+
+        if not investigations:
+            raise WebError(HTTPStatus.NOT_FOUND, "Nessun report completato per questo caso.")
+
+        entities, relationships = enrich_case_entities(investigations)
+        merged_findings = [f for inv in investigations for f in inv.findings]
+        from dataclasses import asdict
+        report = {
+            "target": case.get("title") or case_id,
+            "target_type": "case",
+            "safety_note": "Profilo aggregato multi-job dello stesso caso.",
+            "findings": [asdict(f) for f in merged_findings],
+            "search_results": [],
+            "entities": [asdict(e) for e in entities],
+            "relationships": [asdict(r) for r in relationships],
+            "sub_targets": [
+                {"target": inv.target, "target_type": inv.target_type} for inv in investigations
+            ],
+        }
+        if not include_contact:
+            report = redact_report_json(report)
+        return self.send_json(report)
 
     def handle_job_get(self, path: str, requester: str = "") -> None:
         parts = [part for part in path.split("/") if part]

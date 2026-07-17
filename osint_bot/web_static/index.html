@@ -574,7 +574,7 @@
             <section class="surface investigateMain">
               <header class="formHero">
                 <h2 class="formTitle" data-i18n="inv.title">Nuova ricerca</h2>
-                <p class="formLead" data-i18n="inv.lead">Scegli il tipo, inserisci il valore. Il resto lo decide Argo.</p>
+                <p class="formLead" data-i18n="inv.lead">Inserisci tutti i dati che hai sul target. Argo li cerca e li collega insieme, in un'unica indagine.</p>
               </header>
 
               <!-- 1. CASO (obbligatorio) -->
@@ -586,35 +586,18 @@
                 <p class="formHelp" data-i18n="inv.caseHelp">Per dati personali (email, telefono, persona) il caso con base giuridica è obbligatorio.</p>
               </div>
 
-              <!-- 2. TIPO + VALORE -->
+              <!-- 2. TUTTI I DATI NOTI, INSIEME -->
               <div class="formStep">
                 <span class="stepNum">2</span>
-                <div class="quickModes" aria-label="Tipo di ricerca" data-i18n-attr="aria-label:inv.modesAria">
-                  <button class="quickMode active" data-mode="handle" type="button">
-                    <span class="qmIcon">@</span><span data-i18n="inv.mode.username">Username</span>
-                  </button>
-                  <button class="quickMode" data-mode="domain" type="button">
-                    <span class="qmIcon">🌐</span><span data-i18n="inv.mode.domain">Dominio / Azienda</span>
-                  </button>
-                  <button class="quickMode" data-mode="contact" type="button">
-                    <span class="qmIcon">✉</span><span data-i18n="inv.mode.contact">Email / Telefono</span>
-                  </button>
-                  <button class="quickMode" data-mode="media" type="button">
-                    <span class="qmIcon">🖼</span><span data-i18n="inv.mode.media">Immagine / Video</span>
-                  </button>
-                  <button class="quickMode" data-mode="crypto" type="button">
-                    <span class="qmIcon">₿</span><span data-i18n="inv.mode.crypto">Wallet crypto</span>
-                  </button>
-                </div>
-                <p id="modeHint" class="formHelp">Username pubblico: profili aperti via Sherlock e Maigret.</p>
+                <p class="formHelp" data-i18n="inv.fillHint">Compila solo i campi che conosci. Ogni ricerca aggressiva completa (tutti i tool disponibili) parte in automatico per ciascun dato inserito, tutte insieme.</p>
 
-                <!-- Pannelli dinamici per modo -->
                 <div id="socialPanel" class="modePanel">
+                  <label class="wideLabel"><span data-i18n="inv.section.username">Username (una o più piattaforme)</span></label>
                   <div id="socialGrid" class="socialGrid"></div>
                   <div id="socialInputs" class="socialInputs"></div>
                 </div>
 
-                <div id="contactPanel" class="modePanel hidden">
+                <div id="contactPanel" class="modePanel">
                   <div class="contactBlocks">
                     <fieldset class="contactBlock">
                       <legend>Email</legend>
@@ -633,77 +616,44 @@
                       <input class="phone-input" type="tel" placeholder="telefono 2">
                       <input class="phone-input" type="tel" placeholder="telefono 3">
                     </fieldset>
+                    <fieldset class="contactBlock">
+                      <legend data-i18n="inv.legend.persona">Persona / Nome</legend>
+                      <input id="personaTarget" type="text" placeholder="Nome e cognome, alias">
+                    </fieldset>
+                    <fieldset class="contactBlock">
+                      <legend data-i18n="inv.legend.domain">Dominio / Azienda</legend>
+                      <input id="domainTarget" type="text" placeholder="example.com · Acme Spa">
+                    </fieldset>
+                    <fieldset class="contactBlock">
+                      <legend data-i18n="inv.legend.wallet">Wallet crypto</legend>
+                      <input id="walletTarget" type="text" placeholder="0x… · bc1q…">
+                    </fieldset>
                   </div>
                 </div>
 
-                <div id="mediaPanel" class="modePanel hidden">
+                <div id="mediaPanel" class="modePanel">
+                  <label class="wideLabel"><span data-i18n="inv.section.media">Immagine / Video</span></label>
                   <div class="uploadDrop" id="uploadDrop">
                     <input id="mediaFileInline" type="file" accept="image/*,video/*">
                     <p class="uploadHint"><span data-i18n="inv.media.drop">📤 Trascina qui o clicca per caricare</span><br><span class="muted" data-i18n="inv.media.dropSub">Analisi EXIF + geo + reverse parte automaticamente</span></p>
                   </div>
                   <div id="mediaInlineResult" class="mediaResult muted" data-i18n="inv.media.none">Nessun file caricato.</div>
                 </div>
-
-                <div id="genericPanel" class="modePanel hidden">
-                  <input id="genericTarget" placeholder="example.com · 192.0.2.1 · bc1q… · Acme Spa">
-                </div>
               </div>
 
-              <!-- 3. RICERCA AGGRESSIVA (people/entity workflows) — richiede unlock admin -->
+              <!-- 3. PRIVACY / RISCHIO (info live) -->
+              <div id="privacyBadge" class="privacyBadge hidden">
+                <span class="privacyIcon">🛡</span>
+                <span id="privacyMsg" data-i18n="inv.privacyMsg">Dato personale: richiesto caso con base giuridica.</span>
+              </div>
+
+              <!-- Sblocco funzioni avanzate: gate legale, resta invariato -->
               <div class="ahLockedTeaser" id="ahLockedTeaser">
                 <button type="button" id="ahUnlockBtn" class="btnGhost ahUnlockBtn" data-i18n="inv.ah.unlock">
                   🔐 Sblocca funzioni avanzate
                 </button>
               </div>
-              <div class="aggressiveHunt" id="aggressiveHunt" data-locked="1" hidden>
-                <h3 class="ahTitle"><span data-i18n="inv.ah.title">🎯 Ricerca aggressiva</span> <span class="ahBadge">multi-preset</span></h3>
-                <p class="ahLead" data-i18n="inv.ah.lead" data-i18n-html>Clicca <b>più preset insieme</b> per combinare i tool: intensity e pagine massime prendono il valore più alto, i moduli si sommano.</p>
-                <p class="ahCounter" id="ahCounter" data-i18n="inv.ah.counter">Nessun preset attivo — seleziona uno o più.</p>
-                <div class="ahGrid">
-                  <button type="button" class="ahBtn" data-hunt="username-full">
-                    <span class="ahIco">@</span>
-                    <span><strong data-i18n="inv.ah.username">Username — full scan</strong>
-                      <small>sherlock + maigret + blackbird + whatsmyname</small>
-                    </span>
-                  </button>
-                  <button type="button" class="ahBtn" data-hunt="email-deep">
-                    <span class="ahIco">✉</span>
-                    <span><strong data-i18n="inv.ah.email">Email — deep breach + accounts</strong>
-                      <small>holehe + h8mail + hunter + hibp + emailrep</small>
-                    </span>
-                  </button>
-                  <button type="button" class="ahBtn" data-hunt="phone-osint">
-                    <span class="ahIco">☎</span>
-                    <span><strong data-i18n="inv.ah.phone">Telefono — phone OSINT</strong>
-                      <small>phoneinfoga + phunter + normalizzazione E.164</small>
-                    </span>
-                  </button>
-                  <button type="button" class="ahBtn" data-hunt="person-alias">
-                    <span class="ahIco">👤</span>
-                    <span><strong data-i18n="inv.ah.person">Persona — alias & news</strong>
-                      <small>maigret + gdelt + sec_edgar + opencorporates</small>
-                    </span>
-                  </button>
-                  <button type="button" class="ahBtn" data-hunt="domain-recon">
-                    <span class="ahIco">🌐</span>
-                    <span><strong data-i18n="inv.ah.domain">Dominio — attack surface</strong>
-                      <small>amass + subfinder + httpx + securitytrails + wayback</small>
-                    </span>
-                  </button>
-                  <button type="button" class="ahBtn" data-hunt="wallet-tx">
-                    <span class="ahIco">₿</span>
-                    <span><strong data-i18n="inv.ah.wallet">Wallet — chain analysis</strong>
-                      <small>etherscan + blockchair + trufflehog</small>
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- 4. PRIVACY / RISCHIO (info live) -->
-              <div id="privacyBadge" class="privacyBadge hidden">
-                <span class="privacyIcon">🛡</span>
-                <span id="privacyMsg" data-i18n="inv.privacyMsg">Dato personale: richiesto caso con base giuridica.</span>
-              </div>
+              <div class="aggressiveHunt" id="aggressiveHunt" data-locked="1" hidden></div>
 
               <!-- 4. AVANZATE (collapsible) -->
               <details class="formAdvanced">
@@ -782,7 +732,7 @@
               <!-- 5. AVVIO -->
               <div class="formCta">
                 <button id="runBtn" type="button" class="btnPrimary">
-                  <span data-i18n="inv.run">🚀 Avvia ricerca</span>
+                  <span data-i18n="inv.runAll">🚀 Avvia indagine completa</span>
                 </button>
                 <button id="planBtn" type="button" class="btnGhost" data-i18n="inv.planOnly">Solo anteprima del piano</button>
               </div>

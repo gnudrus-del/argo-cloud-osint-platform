@@ -108,8 +108,10 @@ def enrich_investigation_entities(investigation: Investigation) -> None:
     )
 
 
-def build_entity_graph(investigation: Investigation) -> EntityGraphBuilder:
-    builder = EntityGraphBuilder()
+def build_entity_graph(
+    investigation: Investigation, builder: EntityGraphBuilder | None = None
+) -> EntityGraphBuilder:
+    builder = builder if builder is not None else EntityGraphBuilder()
     root = builder.add_entity(
         ENTITY_TYPE_BY_TARGET.get(investigation.target_type, investigation.target_type or "target"),
         investigation.target,
@@ -140,6 +142,32 @@ def build_entity_graph(investigation: Investigation) -> EntityGraphBuilder:
         add_finding_entities(builder, root, finding)
 
     return builder
+
+
+def build_case_entity_graph(investigations: list[Investigation]) -> EntityGraphBuilder:
+    """Same resolution as build_entity_graph, but across every job of a case.
+
+    Reuses one shared builder for all investigations: add_entity() already
+    merges by (type, normalized value), so a finding from one job that
+    matches another job's own target (or another job's finding) collapses
+    into the same entity — that's the whole cross-job "collegamento".
+    """
+    builder = EntityGraphBuilder()
+    for investigation in investigations:
+        build_entity_graph(investigation, builder=builder)
+    return builder
+
+
+def enrich_case_entities(
+    investigations: list[Investigation],
+) -> tuple[list[Entity], list[Relationship]]:
+    builder = build_case_entity_graph(investigations)
+    entities = sorted(builder.entities.values(), key=lambda item: (item.type, item.value))
+    relationships = sorted(
+        builder.relationships.values(),
+        key=lambda item: (item.source, item.kind, item.target, item.evidence_url),
+    )
+    return entities, relationships
 
 
 def add_url_entities(builder: EntityGraphBuilder, url: str, source: str) -> Entity | None:

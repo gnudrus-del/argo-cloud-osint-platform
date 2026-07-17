@@ -142,6 +142,15 @@ document.addEventListener("change", (e) => {
     if (typeof updatePrivacyBadge === "function") updatePrivacyBadge();
   }
 });
+// Idem quando l'utente digita nei campi dato personale (email/pec/telefono/persona).
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if (!el) return;
+  const isPersonalField = el.classList.contains("email-input") ||
+    el.classList.contains("pec-input") || el.classList.contains("phone-input") ||
+    el.id === "personaTarget";
+  if (isPersonalField && typeof updatePrivacyBadge === "function") updatePrivacyBadge();
+});
 if ($("globalSearchBtn")) $("globalSearchBtn").addEventListener("click", () => routeGlobalSearch($("globalSearch").value));
 if ($("globalSearch")) {
   $("globalSearch").addEventListener("input", () => updateDetectedType($("globalSearch").value));
@@ -315,25 +324,26 @@ function collectContacts(selector) {
     .filter(Boolean);
 }
 
+// Usato solo dall'anteprima piano (pulsante secondario "Solo anteprima del
+// piano"): restituisce il primo valore compilato, in un ordine ragionevole.
+// Il lancio combinato vero e proprio usa collectCombinedEntities().
 function primaryTarget() {
-  const mode = state.currentMode;
-  if (mode === "handle") {
-    const socials = collectSocialHandles();
-    return socials.length ? socials[0].handle : "";
-  }
-  if (mode === "contact") {
-    const emails = collectContacts(".email-input");
-    const pecs = collectContacts(".pec-input");
-    const phones = collectContacts(".phone-input");
-    return emails[0] || pecs[0] || phones[0] || "";
-  }
-  if (mode === "media") {
-    const inline = $("mediaInlineResult");
-    return (inline && inline.dataset.filename) || "";
-  }
-  // domain / crypto
-  const g = $("genericTarget");
-  return g ? g.value.trim() : "";
+  const socials = collectSocialHandles();
+  if (socials.length) return socials[0].handle;
+  const emails = collectContacts(".email-input");
+  if (emails.length) return emails[0];
+  const pecs = collectContacts(".pec-input");
+  if (pecs.length) return pecs[0];
+  const phones = collectContacts(".phone-input");
+  if (phones.length) return phones[0];
+  const persona = $("personaTarget") && $("personaTarget").value.trim();
+  if (persona) return persona;
+  const domain = $("domainTarget") && $("domainTarget").value.trim();
+  if (domain) return domain;
+  const wallet = $("walletTarget") && $("walletTarget").value.trim();
+  if (wallet) return wallet;
+  const inline = $("mediaInlineResult");
+  return (inline && inline.dataset.filename) || "";
 }
 
 function buildCommand() {
@@ -404,14 +414,34 @@ async function plan() {
 }
 
 async function runJob() {
+  const entities = collectCombinedEntities();
+  if (combinedEntitiesEmpty(entities)) {
+    $("planOutput").textContent = t("inv.combined.emptyError");
+    return;
+  }
+  const gate = $("aggressiveHunt");
+  if (gate && gate.dataset.locked === "1") {
+    openAdminUnlockModal();
+    return;
+  }
+  const caseId = ($("currentCase") && $("currentCase").value) || "";
+  const needsCase = entities.emails.length > 0 || entities.phones.length > 0 || !!entities.persona;
+  if (needsCase && !caseId) {
+    updatePrivacyBadge();
+    $("planOutput").textContent = t("pb.needCase");
+    return;
+  }
+  const specs = buildCombinedJobSpecs(entities, caseId);
   $("runBtn").disabled = true;
   try {
-    const data = await api("/api/jobs", { method: "POST", body: JSON.stringify(payload()) });
-    state.currentJob = data.id;
-    renderPlan(data.profile);
+    const results = await Promise.all(
+      specs.map((spec) => api("/api/jobs", { method: "POST", body: JSON.stringify(spec) }))
+    );
     showJobsPanel();
     await loadJobs();
-    pollJob(data.id);
+    if ($("planStatus")) $("planStatus").textContent = t("inv.combined.running", { done: 0, total: results.length });
+    $("planOutput").textContent = t("inv.combined.launched", { n: results.length });
+    pollCombinedJobs(results.map((r) => r.id), caseId);
   } catch (error) {
     $("planOutput").textContent = error.message;
   } finally {
@@ -1245,118 +1275,136 @@ function nomePiano(plan) {
 function applyMode(mode) {
   const preset = modePresets[mode] || modePresets.handle;
   state.currentMode = mode;
-  document.querySelectorAll(".quickMode").forEach((button) => {
-    button.classList.toggle("active", button.dataset.mode === mode);
-  });
-  const usedMode = modePresets[mode] ? mode : "handle";
   $("targetType").value = preset.type;
   $("provider").value = preset.provider;
-  if ($("modeHint")) $("modeHint").textContent = t(`mp.${usedMode}.hint`);
   $("confirmAuth").checked = preset.authorized;
-
-  // Show/hide mode panels
-  const panels = {
-    handle:  $("socialPanel"),
-    contact: $("contactPanel"),
-    media:   $("mediaPanel"),
-    domain:  $("genericPanel"),
-    crypto:  $("genericPanel"),
-  };
-  Object.values(panels).forEach((el) => el && el.classList.add("hidden"));
-  const active = panels[mode] || $("genericPanel");
-  if (active) active.classList.remove("hidden");
-
-  if (mode === "domain" || mode === "crypto") {
-    const ph = mode === "domain" ? t("mp.domain.genph") : t("mp.crypto.genph");
-    if ($("genericTarget")) $("genericTarget").placeholder = ph;
-  }
   updatePrivacyBadge();
 }
 
-// Preset di ricerca aggressiva — MULTI-SELECT.
-// Ogni preset e' un toggle: attivare piu' preset combina i loro moduli/tool
-// e prende il massimo di intensity/pages. Non c'e' piu' "un solo attivo".
+// Bundle di moduli "tutti i tool disponibili" per tipo di dato. Applicato in
+// automatico ad ogni valore inserito nel form combinato — nessun preset da
+// cliccare: uno username attiva sempre sherlock+maigret+blackbird+whatsmyname,
+// un'email sempre holehe+h8mail+hunter+hibp+emailrep, ecc.
 const AGGRESSIVE_PRESETS = {
-  "username-full":   { mode: "handle",  type: "handle",  intensity: "deep",       pages: 60,
-                       modules: ["socmint", "phone_email"] },
-  "email-deep":      { mode: "contact", type: "email",   intensity: "deep",       pages: 40,
-                       modules: ["phone_email", "socmint"] },
-  "phone-osint":     { mode: "contact", type: "phone",   intensity: "deep",       pages: 40,
-                       modules: ["phone_email"] },
-  "person-alias":    { mode: "domain",  type: "person",  intensity: "meticulous", pages: 50,
-                       modules: ["socmint", "humint"] },
-  "domain-recon":    { mode: "domain",  type: "domain",  intensity: "meticulous", pages: 60,
-                       modules: ["company_domain", "opsec"] },
-  "wallet-tx":       { mode: "crypto",  type: "crypto",  intensity: "deep",       pages: 30,
-                       modules: ["crypto"] },
+  "username-full": { modules: ["socmint", "phone_email"] },
+  "email-deep":    { modules: ["phone_email", "socmint"] },
+  "phone-osint":   { modules: ["phone_email"] },
+  "person-alias":  { modules: ["socmint", "humint"] },
+  "domain-recon":  { modules: ["company_domain", "opsec"] },
+  "wallet-tx":     { modules: ["crypto"] },
 };
 
-// Set live dei preset attivi (memoria, non persistente).
-state.activePresets = new Set();
+// L'indagine combinata gira sempre al massimo standard disponibile: nessuna
+// manopola di intensità/pagine da capire prima di lanciare una ricerca.
+const MAX_INTENSITY = "meticulous";
+const MAX_PAGES = 60;
 
-const INTENSITY_RANK = { "quick": 1, "deep": 2, "meticulous": 3 };
-
-function toggleAggressivePreset(key) {
-  const p = AGGRESSIVE_PRESETS[key];
-  if (!p) return;
-  if (state.activePresets.has(key)) state.activePresets.delete(key);
-  else state.activePresets.add(key);
-  refreshAggressiveState();
+function collectCombinedEntities() {
+  const usernames = [...new Set(
+    Object.values(state.socialHandles).map((v) => (v || "").trim()).filter(Boolean)
+  )];
+  const emails = dedupeList([...collectContacts(".email-input"), ...collectContacts(".pec-input")]);
+  const phones = dedupeList(collectContacts(".phone-input"));
+  const persona = ($("personaTarget") && $("personaTarget").value.trim()) || "";
+  const domain = ($("domainTarget") && $("domainTarget").value.trim()) || "";
+  const wallet = ($("walletTarget") && $("walletTarget").value.trim()) || "";
+  return { usernames, emails, phones, persona, domain, wallet };
 }
 
-function refreshAggressiveState() {
-  const active = [...state.activePresets].map((k) => AGGRESSIVE_PRESETS[k]).filter(Boolean);
-  document.querySelectorAll(".ahBtn").forEach((b) => {
-    const on = state.activePresets.has(b.dataset.hunt);
-    b.classList.toggle("ahActive", on);
-    b.setAttribute("aria-pressed", on ? "true" : "false");
-  });
-  if (!active.length) return;  // niente attivo: lascio il form allo stato corrente
-  // Prendi il MASSIMO di intensity e pages, unisci moduli (dedup)
-  let intensity = "quick", pages = 0;
-  const modules = new Set();
-  for (const p of active) {
-    if ((INTENSITY_RANK[p.intensity] || 0) > (INTENSITY_RANK[intensity] || 0)) intensity = p.intensity;
-    if (p.pages > pages) pages = p.pages;
-    (p.modules || []).forEach((m) => modules.add(m));
-  }
-  // Applica il "modo" del PRIMO preset attivato (senno' e' confondente)
-  const first = active[0];
-  applyMode(first.mode);
-  if ($("targetType")) $("targetType").value = first.type;
-  if ($("intensity"))  $("intensity").value  = intensity;
-  if ($("maxPages"))   $("maxPages").value   = String(pages);
-  if ($("provider"))   $("provider").value   = "all";
-  // Rendi disponibili le opzioni avanzate (i moduli combinati verranno mandati dal payload)
-  const adv = document.querySelector(".formAdvanced");
-  if (adv) adv.setAttribute("open", "open");
-  state.activeModules = [...modules];  // consumato in payload()
-  // Contatore visivo
-  const counter = document.getElementById("ahCounter");
-  if (counter) counter.textContent = t("inv.ah.activeCount", { presets: active.length, modules: modules.size });
-  // Focus sul primo input rilevante
-  const focusMap = {
-    handle:  ".socialBtn",
-    contact: ".email-input, .phone-input",
-    domain:  "#genericTarget",
-    crypto:  "#genericTarget",
-    media:   "#mediaFileInline",
+function combinedEntitiesEmpty(entities) {
+  return !entities.usernames.length && !entities.emails.length && !entities.phones.length &&
+    !entities.persona && !entities.domain && !entities.wallet;
+}
+
+function buildJobSpec(target, targetType, presetKey, caseId) {
+  return {
+    command: t("auth.searchFor", { target }),
+    target,
+    target_type: targetType,
+    provider: "all",
+    source_route: "auto",
+    intensity: MAX_INTENSITY,
+    modules: [...new Set(AGGRESSIVE_PRESETS[presetKey].modules)],
+    socials: [], emails: [], pecs: [], phones: [],
+    seed_urls: dedupeList([
+      ...extractUrls(($("seedUrls") && $("seedUrls").value) || ""),
+      ...extractUrls(($("knownFacts") && $("knownFacts").value) || ""),
+    ]),
+    max_pages: MAX_PAGES,
+    confirm_authorization: true,
+    allow_network_scan: ($("networkScan") && $("networkScan").checked) || false,
+    allow_darkweb: ($("darkweb") && $("darkweb").checked) || false,
+    include_contact: true,
+    include_external_tools: true,
+    case_id: caseId || undefined,
   };
-  const sel = focusMap[first.mode];
-  if (sel) {
-    const el = document.querySelector(sel);
-    if (el && !el.matches(":focus")) el.scrollIntoView({behavior: "smooth", block: "center"});
+}
+
+function buildCombinedJobSpecs(entities, caseId) {
+  const specs = [];
+  entities.usernames.forEach((handle) => specs.push(buildJobSpec(handle, "handle", "username-full", caseId)));
+  entities.emails.forEach((email) => specs.push(buildJobSpec(email, "email", "email-deep", caseId)));
+  entities.phones.forEach((phone) => specs.push(buildJobSpec(phone, "phone", "phone-osint", caseId)));
+  if (entities.persona) specs.push(buildJobSpec(entities.persona, "person", "person-alias", caseId));
+  if (entities.domain) specs.push(buildJobSpec(entities.domain, "domain", "domain-recon", caseId));
+  if (entities.wallet) specs.push(buildJobSpec(entities.wallet, "crypto", "wallet-tx", caseId));
+  return specs;
+}
+
+// Segue tutti i job lanciati insieme (non solo l'ultimo, a differenza di
+// pollJob): quando l'ultimo completa, apre il profilo di caso aggregato.
+function pollCombinedJobs(ids, caseId) {
+  const pending = new Set(ids);
+  clearInterval(state.combinedPollTimer);
+  state.combinedPollTimer = setInterval(async () => {
+    await loadJobs();
+    for (const id of [...pending]) {
+      try {
+        const job = await api(`/api/jobs/${id}`);
+        if (job.status === "complete" || job.status === "error") pending.delete(id);
+      } catch (e) {
+        pending.delete(id);
+      }
+    }
+    if ($("planStatus")) {
+      $("planStatus").textContent = pending.size
+        ? t("inv.combined.running", { done: ids.length - pending.size, total: ids.length })
+        : t("inv.combined.done");
+    }
+    if (!pending.size) {
+      clearInterval(state.combinedPollTimer);
+      await openCaseProfile(caseId);
+    }
+  }, 1800);
+}
+
+async function openCaseProfile(caseId) {
+  if (!caseId) return;
+  try {
+    const report = await api(`/api/cases/${caseId}/profile.json`);
+    state.lastReport = report;
+    showEntityProfile(report);
+  } catch (err) {
+    console.warn("Profilo di caso non disponibile:", err.message || err);
   }
 }
 
-// Backwards-compat: alcuni handler chiamano il nome vecchio.
-const applyAggressivePreset = toggleAggressivePreset;
-
-// Delegation globale: click su qualsiasi .ahBtn TOGGLA il preset
-document.addEventListener("click", (e) => {
-  const btn = e.target && e.target.closest && e.target.closest(".ahBtn");
-  if (btn && btn.dataset.hunt) toggleAggressivePreset(btn.dataset.hunt);
-});
+function fillTargetField(value, targetType) {
+  if (targetType === "email") {
+    const el = document.querySelector(".email-input");
+    if (el) el.value = value;
+  } else if (targetType === "phone") {
+    const el = document.querySelector(".phone-input");
+    if (el) el.value = value;
+  } else if (targetType === "person") {
+    if ($("personaTarget")) $("personaTarget").value = value;
+  } else if (targetType === "crypto") {
+    if ($("walletTarget")) $("walletTarget").value = value;
+  } else if ($("domainTarget")) {
+    $("domainTarget").value = value;
+  }
+  updatePrivacyBadge();
+}
 
 // --- Admin unlock (sblocca la sezione "Ricerca aggressiva") ---------------
 // Nessuna persistenza: chiudendo la scheda la sezione torna bloccata.
@@ -1409,10 +1457,11 @@ if ($("adminUnlockModal")) $("adminUnlockModal").addEventListener("click", (e) =
 function updatePrivacyBadge() {
   const badge = $("privacyBadge"); const msg = $("privacyMsg");
   if (!badge || !msg) return;
-  const mode = state.currentMode;
   const hasCase = !!($("currentCase") && $("currentCase").value);
-  const personal = ["contact"].includes(mode) ||
-    ["email","phone","person"].includes(($("targetType") && $("targetType").value) || "");
+  const personal = collectContacts(".email-input").length > 0 ||
+    collectContacts(".pec-input").length > 0 ||
+    collectContacts(".phone-input").length > 0 ||
+    !!($("personaTarget") && $("personaTarget").value.trim());
   if (!personal) { badge.classList.add("hidden"); return; }
   badge.classList.remove("hidden");
   if (hasCase) {
@@ -2586,7 +2635,6 @@ function routeGlobalSearch(value) {
   // Set target based on detected type
   const isEmail = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(v);
   const isHandle = /^@[a-z0-9._-]+/i.test(v);
-  const isDomain = /[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z]{2,})+/i.test(v) && !isEmail;
   const isCrypto = /^(bc1|[13]|0x)[a-z0-9]{25,}/i.test(v);
   if (isEmail) {
     applyMode("contact");
@@ -2596,12 +2644,13 @@ function routeGlobalSearch(value) {
     applyMode("handle");
   } else if (isCrypto) {
     applyMode("crypto");
-    if ($("genericTarget")) $("genericTarget").value = v;
+    if ($("walletTarget")) $("walletTarget").value = v;
   } else {
     applyMode("domain");
-    if ($("genericTarget")) $("genericTarget").value = v;
+    if ($("domainTarget")) $("domainTarget").value = v;
   }
   if (caseId && $("currentCase")) $("currentCase").value = caseId;
+  updatePrivacyBadge();
 }
 
 // ================================================================
@@ -2663,9 +2712,12 @@ function showEntityProfile(report) {
   // Pivot + report buttons
   const pivotBtn = $("entityPivotBtn");
   if (pivotBtn) {
+    // Il profilo aggregato di caso (target_type "case") non ha un singolo
+    // target ri-cercabile: il pivot ha senso solo sul profilo di un job.
+    pivotBtn.classList.toggle("hidden", targetType === "case");
     pivotBtn.onclick = () => {
       document.querySelector('.nav[data-panel="investigate"]').click();
-      if ($("genericTarget")) $("genericTarget").value = target;
+      fillTargetField(target, targetType);
     };
   }
 
