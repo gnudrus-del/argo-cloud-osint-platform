@@ -49,6 +49,28 @@ credentials (`MISP_URL`, `MISP_KEY`) are read from environment variables for
 an operator-run instance rather than entered per-analyst in the BYOK key
 panel — see `osint_bot/connectors/misp_client.py`.
 
+**Maigret and Toutatis are "key-free" in the sense that neither needs a paid
+API key or a BYOK-panel entry — but neither works purely out of the box
+either**, unlike the rest of this table. Both require a one-time *server*
+setup, done by whoever operates the instance, not by an individual analyst:
+
+- **Maigret** needs `MAIGRET_PYTHON` (path to a Python venv with the
+  `maigret` package installed) or `MAIGRET_CMD` (path to the `maigret`
+  executable) set in the server's `.env`. Without it, every search returns
+  `status="missing_key"` for this connector, indefinitely — `sherlock_lite`
+  (genuinely zero-setup) is the fallback for username searches until it's
+  configured. See `osint_bot/connectors/maigret.py`.
+- **Toutatis** needs `TOUTATIS_SESSION` (an Instagram session cookie
+  belonging to the operator's own account, used to query profile data) set
+  in the server's `.env`. Same `missing_key` behaviour without it. See
+  `osint_bot/connectors/toutatis.py`.
+
+If you're evaluating Argo's out-of-the-box username/social coverage, the
+connectors that genuinely need zero setup are `sherlock_lite` and (for a
+person's name rather than a handle) `gdelt`/`wikipedia_search` — everything
+else in the username/social-reverse rows above is either BYOK or needs this
+kind of server-side configuration first.
+
 ## BYOK (17)
 
 Optional. Fill only what you have; missing keys are silently skipped.

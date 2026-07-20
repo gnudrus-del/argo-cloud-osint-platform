@@ -570,6 +570,8 @@ CATALOG: dict[str, dict[str, str]] = {
     "holehe.recovery_hint_email_notes": {"it": "holehe: hint di recupero email mascherato esposto da {domain} per {email}.", "en": "holehe: masked email recovery hint exposed by {domain} for {email}."},
     "holehe.recovery_hint_phone_notes": {"it": "holehe: hint di recupero telefono mascherato esposto da {domain} per {email}.", "en": "holehe: masked phone recovery hint exposed by {domain} for {email}."},
     "holehe.recovery_why_linked": {"it": "{domain} espone un dato di recupero collegato a {email}", "en": "{domain} exposes a recovery hint linked to {email}"},
+    "holehe.fullname_hint_notes": {"it": "holehe: {domain} espone un nome completo collegato a {email}. Da verificare manualmente.", "en": "holehe: {domain} exposes a full name linked to {email}. Manual verification recommended."},
+    "holehe.fullname_hint_why_linked": {"it": "{domain} espone un nome completo collegato a {email}", "en": "{domain} exposes a full name linked to {email}"},
 
     # -- holehe_native ------------------------------------------------------
     "holehe_native.legal_note": {"it": "Controlli passivi su email (Gravatar, MX, disposable). Nessun invio di posta.", "en": "Passive email checks (Gravatar, MX, disposable). No mail is sent."},

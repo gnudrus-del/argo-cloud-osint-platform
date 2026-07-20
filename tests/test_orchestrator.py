@@ -1,6 +1,11 @@
 import unittest
 
-from osint_bot.orchestrator import ALWAYS_ON_AGENTS, choose_agents, plan_from_command
+from osint_bot.orchestrator import (
+    ALWAYS_ON_AGENTS,
+    choose_agents,
+    infer_target_type,
+    plan_from_command,
+)
 
 
 class OrchestratorTests(unittest.TestCase):
@@ -74,6 +79,42 @@ class OrchestratorTests(unittest.TestCase):
         )
         self.assertIn("holehe", profile.external_tools)
         self.assertIn("h8mail", profile.external_tools)
+
+
+class InferTargetTypeFallbackTests(unittest.TestCase):
+    """Regression tests for the bug where a plain person name or username,
+    with no Italian magic word ("persona"/"socmint"/"human"/"username"/
+    "handle") in the surrounding text, silently fell through to "company"
+    — which excludes the entire person/handle connector toolchain
+    (sherlock_lite, maigret, toutatis, ...) for the single most common
+    search on this product. The fallback now defers to target_classifier's
+    already-tested free-text heuristic instead of hardcoding "company"."""
+
+    def test_plain_person_name_is_not_company(self):
+        self.assertEqual(infer_target_type("Mario Rossi", "Mario Rossi"), "person")
+
+    def test_person_name_inside_a_sentence_without_magic_word(self):
+        self.assertEqual(
+            infer_target_type("Mario Rossi", "Cerca informazioni su Mario Rossi."),
+            "person",
+        )
+
+    def test_bare_username_without_at_or_keyword_is_handle(self):
+        self.assertEqual(infer_target_type("mariorossi93", "mariorossi93"), "handle")
+
+    def test_explicit_magic_words_still_work_unchanged(self):
+        self.assertEqual(infer_target_type("Mario Rossi", "socmint su Mario Rossi"), "person")
+        self.assertEqual(infer_target_type("mrossi", "il suo username è mrossi"), "handle")
+
+    def test_domain_classification_is_unaffected(self):
+        self.assertEqual(infer_target_type("example.com", "example.com"), "domain")
+
+    def test_email_ip_crypto_phone_classification_is_unaffected(self):
+        eth_addr = "0x" + "a" * 40
+        self.assertEqual(infer_target_type("user@example.com", "user@example.com"), "email")
+        self.assertEqual(infer_target_type("8.8.8.8", "8.8.8.8"), "ip")
+        self.assertEqual(infer_target_type(eth_addr, eth_addr), "crypto")
+        self.assertEqual(infer_target_type("x", "telefono +39 333 1234567"), "phone")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import ipaddress
+import logging
 import os
 import re
 import urllib.parse
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 from .media import analyze_media_file
 from .models import AgentResult, Evidence, Finding, Page, SearchResult
@@ -675,25 +678,43 @@ class ConnectorSweepAgent(BaseAgent):
 
         findings: list[Finding] = []
         status_counts: dict[str, int] = {}
+        failed_connectors: list[str] = []
         with ThreadPoolExecutor(max_workers=min(16, len(names))) as pool:
-            futures = [pool.submit(_run_one, cname) for cname in names]
-            for future in as_completed(futures):
+            future_to_name = {pool.submit(_run_one, cname): cname for cname in names}
+            for future in as_completed(future_to_name):
+                cname = future_to_name[future]
                 try:
                     _cname, result = future.result()
-                except Exception:
+                except Exception as exc:
                     status_counts["error"] = status_counts.get("error", 0) + 1
+                    failed_connectors.append(cname)
+                    logger.warning("connector %r raised before producing a result: %s", cname, exc)
                     continue
                 status_counts[result.status] = status_counts.get(result.status, 0) + 1
                 if result.status in ("ok", "cached"):
                     findings.extend(result.findings)
 
         ok_count = status_counts.get("ok", 0) + status_counts.get("cached", 0)
+        error_count = status_counts.get("error", 0)
         notes = [
             "Connettori interrogati: " + ", ".join(f"{k}={v}" for k, v in sorted(status_counts.items())),
         ]
+        if failed_connectors:
+            notes.append("Falliti con eccezione: " + ", ".join(sorted(failed_connectors)))
+        if ok_count:
+            status = "ok"
+        elif error_count:
+            # At least one connector raised before producing a real
+            # ConnectorResult (e.g. resolve_api_key blowing up) — a
+            # systemic config problem, not "nothing applicable here".
+            # "skipped" stays reserved for the genuinely benign case: 0
+            # connectors even attempted (see the early return above).
+            status = "error"
+        else:
+            status = "skipped"
         return AgentResult(
             name=self.name,
-            status="ok" if ok_count else "skipped",
+            status=status,
             summary=f"{ok_count}/{len(names)} connettori nativi hanno restituito dati per '{context.target}'.",
             findings=findings,
             notes=notes,

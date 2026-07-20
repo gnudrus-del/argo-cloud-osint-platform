@@ -50,6 +50,31 @@ class JobQueueTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             queue.submit_spec(JobSpec(job_id="x", profile={}, payload={}))
 
+    def test_handler_exception_does_not_kill_worker_regression(self):
+        # Regression: an unhandled exception raised by one job's handler
+        # (e.g. execute_job's read_job() on a job deleted while still
+        # queued — handle_job_delete allows deleting a "queued" job) must
+        # not kill the daemon worker thread. Before the fix, everything
+        # queued behind the failing job stayed stuck in "queued" forever,
+        # silently, until an unrelated new job happened to spawn a fresh
+        # worker.
+        done = threading.Event()
+        ran: list[str] = []
+        queue = JobQueue()
+
+        def bad_handler():
+            raise RuntimeError("boom")
+
+        def good_handler():
+            ran.append("ok")
+            done.set()
+
+        queue.submit("bad-job", bad_handler)
+        queue.submit("good-job", good_handler)
+
+        self.assertTrue(done.wait(2), "second job never ran — worker died on the first job's exception")
+        self.assertEqual(ran, ["ok"])
+
     def test_jobspec_roundtrip(self):
         spec = JobSpec(
             job_id="b" * 32,

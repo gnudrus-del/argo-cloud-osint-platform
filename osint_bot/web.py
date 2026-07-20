@@ -377,31 +377,61 @@ def update_case_scope(case_id: str, payload: dict, actor: str) -> dict:
     return case
 
 
-def ensure_default_case(actor: str) -> str:
+def ensure_default_case(actor: str, target: str = "", *, authorized: bool = False) -> str:
     """Return the case id of the actor's default case, lazily creating one.
 
     Also auto-signs a permissive RoE so existing flows (CLI smoke runs,
     onboarding) keep working until the user formalises a real case+RoE.
+
+    When ``target`` is given and ``authorized`` is True, the target is added
+    to the case's ``allowed_targets`` (idempotently) so gated connectors —
+    which refuse to run against an empty scope regardless of the RoE's
+    permissive action classes, see policy.py's ``check_policy`` — actually
+    get to run once the caller has confirmed authorization for that specific
+    target. Without this the default case's scope stayed empty forever and
+    every gated connector (contactout, lusha, hibp, hunter, emailrep,
+    cloud_buckets, content_discovery, port_scan, darkweb_scan) silently
+    policy_denied on every single search, regardless of the confirm
+    checkbox the caller ticked.
     """
     if not actor:
         actor = "anonymous"
     store = get_storage()
-    for case in store.list_cases(owner=actor, limit=200):
-        if case["title"] == "Caso default" and case["owner"] == actor:
-            return case["id"]
-    case = {
-        "id": uuid.uuid4().hex,
-        "owner": actor,
-        "tenant_id": actor,
-        "title": "Caso default",
-        "status": "open",
-        "legal_basis": {"type": "unspecified", "reference": "auto-created"},
-        "purpose": "Caso creato automaticamente per i job senza case_id esplicito. Specifica un caso vero quando l'indagine è formalizzata.",
-        "collaborators": [],
-    }
-    store.put_case(case)
-    store.append_audit_event(actor, "case_default_created", {"case_id": case["id"]})
-    _auto_sign_permissive_roe(case["id"], actor, store)
+    case = None
+    for existing in store.list_cases(owner=actor, limit=200):
+        if existing["title"] == "Caso default" and existing["owner"] == actor:
+            case = existing
+            break
+    if case is None:
+        case = {
+            "id": uuid.uuid4().hex,
+            "owner": actor,
+            "tenant_id": actor,
+            "title": "Caso default",
+            "status": "open",
+            "legal_basis": {"type": "unspecified", "reference": "auto-created"},
+            "purpose": "Caso creato automaticamente per i job senza case_id esplicito. Specifica un caso vero quando l'indagine è formalizzata.",
+            "collaborators": [],
+            "allowed_targets": [],
+        }
+        store.put_case(case)
+        store.append_audit_event(actor, "case_default_created", {"case_id": case["id"]})
+        _auto_sign_permissive_roe(case["id"], actor, store)
+
+    target = (target or "").strip()
+    if authorized and target:
+        allowed = list(case.get("allowed_targets") or [])
+        if target not in allowed:
+            allowed.append(target)
+            case["allowed_targets"] = allowed
+            store.put_case(case)
+            store.append_audit_event(actor, "case_scope_updated", {
+                "case_id": case["id"],
+                "previous_entries": len(allowed) - 1,
+                "new_entries": len(allowed),
+                "reason": "auto_scope_default_case",
+            })
+
     return case["id"]
 
 
@@ -502,6 +532,125 @@ def recover_queued_jobs() -> int:
                 # dispatch_job_spec is wired at module import.
                 pass
     return recovered
+
+
+def build_case_profile(case_id: str, case: dict) -> dict:
+    """Profilo entità aggregato del caso — la logica dietro
+    ``OsintHandler.handle_case_profile``, estratta in una funzione pura
+    (niente ``self``/HTTP) così è testabile senza dover istanziare un
+    ``BaseHTTPRequestHandler`` reale.
+
+    Unisce i findings di tutti i job completati dello stesso caso e
+    ri-esegue la stessa risoluzione entità usata per un singolo job
+    (entities.enrich_case_entities), ma sull'insieme: se un job username e
+    un job email condividono lo stesso valore (es. la stessa email
+    ricompare come finding in entrambi), i due collassano in una sola
+    entità collegata — invece di restare due report affiancati.
+
+    Include sempre job_status_summary/failed_jobs/agent_results, anche
+    quando 0 job sono completati: prima, in quel caso, l'endpoint
+    rispondeva 404 e il frontend si limitava a un console.warn — un utente
+    con connettori bloccati (chiavi mancanti, policy) vedeva "niente" senza
+    alcun modo di distinguerlo da "non c'è nulla online".
+    """
+    from dataclasses import asdict
+
+    from .entities import enrich_case_entities
+    from .models import Evidence as _Ev
+    from .models import Finding as _F
+    from .models import Investigation as _Inv
+
+    jobs = get_storage().list_jobs_by_case(case_id)
+    investigations: list[_Inv] = []
+    include_contact = True
+    agent_results: list[dict] = []
+    job_status_summary: dict[str, int] = {}
+    failed_jobs: list[dict] = []
+    for job in jobs:
+        status = job.get("status", "unknown")
+        job_status_summary[status] = job_status_summary.get(status, 0) + 1
+        if status == "error":
+            # No target here on purpose: it may be an email/phone the case
+            # wants redacted (include_contact), and that flag isn't known
+            # for certain until the loop below finishes. job_id is enough
+            # to look the failure up via GET /api/jobs/<id>, which already
+            # has its own access control.
+            failed_jobs.append({
+                "job_id": job.get("id", ""),
+                "error": job.get("error", ""),
+            })
+        if status != "complete":
+            continue
+        json_path = job.get("json_path")
+        if not json_path or not Path(json_path).exists():
+            continue
+        if not bool(job.get("settings", {}).get("include_contact")):
+            include_contact = False
+        raw = json.loads(Path(json_path).read_text(encoding="utf-8"))
+        agent_results.extend(raw.get("agent_results") or [])
+        findings: list[_F] = []
+        for fd in raw.get("findings") or []:
+            try:
+                ev_list = [_Ev(**e) for e in (fd.get("evidence") or [])]
+                findings.append(_F(
+                    kind=fd.get("kind", ""),
+                    value=fd.get("value", ""),
+                    confidence=float(fd.get("confidence", 0.5)),
+                    evidence=ev_list,
+                    notes=fd.get("notes", ""),
+                    source_reliability=fd.get("source_reliability", "F"),
+                    info_credibility=int(fd.get("info_credibility", 6)),
+                    severity=fd.get("severity", ""),
+                    attck_ttps=list(fd.get("attck_ttps") or []),
+                ))
+            except Exception:
+                continue
+        investigations.append(_Inv.create(
+            target=raw.get("target", ""),
+            target_type=raw.get("target_type", ""),
+            safety_note="",
+            queries=[],
+            search_results=[],
+            pages=[],
+            findings=findings,
+        ))
+
+    if not investigations:
+        report = {
+            "target": case.get("title") or case_id,
+            "target_type": "case",
+            "safety_note": "Nessun job completato per questo caso.",
+            "findings": [],
+            "search_results": [],
+            "agent_results": agent_results,
+            "entities": [],
+            "relationships": [],
+            "sub_targets": [],
+            "job_status_summary": job_status_summary,
+            "failed_jobs": failed_jobs,
+        }
+        return report
+
+    entities, relationships = enrich_case_entities(investigations)
+    merged_findings = [f for inv in investigations for f in inv.findings]
+    report = {
+        "target": case.get("title") or case_id,
+        "target_type": "case",
+        "safety_note": "Profilo aggregato multi-job dello stesso caso.",
+        "findings": [asdict(f) for f in merged_findings],
+        "search_results": [],
+        "agent_results": agent_results,
+        "entities": [asdict(e) for e in entities],
+        "relationships": [asdict(r) for r in relationships],
+        "sub_targets": [
+            {"target": inv.target, "target_type": inv.target_type} for inv in investigations
+        ],
+        "job_status_summary": job_status_summary,
+        "failed_jobs": failed_jobs,
+    }
+    if not include_contact:
+        report = redact_report_json(report)
+    return report
 
 
 class WebError(Exception):
@@ -1184,80 +1333,10 @@ h1{{color:{color};margin:0 0 16px;}}p{{color:#94a3b8;}}a{{color:#65a8ff;}}
         raise WebError(HTTPStatus.NOT_FOUND, "Risorsa caso non trovata.")
 
     def handle_case_profile(self, case_id: str, case: dict) -> None:
-        """Profilo entità aggregato del caso.
-
-        Unisce i findings di tutti i job completati dello stesso caso e
-        ri-esegue la stessa risoluzione entità usata per un singolo job
-        (entities.enrich_case_entities), ma sull'insieme: se un job username
-        e un job email condividono lo stesso valore (es. la stessa email
-        ricompare come finding in entrambi), i due collassano in una sola
-        entità collegata — invece di restare due report affiancati.
-        """
-        from .entities import enrich_case_entities
-        from .models import Evidence as _Ev
-        from .models import Finding as _F
-        from .models import Investigation as _Inv
-
-        jobs = get_storage().list_jobs_by_case(case_id)
-        investigations: list[_Inv] = []
-        include_contact = True
-        for job in jobs:
-            if job.get("status") != "complete":
-                continue
-            json_path = job.get("json_path")
-            if not json_path or not Path(json_path).exists():
-                continue
-            if not bool(job.get("settings", {}).get("include_contact")):
-                include_contact = False
-            raw = json.loads(Path(json_path).read_text(encoding="utf-8"))
-            findings: list[_F] = []
-            for fd in raw.get("findings") or []:
-                try:
-                    ev_list = [_Ev(**e) for e in (fd.get("evidence") or [])]
-                    findings.append(_F(
-                        kind=fd.get("kind", ""),
-                        value=fd.get("value", ""),
-                        confidence=float(fd.get("confidence", 0.5)),
-                        evidence=ev_list,
-                        notes=fd.get("notes", ""),
-                        source_reliability=fd.get("source_reliability", "F"),
-                        info_credibility=int(fd.get("info_credibility", 6)),
-                        severity=fd.get("severity", ""),
-                        attck_ttps=list(fd.get("attck_ttps") or []),
-                    ))
-                except Exception:
-                    continue
-            investigations.append(_Inv.create(
-                target=raw.get("target", ""),
-                target_type=raw.get("target_type", ""),
-                safety_note="",
-                queries=[],
-                search_results=[],
-                pages=[],
-                findings=findings,
-            ))
-
-        if not investigations:
-            raise WebError(HTTPStatus.NOT_FOUND, "Nessun report completato per questo caso.")
-
-        entities, relationships = enrich_case_entities(investigations)
-        merged_findings = [f for inv in investigations for f in inv.findings]
-        from dataclasses import asdict
-        report = {
-            "target": case.get("title") or case_id,
-            "target_type": "case",
-            "safety_note": "Profilo aggregato multi-job dello stesso caso.",
-            "findings": [asdict(f) for f in merged_findings],
-            "search_results": [],
-            "entities": [asdict(e) for e in entities],
-            "relationships": [asdict(r) for r in relationships],
-            "sub_targets": [
-                {"target": inv.target, "target_type": inv.target_type} for inv in investigations
-            ],
-        }
-        if not include_contact:
-            report = redact_report_json(report)
-        return self.send_json(report)
+        """HTTP glue for build_case_profile — see that function for the
+        actual logic (kept separate so it's testable without a real
+        BaseHTTPRequestHandler)."""
+        return self.send_json(build_case_profile(case_id, case))
 
     def handle_job_get(self, path: str, requester: str = "") -> None:
         parts = [part for part in path.split("/") if part]
@@ -1768,7 +1847,11 @@ def create_job(profile: RunProfile, payload: dict, actor: str = "system") -> dic
     # Resolve target case: explicit case_id in payload, or the actor's default case.
     case_id = str(payload.get("case_id") or "").strip()
     if not case_id:
-        case_id = ensure_default_case(actor)
+        case_id = ensure_default_case(
+            actor,
+            target=profile.target,
+            authorized=bool(payload.get("confirm_authorization")),
+        )
     else:
         # Verify the case exists and the actor can see it; raises WebError otherwise.
         read_case(case_id, requester=actor)
@@ -2132,8 +2215,9 @@ def _generate_redteam_report(
 
 
 def execute_job(job_id: str, profile: RunProfile, payload: dict, actor: str = "system") -> None:
-    job = read_job(job_id)
+    job = None
     try:
+        job = read_job(job_id)
         store = get_storage()
         store.append_audit_event(actor, "job_started", {"job_id": job_id, "target_type": profile.target_type})
         if bool(payload.get("allow_darkweb")) and "darkweb" in profile.agents:
@@ -2258,6 +2342,22 @@ def execute_job(job_id: str, profile: RunProfile, payload: dict, actor: str = "s
                 {"job_id": job_id, "case_id": job.get("case_id") or "", "error": str(exc)},
             )
     except Exception as exc:
+        if job is None:
+            # read_job() itself raised -- most commonly the job was
+            # deleted while still "queued" (handle_job_delete allows
+            # deleting a job in any status) between being dequeued and
+            # this call. There's no job dict to update; record the
+            # failure in the audit trail instead of letting it vanish
+            # with only a log line, then stop (nothing to write_job()).
+            LOG.warning("execute_job: could not load job %s: %s", job_id, exc)
+            try:
+                get_storage().append_audit_event(
+                    actor, "job_error",
+                    {"job_id": job_id, "target_type": profile.target_type, "error": str(exc)},
+                )
+            except Exception:
+                pass
+            return
         job.setdefault("progress", []).append({"at": now_iso(), "stage": "error", "message": str(exc)})
         job.update({"status": "error", "updated_at": now_iso(), "error": str(exc)})
         get_storage().append_audit_event(actor, "job_error", {"job_id": job_id, "target_type": profile.target_type, "error": str(exc)})

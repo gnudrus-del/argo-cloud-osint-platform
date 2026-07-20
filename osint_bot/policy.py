@@ -39,6 +39,7 @@ closed on the actions that carry real-world risk.
 """
 from __future__ import annotations
 
+import ipaddress
 import json
 from typing import TYPE_CHECKING
 
@@ -58,6 +59,15 @@ def _target_in_scope(target: str, allowed: list[str]) -> bool:
     ``example.com`` in ``allowed`` matches ``sub.example.com`` too — this
     reflects how analysts think of "domain scope" (the whole tree)
     without forcing the analyst to list every subdomain explicitly.
+    ``*.example.com`` gets the same apex+subtree coverage — accepted as a
+    distinct, more explicit spelling since ``scope.parse_entry()``/the
+    case-scope UI already validate and store it as its own entry kind.
+
+    CIDR entries (``10.0.0.0/24``) match any IPv4/IPv6 address they
+    contain, via real ``ipaddress`` containment rather than string
+    comparison — previously excluded entirely (the ``/`` disqualified
+    them from every branch below), so a case scoped to a whole authorised
+    network denied every single IP in it.
 
     For IPv4 / IPv6 / emails / handles we do a strict case-insensitive
     equality check.
@@ -71,10 +81,21 @@ def _target_in_scope(target: str, allowed: list[str]) -> bool:
         item = (entry or "").strip().lower()
         if not item:
             continue
+        if "/" in item:
+            try:
+                network = ipaddress.ip_network(item, strict=False)
+                ip = ipaddress.ip_address(needle)
+            except ValueError:
+                continue
+            if ip in network:
+                return True
+            continue
+        if item.startswith("*."):
+            item = item[2:]
         if needle == item:
             return True
         # Domain-tree match (only when the allowed entry looks like a domain)
-        if "." in item and "@" not in item and "/" not in item:
+        if "." in item and "@" not in item:
             if needle.endswith("." + item):
                 return True
     return False
@@ -234,6 +255,32 @@ def check_policy(context: ConnectorContext,
                 f"class '{spec.action_class}'. Connector '{spec.name}' "
                 f"blocked."
             )
+
+        # 5. RoE time window. safety.authorize_action (the gate used by
+        # external tools) already enforces valid_from/valid_to via the same
+        # _within_window helper — this path served every native connector
+        # without it, so an expired-but-not-revoked RoE kept silently
+        # authorising gated connectors past its mandate.
+        from datetime import datetime, timezone
+
+        from .safety import _within_window
+        now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        if not _within_window(roe, now_iso):
+            return False, (
+                f"Case '{context.case_id}' RoE is outside its time window "
+                f"(valid_from/valid_to). Connector '{spec.name}' blocked."
+            )
+
+        # 6. Four-eyes. Mirrors safety.authorize_action's equivalent check:
+        # a RoE that requires a second signature for active/darkweb-gated
+        # actions must have one before those classes may run.
+        if roe.get("requires_second_signature") and spec.action_class in {"active-gated", "darkweb-gated"}:
+            if not roe.get("second_signed_at"):
+                return False, (
+                    f"Case '{context.case_id}' RoE requires a second "
+                    f"signature (4-eyes) for '{spec.action_class}' actions. "
+                    f"Connector '{spec.name}' blocked pending co-signature."
+                )
 
     return True, ""
 

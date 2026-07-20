@@ -1,4 +1,5 @@
 import contextlib
+import json
 import tempfile
 import unittest
 from http import HTTPStatus
@@ -148,6 +149,88 @@ class CaseEndpointTests(unittest.TestCase):
             case = create_case({"title": "Shared", "collaborators": ["bob"]}, actor="alice")
             # Bob is in the collaborator list, so he can read.
             self.assertEqual(read_case(case["id"], requester="bob")["id"], case["id"])
+
+
+class BuildCaseProfileTests(unittest.TestCase):
+    """Regression tests for build_case_profile (GET .../profile.json's
+    logic). Before this fix: 0 completed jobs meant a 404 the frontend
+    only console.warn'd, and even when jobs DID complete, agent_results
+    (why a connector returned nothing — missing key, policy_denied,
+    cached, ...) never reached the aggregate case view at all. A user
+    with unconfigured BYOK keys saw "0 evidenze" indistinguishable from
+    "there's genuinely nothing online about this person"."""
+
+    def test_no_jobs_returns_empty_report_not_404(self):
+        from osint_bot.web import build_case_profile, create_case
+
+        with _isolated_storage():
+            case = create_case({"title": "Empty case"}, actor="alice")
+            report = build_case_profile(case["id"], case)
+        self.assertEqual(report["findings"], [])
+        self.assertEqual(report["job_status_summary"], {})
+        self.assertEqual(report["failed_jobs"], [])
+
+    def test_error_job_surfaces_in_failed_jobs_without_leaking_target(self):
+        from osint_bot.web import build_case_profile, create_case, write_job
+
+        with _isolated_storage():
+            case = create_case({"title": "T"}, actor="alice")
+            write_job("a" * 32, {
+                "id": "a" * 32, "owner": "alice", "case_id": case["id"],
+                "status": "error", "error": "boom: connector crashed",
+                "profile": {"target": "secret@example.com", "target_type": "email"},
+                "settings": {},
+            })
+            report = build_case_profile(case["id"], case)
+        self.assertEqual(report["job_status_summary"], {"error": 1})
+        self.assertEqual(len(report["failed_jobs"]), 1)
+        self.assertEqual(report["failed_jobs"][0]["job_id"], "a" * 32)
+        self.assertIn("boom", report["failed_jobs"][0]["error"])
+        self.assertNotIn("target", report["failed_jobs"][0])
+
+    def test_complete_job_merges_findings_and_agent_results(self):
+        from osint_bot.web import build_case_profile, create_case, write_job
+
+        with _isolated_storage() as (tmp, _store):
+            case = create_case({"title": "T"}, actor="alice")
+            report_dir = tmp / "job1"
+            report_dir.mkdir()
+            json_path = report_dir / "report.json"
+            json_path.write_text(json.dumps({
+                "target": "example.com", "target_type": "domain",
+                "findings": [
+                    {"kind": "email_registered", "value": "a@example.com", "confidence": 0.8},
+                ],
+                "agent_results": [{
+                    "name": "connectors", "status": "ok", "summary": "5/12 ok",
+                    "notes": ["cached=1,error=2,missing_key=3,ok=5,policy_denied=1"],
+                    "findings": [],
+                }],
+            }), encoding="utf-8")
+            write_job("b" * 32, {
+                "id": "b" * 32, "owner": "alice", "case_id": case["id"],
+                "status": "complete", "json_path": str(json_path),
+                "settings": {"include_contact": True},
+            })
+            report = build_case_profile(case["id"], case)
+        self.assertEqual(len(report["findings"]), 1)
+        self.assertEqual(report["findings"][0]["value"], "a@example.com")
+        self.assertEqual(len(report["agent_results"]), 1)
+        self.assertEqual(report["agent_results"][0]["name"], "connectors")
+        self.assertIn("cached=1", report["agent_results"][0]["notes"][0])
+        self.assertEqual(report["job_status_summary"], {"complete": 1})
+
+    def test_mixed_statuses_all_counted(self):
+        from osint_bot.web import build_case_profile, create_case, write_job
+
+        with _isolated_storage():
+            case = create_case({"title": "T"}, actor="alice")
+            write_job("c" * 32, {"id": "c" * 32, "owner": "alice", "case_id": case["id"], "status": "queued"})
+            write_job("d" * 32, {"id": "d" * 32, "owner": "alice", "case_id": case["id"], "status": "running"})
+            write_job("e" * 32, {"id": "e" * 32, "owner": "alice", "case_id": case["id"], "status": "error", "error": "x"})
+            report = build_case_profile(case["id"], case)
+        self.assertEqual(report["job_status_summary"], {"queued": 1, "running": 1, "error": 1})
+        self.assertEqual(len(report["failed_jobs"]), 1)
 
 
 if __name__ == "__main__":

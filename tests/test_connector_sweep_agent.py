@@ -214,6 +214,31 @@ class ConnectorSweepAgentTests(unittest.TestCase):
         self.assertEqual(result.status, "skipped")
         self.assertEqual(result.findings, [])
 
+    def test_all_connectors_raising_is_error_not_skipped_regression(self):
+        # Before the fix: if every connector raised before producing a
+        # ConnectorResult (e.g. resolve_api_key blowing up for every call —
+        # a systemic config problem), the final status was "skipped", the
+        # SAME label used for "0 connectors even applicable here" (a
+        # benign case, see the test above). An operator scanning statuses
+        # couldn't tell a systemic failure from "nothing to do here".
+        from osint_bot.agents import ConnectorSweepAgent
+
+        def _boom(cname, actor):
+            raise RuntimeError(f"boom resolving key for {cname}")
+
+        with _isolated_storage() as web:
+            web.CONNECTOR_REGISTRY = _fake_registry()
+            original_resolve = web.resolve_api_key
+            web.resolve_api_key = _boom
+            try:
+                result = ConnectorSweepAgent().run(_context())
+            finally:
+                web.resolve_api_key = original_resolve
+
+        self.assertEqual(result.status, "error")
+        self.assertEqual(result.findings, [])
+        self.assertTrue(any("Falliti con eccezione" in n for n in result.notes), result.notes)
+
     def test_registered_in_run_agents_and_always_on(self):
         from osint_bot.agents import run_agents
         from osint_bot.orchestrator import ALWAYS_ON_AGENTS

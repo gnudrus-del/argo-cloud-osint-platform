@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from osint_bot.connector import (
     ACTION_PASSIVE,
+    MAX_EFFECTIVE_CACHE_TTL,
     BaseConnector,
     ConnectorContext,
     ConnectorRegistry,
@@ -209,6 +210,45 @@ class CacheTests(unittest.TestCase):
         result = conn.run(ctx)
         self.assertEqual(result.status, "cached")
         self.assertTrue(result.cached)
+
+    def test_long_declared_ttl_is_capped_to_effective_ceiling(self):
+        """A connector declaring a 24h cache_ttl (matching several real
+        connectors: maigret, hunter, securitytrails, linkedin2username, ...)
+        must stop serving a cache hit once MAX_EFFECTIVE_CACHE_TTL has
+        elapsed, even though its own declared TTL hasn't. Regression test
+        for the bug where a single process-lifetime cache, keyed only by
+        connector+target (no case/job/actor), made repeat searches
+        silently return hours/days-old findings presented as fresh."""
+        class DayLong(BaseConnector):
+            calls = 0
+            spec = ConnectorSpec(
+                name="daylong",
+                label="DayLong",
+                action_class=ACTION_PASSIVE,
+                input_types=("domain",),
+                output_categories=(),
+                required_key="",
+                cache_ttl=86400,
+                rate_limit=RateLimit(per_minute=100),
+            )
+            def _fetch(self, ctx):
+                DayLong.calls += 1
+                return ConnectorResult(connector="daylong", status="ok")
+
+        conn = DayLong()
+        ctx = _ctx()
+        conn.run(ctx)
+        self.assertEqual(DayLong.calls, 1)
+
+        # Backdate the cache entry past the effective ceiling but still
+        # well inside the connector's own declared 24h TTL.
+        key = conn._cache_key(ctx)
+        ts, cached_result = conn._cache[key]
+        conn._cache[key] = (ts - (MAX_EFFECTIVE_CACHE_TTL + 5), cached_result)
+
+        result = conn.run(ctx)
+        self.assertEqual(result.status, "ok")
+        self.assertEqual(DayLong.calls, 2)
 
 
 class MissingKeyTests(unittest.TestCase):

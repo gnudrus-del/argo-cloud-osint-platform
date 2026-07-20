@@ -114,6 +114,27 @@ document.addEventListener("i18n:changed", () => {
   if (typeof setAuthMode === "function") setAuthMode(state.authMode);
   const activeMode = document.querySelector(".quickMode.active");
   if (activeMode) applyMode(activeMode.dataset.mode);
+
+  // Panels below are built via innerHTML with t() resolved once at
+  // render time, not through [data-i18n] markup — switching language
+  // left them stuck in whatever language they were last rendered in
+  // until the user happened to re-trigger that specific view. Re-render
+  // only the panel actually visible right now, not all of them.
+  const panelReloaders = {
+    dashboard: loadDashboard,
+    jobs: loadJobs,
+    cases: loadCases,
+    keys: loadApiKeys,
+  };
+  const reload = panelReloaders[state.currentPanel];
+  if (typeof reload === "function") reload();
+
+  // The entity profile isn't one of the main nav panels above — re-render
+  // it directly (same data, just re-translated) if one is currently open.
+  const profileCard = $("entityProfileCard");
+  if (state.lastReport && profileCard && !profileCard.classList.contains("hidden")) {
+    showEntityProfile(state.lastReport);
+  }
 });
 
 $("loginTab").addEventListener("click", () => setAuthMode("login"));
@@ -1355,15 +1376,26 @@ function buildCombinedJobSpecs(entities, caseId) {
 // pollJob): quando l'ultimo completa, apre il profilo di caso aggregato.
 function pollCombinedJobs(ids, caseId) {
   const pending = new Set(ids);
-  clearInterval(state.combinedPollTimer);
-  state.combinedPollTimer = setInterval(async () => {
+  // `timer` is local to this call, not shared state: before, a single
+  // state.combinedPollTimer slot meant starting a second search before
+  // the first finished polling silently cancelled the first one's
+  // interval — its jobs kept running server-side, but nothing polled
+  // them and its results never appeared. Each call now owns its own
+  // interval, so concurrent searches (e.g. correcting a typo and
+  // re-launching before the first finishes) no longer stomp each other.
+  const timer = setInterval(async () => {
     await loadJobs();
     for (const id of [...pending]) {
       try {
         const job = await api(`/api/jobs/${id}`);
         if (job.status === "complete" || job.status === "error") pending.delete(id);
       } catch (e) {
-        pending.delete(id);
+        // 404 = the job is genuinely gone (deleted) — stop waiting on
+        // it. Anything else (network blip, 5xx, ...) is transient:
+        // leave it in pending and retry next tick, instead of
+        // declaring the whole search "done" while it may still be
+        // running server-side.
+        if (e.status === 404) pending.delete(id);
       }
     }
     if ($("planStatus")) {
@@ -1372,7 +1404,7 @@ function pollCombinedJobs(ids, caseId) {
         : t("inv.combined.done");
     }
     if (!pending.size) {
-      clearInterval(state.combinedPollTimer);
+      clearInterval(timer);
       await openCaseProfile(caseId);
     }
   }, 1800);
@@ -1385,7 +1417,13 @@ async function openCaseProfile(caseId) {
     state.lastReport = report;
     showEntityProfile(report);
   } catch (err) {
+    // Was a silent console.warn: the search could finish, this endpoint
+    // could fail, and the user saw planStatus stuck on "Completato" with
+    // zero indication anything went wrong.
     console.warn("Profilo di caso non disponibile:", err.message || err);
+    if ($("planStatus")) {
+      $("planStatus").textContent = t("inv.combined.profileError", { error: err.message || String(err) });
+    }
   }
 }
 
@@ -2636,6 +2674,12 @@ function routeGlobalSearch(value) {
   const isEmail = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(v);
   const isHandle = /^@[a-z0-9._-]+/i.test(v);
   const isCrypto = /^(bc1|[13]|0x)[a-z0-9]{25,}/i.test(v);
+  // Free text made of letters/spaces (e.g. "Mario Rossi"): a person's name,
+  // not a domain. Without this check it fell through to the domain branch
+  // below and populated domainTarget — the entire person/handle connector
+  // toolchain (sherlock_lite, maigret, toutatis, ...) never ran for the
+  // single most common search on this product: a plain name.
+  const isPersonName = /^[a-zà-ÿ'\-. ]{3,80}$/i.test(v) && v.includes(" ");
   if (isEmail) {
     applyMode("contact");
     const first = document.querySelector(".email-input");
@@ -2645,6 +2689,9 @@ function routeGlobalSearch(value) {
   } else if (isCrypto) {
     applyMode("crypto");
     if ($("walletTarget")) $("walletTarget").value = v;
+  } else if (isPersonName) {
+    applyMode("domain");
+    fillTargetField(v, "person");
   } else {
     applyMode("domain");
     if ($("domainTarget")) $("domainTarget").value = v;
@@ -2699,14 +2746,18 @@ function showEntityProfile(report) {
     `;
   }
 
-  // Tabs
+  // Tabs. .onclick (not addEventListener) on purpose: the markup is
+  // static and never recreated, so addEventListener here would attach a
+  // new listener on every showEntityProfile() call — one accumulating
+  // per tab per profile opened in the session. Property assignment always
+  // replaces the previous handler instead of stacking another one.
   const tabs = document.querySelectorAll(".entityTab");
   tabs.forEach((tabEl) => {
-    tabEl.addEventListener("click", () => {
+    tabEl.onclick = () => {
       tabs.forEach((x) => x.classList.remove("active"));
       tabEl.classList.add("active");
       renderEntityTab(tabEl.dataset.etab, report);
-    });
+    };
   });
 
   // Pivot + report buttons
@@ -2903,6 +2954,22 @@ function renderAiSuggestionsList(result, listEl, entities, caseId) {
   });
 }
 
+// Quando 0 finding, spiega il perché invece di lasciare un avviso generico
+// indistinguibile da "non c'è nulla online su questo target": conta gli
+// stati dei job non completati e riprende la nota del connector sweep
+// (es. "cached=1,error=2,missing_key=5,ok=3,policy_denied=1").
+function summarizeZeroResultsReason(report) {
+  const parts = [];
+  const jss = report.job_status_summary || {};
+  const nonComplete = Object.entries(jss).filter(([k]) => k !== "complete");
+  if (nonComplete.length) parts.push(nonComplete.map(([k, c]) => `${c} ${k}`).join(", "));
+  const failed = report.failed_jobs || [];
+  if (failed.length && failed[0].error) parts.push(String(failed[0].error).slice(0, 140));
+  const connAgent = (report.agent_results || []).find((a) => a.name === "connectors");
+  if (connAgent && connAgent.notes && connAgent.notes.length) parts.push(connAgent.notes[0]);
+  return parts.join(" — ");
+}
+
 function renderEntityOverview(report, entities, findings) {
   const n = entities.length;
   const byType = {};
@@ -2916,7 +2983,10 @@ function renderEntityOverview(report, entities, findings) {
   const avgConf = entities.length
     ? entities.reduce((s, e) => s + Number(e.confidence || 0), 0) / entities.length : 0;
   const warns = [];
-  if (!findings.length) warns.push(t("en.noEvidence"));
+  if (!findings.length) {
+    const reason = summarizeZeroResultsReason(report);
+    warns.push(reason ? `${t("en.noEvidence")} (${reason})` : t("en.noEvidence"));
+  }
   if (entities.length && avgConf < 0.45) warns.push(t("en.lowConfidence"));
   const nameLike = entities.filter((e) => ["person", "username", "handle"].includes(e.type));
   const distinctNames = new Set(nameLike.map((e) => String(e.value || "").toLowerCase()));
@@ -2978,27 +3048,42 @@ function evidenceHostLabel(url) {
 
 function renderEvidencesTab(findings) {
   if (!findings.length) return `<div class="entityTabEmpty">${t("en.noFindingsReport")}</div>`;
+  const renderRows = (list) => list.map((f) => {
+    const links = (f.evidence || [])
+      .filter((ev) => ev && ev.url)
+      .slice(0, 3)
+      .map((ev) => `<a href="${escapeHtml(ev.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(ev.title || ev.url)}">${escapeHtml(evidenceHostLabel(ev.url))}</a>`)
+      .join(", ");
+    return `
+      <tr>
+        <td><span class="providerBadge ${f.severity === "critical" || f.severity === "high" ? "ko" : f.severity === "medium" ? "warn" : "neutral"}">${escapeHtml(f.severity || "info")}</span></td>
+        <td style="font-size:12px">${escapeHtml(f.kind || "—")}</td>
+        <td style="font-family:var(--font-mono);font-size:12px">${escapeHtml(String(f.value || "").slice(0, 80))}</td>
+        <td>${Math.round(Number(f.confidence || 0) * 100)}%</td>
+        <td style="font-size:12px">${links || '<span style="color:var(--muted)">—</span>'}</td>
+      </tr>`;
+  }).join("");
+  const head = `<thead><tr><th>Severity</th><th>${t("th.type")}</th><th>${t("th.value")}</th><th>${t("th.confidence")}</th><th>${t("th.source")}</th></tr></thead>`;
+  // Prima del fix: troncava a 50 senza dirlo, e i finding del connector
+  // sweep (l'elemento differenziante del prodotto, ~60 connettori) sono
+  // strutturalmente gli ultimi ad essere accodati — quindi i primi a
+  // sparire non appena altri agenti producevano già 50+ finding. Ora resta
+  // tutto nel DOM: il resto è solo collassato di default, non perso.
+  const visible = findings.slice(0, 50);
+  const rest = findings.slice(50);
   return `
     <table class="entityTable">
-      <thead><tr><th>Severity</th><th>${t("th.type")}</th><th>${t("th.value")}</th><th>${t("th.confidence")}</th><th>${t("th.source")}</th></tr></thead>
-      <tbody>
-        ${findings.slice(0, 50).map((f) => {
-          const links = (f.evidence || [])
-            .filter((ev) => ev && ev.url)
-            .slice(0, 3)
-            .map((ev) => `<a href="${escapeHtml(ev.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(ev.title || ev.url)}">${escapeHtml(evidenceHostLabel(ev.url))}</a>`)
-            .join(", ");
-          return `
-          <tr>
-            <td><span class="providerBadge ${f.severity === "critical" || f.severity === "high" ? "ko" : f.severity === "medium" ? "warn" : "neutral"}">${escapeHtml(f.severity || "info")}</span></td>
-            <td style="font-size:12px">${escapeHtml(f.kind || "—")}</td>
-            <td style="font-family:var(--font-mono);font-size:12px">${escapeHtml(String(f.value || "").slice(0, 80))}</td>
-            <td>${Math.round(Number(f.confidence || 0) * 100)}%</td>
-            <td style="font-size:12px">${links || '<span style="color:var(--muted)">—</span>'}</td>
-          </tr>`;
-        }).join("")}
-      </tbody>
+      ${head}
+      <tbody>${renderRows(visible)}</tbody>
     </table>
+    ${rest.length ? `
+      <details class="triageNoiseGroup">
+        <summary>${escapeHtml(t("ev.showMore", { n: rest.length }))}</summary>
+        <table class="entityTable">
+          ${head}
+          <tbody>${renderRows(rest)}</tbody>
+        </table>
+      </details>` : ""}
   `;
 }
 
@@ -3029,8 +3114,24 @@ function renderAuditTab(report) {
   const agents = report.agent_results || [];
   const rows = agents.map((a) =>
     `<tr><td>${escapeHtml(a.name || "—")}</td><td>${escapeHtml(a.status || "—")}</td>` +
-    `<td style="font-size:12px;color:var(--muted)">${escapeHtml(String(a.summary || "").slice(0, 120))}</td></tr>`
+    `<td style="font-size:12px;color:var(--muted)">${escapeHtml(String(a.summary || "").slice(0, 120))}</td>` +
+    `<td style="font-size:12px;color:var(--muted)">${escapeHtml((a.notes || []).join(" · ").slice(0, 200))}</td></tr>`
   ).join("");
+  // job_status_summary/failed_jobs: solo sul profilo aggregato di caso
+  // (build_case_profile), assenti sul report di un singolo job — entrambi
+  // guardati, non richiesti.
+  const jss = report.job_status_summary || {};
+  const jssEntries = Object.entries(jss);
+  const failed = report.failed_jobs || [];
+  const jobStatusHtml = jssEntries.length ? `
+    <h4 style="margin:16px 0 8px">${t("au.jobStatus")}</h4>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 8px">
+      ${jssEntries.map(([k, c]) => `${c} ${escapeHtml(k)}`).join(" · ")}
+    </p>
+    ${failed.length ? `<ul class="auditQueries">${failed.map((f) =>
+      `<li>${escapeHtml(f.job_id || "")}: ${escapeHtml(f.error || "")}</li>`
+    ).join("")}</ul>` : ""}
+  ` : "";
   return `
     <p style="color:var(--muted);font-size:13px;margin:0 0 12px">${t("au.intro")}</p>
     <div class="auditMeta">
@@ -3038,10 +3139,11 @@ function renderAuditTab(report) {
       <div><strong>Target</strong>: ${escapeHtml(report.target || "—")} (${escapeHtml(report.target_type || "—")})</div>
       <div><strong>${t("au.queriesRun")}</strong>: ${queries.length}</div>
     </div>
+    ${jobStatusHtml}
     ${agents.length ? `
       <h4 style="margin:16px 0 8px">${t("au.modulesRun")}</h4>
       <table class="entityTable">
-        <thead><tr><th>${t("au.agent")}</th><th>${t("au.status")}</th><th>${t("au.summary")}</th></tr></thead>
+        <thead><tr><th>${t("au.agent")}</th><th>${t("au.status")}</th><th>${t("au.summary")}</th><th>${t("au.notes")}</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>` : ""}
     ${queries.length ? `

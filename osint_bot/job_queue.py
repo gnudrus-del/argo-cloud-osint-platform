@@ -16,11 +16,14 @@ Two flavours of work are accepted:
 
 from __future__ import annotations
 
+import logging
 import queue
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 JobSpecDict = dict[str, Any]
 Dispatcher = Callable[[JobSpecDict], None]
@@ -116,5 +119,16 @@ class JobQueue:
                 continue
             try:
                 queued.handler()
+            except Exception:
+                # A handler that raises must never kill this thread: nothing
+                # restarts it until an unrelated new job happens to call
+                # _ensure_worker(), so every job already queued behind this
+                # one would stay stuck in "queued" indefinitely — silently,
+                # since queue.Queue has no default exception hook. The
+                # dispatcher (execute_job) already catches almost everything
+                # internally and marks the job "error" in storage; this is
+                # the backstop for whatever raises before/outside that (e.g.
+                # read_job() on a job deleted while still queued).
+                logger.exception("Job handler raised for job_id=%s", queued.job_id)
             finally:
                 self._queue.task_done()

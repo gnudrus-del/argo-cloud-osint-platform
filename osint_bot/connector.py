@@ -119,6 +119,17 @@ class Connector(Protocol):
         ...
 
 
+# Hard ceiling on any connector's *effective* cache TTL. Individual
+# connectors may declare longer values in their ConnectorSpec (some go up
+# to 86400s / 24h, meant to protect scarce BYOK monthly quotas), but a tool
+# whose whole purpose is "find current information" must never silently
+# serve hours/days-old findings as if they were freshly collected — see the
+# cache check in BaseConnector.run() below. This clamps what's actually
+# honoured at request time; each connector's declared cache_ttl is left
+# untouched elsewhere (docs/introspection still show the original value).
+MAX_EFFECTIVE_CACHE_TTL = 120  # seconds
+
+
 # ---------------------------------------------------------------------------
 # BaseConnector: provides rate-limiting + caching + provenance
 # ---------------------------------------------------------------------------
@@ -163,12 +174,13 @@ class BaseConnector:
 
         # Cache check
         cache_key = self._cache_key(context)
-        if self.spec.cache_ttl > 0:
+        effective_ttl = min(self.spec.cache_ttl, MAX_EFFECTIVE_CACHE_TTL)
+        if effective_ttl > 0:
             with self._lock:
                 entry = self._cache.get(cache_key)
                 if entry:
                     ts, cached_result = entry
-                    if time.time() - ts < self.spec.cache_ttl:
+                    if time.time() - ts < effective_ttl:
                         result = ConnectorResult(
                             connector=cached_result.connector,
                             status="cached",

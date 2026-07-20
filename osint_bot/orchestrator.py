@@ -16,6 +16,7 @@ from .patterns import (
 from .patterns import (
     PHONE_LOOSE_RE as PHONE_RE,
 )
+from .target_classifier import classify_target
 
 
 @dataclass
@@ -128,7 +129,13 @@ def infer_target_type(target: str, text: str) -> str:
         return "domain"
     if "azienda" in lower or "company" in lower or "societa" in lower:
         return "company"
-    return "company"
+    # No keyword/pattern matched: don't silently assume "company" — that
+    # excludes the entire person/handle connector toolchain (sherlock_lite,
+    # maigret, toutatis, ...) for the single most common case, a plain
+    # person name with no magic word ("Mario Rossi"). Defer to the more
+    # thorough free-text classifier (already tested, already the
+    # documented fallback for exactly this ambiguity).
+    return classify_target(target).type
 
 
 # Agenti sempre attivi su ogni ricerca del sito. Includono tutti gli agenti

@@ -51,8 +51,16 @@ _SPEC = ConnectorSpec(
 
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 # Riga di risultato holehe: "[+] amazon.com". Richiedo un dominio (con punto)
-# per escludere la legenda "[+] Email used, ...".
-_HIT_RE = re.compile(r"^\[\+\]\s+([a-z0-9][a-z0-9.\-]*\.[a-z]{2,})\s*$", re.IGNORECASE)
+# per escludere la legenda "[+] Email used, ...". holehe (core.py::print_result)
+# appende dati extra alla STESSA riga quando li trova — "[+] gravatar.com
+# em***@x.com / FullName Mario Rossi" — proprio gli hit più ricchi di
+# informazioni. Il testo dopo il dominio è quindi facoltativo, non vietato:
+# un `$` subito dopo il dominio scartava per intero ogni hit con contenuto
+# extra invece di limitarsi a non parsarlo.
+_HIT_RE = re.compile(r"^\[\+\]\s+([a-z0-9][a-z0-9.\-]*\.[a-z]{2,})(?:\s+(.*))?$", re.IGNORECASE)
+# Dentro il testo extra: "... / FullName Mario Rossi / Date, time of the
+# creation ...". Cattura fino al separatore successivo o a fine stringa.
+_FULLNAME_RE = re.compile(r"FullName\s+(.+?)(?:\s*/\s*Date, time of the creation|$)", re.IGNORECASE)
 
 
 def _config() -> dict:
@@ -95,18 +103,32 @@ def _parse_recovery_csv(csv_dir: str) -> list[dict]:
     return hits
 
 
-def _parse_stdout(text: str) -> list[str]:
-    """Estrae i domini dove l'email risulta usata dalle righe '[+] dominio'."""
-    domains: list[str] = []
+def _parse_stdout(text: str) -> list[dict]:
+    """Estrae i domini dove l'email risulta usata dalle righe '[+] dominio'.
+
+    Ogni hit porta anche l'eventuale FullName trovato sulla stessa riga
+    (gravatar/protonmail/odnoklassniki spesso lo espongono) — il dato più
+    prezioso per una ricerca-persona, in precedenza scartato insieme
+    all'intero hit da un regex troppo rigido.
+    """
+    hits: list[dict] = []
     seen: set[str] = set()
     for line in (text or "").splitlines():
         m = _HIT_RE.match(line.strip())
-        if m:
-            d = m.group(1).lower()
-            if d not in seen and d != "email":  # guardia extra sulla legenda
-                seen.add(d)
-                domains.append(d)
-    return domains
+        if not m:
+            continue
+        domain = m.group(1).lower()
+        if domain in seen or domain == "email":  # guardia extra sulla legenda
+            continue
+        seen.add(domain)
+        extra = (m.group(2) or "").strip()
+        full_name = ""
+        if extra:
+            fm = _FULLNAME_RE.search(extra)
+            if fm:
+                full_name = fm.group(1).strip(" /")
+        hits.append({"domain": domain, "full_name": full_name})
+    return hits
 
 
 class HoleheConnector(BaseConnector):
@@ -144,11 +166,12 @@ class HoleheConnector(BaseConnector):
                 return ConnectorResult(connector=self.spec.name, status="error",
                                        error=_t("holehe.execution_failed", context.lang, error=str(exc)))
 
-            domains = _parse_stdout(proc.stdout)
+            hits = _parse_stdout(proc.stdout)
             recovery = _parse_recovery_csv(tmp)  # dentro il with: il CSV è in tmp
 
         findings: list[Finding] = []
-        for d in domains:
+        for h in hits:
+            d = h["domain"]
             findings.append(Finding(
                 kind="email_registered", value=d,
                 confidence=0.85, source_reliability="B", info_credibility=2,
@@ -156,6 +179,14 @@ class HoleheConnector(BaseConnector):
                 notes=_t("holehe.registered_notes", context.lang, domain=d),
                 why_linked=[_t("holehe.registered_why_linked", context.lang, email=email, domain=d)],
             ))
+            if h["full_name"]:
+                findings.append(Finding(
+                    kind="person_name_hint", value=h["full_name"],
+                    confidence=0.6, source_reliability="C", info_credibility=3,
+                    evidence=[Evidence(url=f"https://{d}", title=d)],
+                    notes=_t("holehe.fullname_hint_notes", context.lang, domain=d, email=email),
+                    why_linked=[_t("holehe.fullname_hint_why_linked", context.lang, domain=d, email=email)],
+                ))
         # Hint di recupero (email/telefono mascherati esposti da alcuni siti).
         for h in recovery:
             if "email" in h["kind"]:
@@ -172,7 +203,7 @@ class HoleheConnector(BaseConnector):
         return ConnectorResult(
             connector=self.spec.name, status="ok",
             findings=findings,
-            raw={"registered_on": domains, "count": len(domains),
+            raw={"registered_on": [h["domain"] for h in hits], "count": len(hits),
                  "recovery_hints": len(recovery), "engine": "holehe"},
         )
 

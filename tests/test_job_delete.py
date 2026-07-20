@@ -113,6 +113,30 @@ class DeleteJobTests(unittest.TestCase):
             j = read_job(job["id"], requester="alice")
         self.assertEqual(j["id"], job["id"])
 
+    def test_execute_job_on_deleted_queued_job_does_not_raise_regression(self):
+        # Regression: handle_job_delete lets a job in ANY status (including
+        # "queued") be deleted. If the worker then dequeues that job_id,
+        # execute_job's read_job() raises. Before the fix, that exception
+        # propagated straight out of execute_job — job_queue.py's own fix
+        # (a try/except around the handler call) stops it from killing the
+        # worker thread, but this test verifies the deeper fix: the
+        # specific failure is now recorded (job_error audit event) instead
+        # of vanishing into a server log line with zero trace for this
+        # job_id, and execute_job itself never raises.
+        from osint_bot.web import create_job, execute_job, get_storage
+
+        with _isolated_storage() as (_, store):
+            job = create_job(_profile(), {}, actor="alice")
+            job_id = job["id"]
+            store.delete_job(job_id)  # same effect as handle_job_delete
+            try:
+                execute_job(job_id, _profile(), {}, actor="alice")
+            except Exception as exc:  # pragma: no cover - defect, not expected
+                self.fail(f"execute_job raised instead of handling the missing job: {exc}")
+            events = [e for e in get_storage().all_audit_events()
+                      if e["action"] == "job_error" and e["details"].get("job_id") == job_id]
+        self.assertEqual(len(events), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

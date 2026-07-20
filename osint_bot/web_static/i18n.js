@@ -396,6 +396,7 @@
     "inv.combined.launched": { en: "{n} searches launched together. Follow progress in Reports.", it: "{n} ricerche avviate insieme. Segui l'avanzamento in Report." },
     "inv.combined.running": { en: "running: {done}/{total} complete", it: "in corso: {done}/{total} completate" },
     "inv.combined.done": { en: "all searches complete — opening the linked profile", it: "tutte le ricerche completate — apro il profilo collegato" },
+    "inv.combined.profileError": { en: "Searches finished but the case profile couldn't load: {error}", it: "Ricerche concluse ma il profilo del caso non si è caricato: {error}" },
     "inv.plan": { en: "Automatic plan", it: "Piano automatico" },
     "inv.plan.pending": { en: "pending", it: "in attesa" },
     "inv.plan.empty": { en: "Fill in the fields and generate the preview.", it: "Compila i campi e genera l'anteprima." },
@@ -782,6 +783,8 @@
     "au.status": { en: "Status", it: "Stato" },
     "au.summary": { en: "Summary", it: "Sintesi" },
     "au.verifiableQueries": { en: "Verifiable queries", it: "Query verificabili" },
+    "au.notes": { en: "Notes", it: "Note" },
+    "au.jobStatus": { en: "Job status", it: "Stato dei job" },
 
     // app.js coda: suggested actions
     "sa.subdomains": { en: "Search subdomains", it: "Cerca sottodomini" },
@@ -862,6 +865,7 @@
     "ai.triage.bucket.low": { en: "Low", it: "Bassa" },
     "ai.triage.bucket.noise": { en: "Noise", it: "Rumore" },
     "ai.triage.showMore": { en: "Show {n} low-priority findings", it: "Mostra {n} finding a bassa priorità" },
+    "ev.showMore": { en: "Show {n} more findings", it: "Mostra altri {n} finding" },
     "ai.triage.fallbackRationale": { en: "(fallback: no AI assessment received)", it: "(fallback: nessuna valutazione AI ricevuta)" },
     "ai.triage.coverageNote": { en: "Note: {ai} of {total} findings ranked by AI, the rest use the deterministic fallback.", it: "Nota: {ai} finding su {total} valutati dall'AI, gli altri usano il fallback deterministico." },
 

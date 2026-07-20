@@ -20,6 +20,7 @@ from .report import save_report
 from .safety import SafetyError, assess_request
 from .search import SearchConfig, SearchError, build_queries, dedupe_results, search_many
 from .service_links import service_link_results
+from .target_classifier import classify_target
 
 TARGET_TYPES = ("domain", "company", "org", "person", "handle", "email", "phone", "crypto", "ip", "media")
 AGENTS = ("all", "planner", "web", "external", "opsec", "crypto", "media", "geo", "socmint", "phone", "darkweb", "humint")
@@ -163,6 +164,13 @@ def run_investigation(args: argparse.Namespace) -> tuple[Path | None, Path | Non
         args.seed_url = [*args.seed_url, *profile.seed_urls]
         args.depth = max(args.depth, profile.depth)
         args.max_pages = max(args.max_pages, profile.max_pages)
+    elif args.target and args.type == "company":
+        # Bare positional target, no --command: --type sits at its argparse
+        # default ("company"), indistinguishable from an explicit choice.
+        # Mirrors the same "company" == "unset" sentinel used above for the
+        # --command path — infer instead of silently assuming "company" for
+        # e.g. `osint-bot "Mario Rossi"`.
+        args.type = classify_target(args.target).type
 
     if not args.target:
         raise SafetyError("Specifica un target oppure usa --command con un comando da cui inferirlo.")
